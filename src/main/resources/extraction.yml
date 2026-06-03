@@ -1,0 +1,34 @@
+# inputs: vanilla Material names, or "atom:C" for an atom input. {} means no input.
+# outputs: element symbols -> count. icon: which element's colour/icon represents the recipe.
+recipes:
+  # --- Panning (native elements) ---
+  - { id: pan_gold,      station: panning,        icon: Au, label: "Pan for gold",                 inputs: { RAW_GOLD: 1 },              outputs: { Au: 1 } }
+  - { id: dig_sulfur,    station: panning,        icon: S,  label: "Collect native sulfur",        inputs: {},                           outputs: { S: 1 } }
+  - { id: pan_silver,    station: panning,        icon: Ag, label: "Pan for native silver",        inputs: {},                           outputs: { Ag: 1 } }
+
+  # --- Air separation (cool air, boil off the gases) ---
+  - { id: air_nitrogen,  station: air_separation, icon: N,  label: "Separate nitrogen from air",   inputs: {},                           outputs: { N: 1 } }
+  - { id: air_oxygen,    station: air_separation, icon: O,  label: "Separate oxygen from air",     inputs: {},                           outputs: { O: 1 } }
+  - { id: air_argon,     station: air_separation, icon: Ar, label: "Separate argon from air",      inputs: {},                           outputs: { Ar: 1 } }
+  - { id: air_neon,      station: air_separation, icon: Ne, label: "Separate neon from air",       inputs: {},                           outputs: { Ne: 1 } }
+  - { id: air_helium,    station: air_separation, icon: He, label: "Capture helium",               inputs: {},                           outputs: { He: 1 } }
+
+  # --- Smelter (ore + carbon fuel). Carbon itself comes from burning wood. ---
+  - { id: smelt_carbon,  station: smelter,        icon: C,  label: "Burn wood into charcoal",      inputs: { OAK_LOG: 1 },               outputs: { C: 1 } }
+  - { id: smelt_iron,    station: smelter,        icon: Fe, label: "Smelt iron ore (needs carbon)",inputs: { RAW_IRON: 1, "atom:C": 1 }, outputs: { Fe: 1 } }
+  - { id: smelt_copper,  station: smelter,        icon: Cu, label: "Smelt copper ore (needs carbon)",inputs: { RAW_COPPER: 1, "atom:C": 1 }, outputs: { Cu: 1 } }
+  - { id: smelt_silicon, station: smelter,        icon: Si, label: "Smelt sand (needs carbon)",    inputs: { SAND: 1, "atom:C": 1 },     outputs: { Si: 1 } }
+  - { id: smelt_zinc,    station: smelter,        icon: Zn, label: "Smelt zinc ore (needs carbon)",inputs: { "atom:C": 1 },              outputs: { Zn: 1 } }
+  - { id: smelt_boron,   station: smelter,        icon: B,  label: "Smelt borax (needs carbon)",   inputs: { "atom:C": 1 },              outputs: { B: 1 } }
+  - { id: smelt_phos,    station: smelter,        icon: P,  label: "Smelt phosphate (needs carbon)",inputs: { "atom:C": 1 },             outputs: { P: 1 } }
+
+  # --- Electrolysis (needs power = redstone). Splits compounds. ---
+  - { id: elec_water,    station: electrolysis,   icon: O,  label: "Split water -> H + O",         inputs: { REDSTONE: 1 },              outputs: { H: 2, O: 1 } }
+  - { id: elec_salt,     station: electrolysis,   icon: Cl, label: "Split molten salt -> Na + Cl", inputs: { REDSTONE: 1 },              outputs: { Na: 1, Cl: 1 } }
+  - { id: elec_aluminium,station: electrolysis,   icon: Al, label: "Free aluminium from bauxite",  inputs: { RED_SAND: 1, REDSTONE: 1 }, outputs: { Al: 1 } }
+  - { id: elec_calcium,  station: electrolysis,   icon: Ca, label: "Free calcium from limestone",  inputs: { CALCITE: 1, REDSTONE: 1 },  outputs: { Ca: 1 } }
+  - { id: elec_magnesium,station: electrolysis,   icon: Mg, label: "Free magnesium",               inputs: { REDSTONE: 1 },              outputs: { Mg: 1 } }
+  - { id: elec_potassium,station: electrolysis,   icon: K,  label: "Free potassium",               inputs: { REDSTONE: 1 },              outputs: { K: 1 } }
+  - { id: elec_lithium,  station: electrolysis,   icon: Li, label: "Free lithium",                 inputs: { REDSTONE: 1 },              outputs: { Li: 1 } }
+  - { id: elec_beryllium,station: electrolysis,   icon: Be, label: "Free beryllium",               inputs: { REDSTONE: 1 },              outputs: { Be: 1 } }
+  - { id: elec_fluorine, station: electrolysis,   icon: F,  label: "Free fluorine (careful!)",     inputs: { REDSTONE: 1 },              outputs: { F: 1 } }

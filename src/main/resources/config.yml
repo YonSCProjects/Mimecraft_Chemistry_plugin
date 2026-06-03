@@ -1,0 +1,29 @@
+world: world
+
+plot:
+  size: 96
+  gap: 8
+  origin-x: 0
+  origin-z: 0
+  ground-y: 64
+  per-row: 8
+
+wall:
+  offset-x: 8
+  offset-y: 65
+  offset-z: 4
+  tile-spacing: 2
+
+# Right-click one of these blocks to open the matching station.
+stations:
+  panning: COPPER_BLOCK
+  air_separation: BLUE_ICE
+  smelter: BLAST_FURNACE
+  electrolysis: SEA_LANTERN
+  reactor: FURNACE
+
+atoms:
+  base-model-data: 7000
+
+molecules:
+  base-model-data: 8000

@@ -1,0 +1,60 @@
+# Recognised when every atom's valence is satisfied AND the composition matches.
+# Bond orders are forced correct by valence (e.g. O2 can only complete as a double bond).
+molecules:
+  hydrogen_gas:
+    name: "Hydrogen gas"
+    display: "H2"
+    atoms: { H: 2 }
+    fact: "The lightest molecule, and the fuel of stars and rockets."
+  oxygen_gas:
+    name: "Oxygen gas"
+    display: "O2"
+    atoms: { O: 2 }
+    fact: "Held together by a double bond - the air you breathe and what fire needs."
+  nitrogen_gas:
+    name: "Nitrogen gas"
+    display: "N2"
+    atoms: { N: 2 }
+    fact: "A triple bond makes it so stable that 78% of the air just sits there unreacted."
+  water:
+    name: "Water"
+    display: "H2O"
+    atoms: { H: 2, O: 1 }
+    fact: "Expands when it freezes - that's why ice floats and fish survive winter."
+    reward: WATER_BUCKET
+  carbon_dioxide:
+    name: "Carbon dioxide"
+    display: "CO2"
+    atoms: { C: 1, O: 2 }
+    fact: "You breathe it out, plants breathe it in, and it makes soda fizz."
+  methane:
+    name: "Methane"
+    display: "CH4"
+    atoms: { C: 1, H: 4 }
+    fact: "Natural gas - and there are whole lakes of it on Saturn's moon Titan."
+  ammonia:
+    name: "Ammonia"
+    display: "NH3"
+    atoms: { N: 1, H: 3 }
+    fact: "Turned into fertilizer, it feeds roughly half the people on Earth."
+  hydrogen_chloride:
+    name: "Hydrogen chloride"
+    display: "HCl"
+    atoms: { H: 1, Cl: 1 }
+    fact: "Dissolve it in water and you get the acid in your own stomach."
+  salt:
+    name: "Salt"
+    display: "NaCl"
+    atoms: { Na: 1, Cl: 1 }
+    fact: "A metal that explodes in water plus a poison gas - that you sprinkle on fries."
+  glucose:
+    name: "Glucose"
+    display: "C6H12O6"
+    atoms: { C: 6, H: 12, O: 6 }
+    fact: "Sugar - what plants build out of sunlight, air and water. The hardest one to assemble!"
+    reward: SUGAR
+  chlorine_gas:
+    name: "Chlorine gas"
+    display: "Cl2"
+    atoms: { Cl: 2 }
+    fact: "A choking yellow-green gas - two chlorine atoms sharing a single bond."

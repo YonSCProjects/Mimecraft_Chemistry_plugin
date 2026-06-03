@@ -1,0 +1,10 @@
+name: ChemCraft
+version: 0.1.0
+main: com.agurim.chemcraft.ChemCraftPlugin
+api-version: '1.21'
+description: Teaches chemistry basics through exploration and building.
+commands:
+  chemcraft:
+    description: ChemCraft commands
+    usage: /chemcraft <tp|discover|reset|buildwall|reload>
+    aliases: [cc]

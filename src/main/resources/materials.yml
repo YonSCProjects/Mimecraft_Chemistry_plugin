@@ -1,0 +1,8 @@
+# Build a 2x2x2 cube of atoms and it crystallises into a real block.
+# pattern: uniform (all one element) or checker (two elements alternating by corner).
+materials:
+  diamond:      { pattern: uniform, element: C,  result: DIAMOND_BLOCK, name: "Diamond",       fact: "Diamond is pure carbon locked in a rigid lattice - the hardest natural material." }
+  iron_block:   { pattern: uniform, element: Fe, result: IRON_BLOCK,    name: "Iron block",     fact: "Metal atoms pack together and share a sea of electrons - that's why metals conduct." }
+  copper_block: { pattern: uniform, element: Cu, result: COPPER_BLOCK,  name: "Copper block",   fact: "A copper lattice - it'll slowly turn green in the rain, like the Statue of Liberty." }
+  gold_block:   { pattern: uniform, element: Au, result: GOLD_BLOCK,    name: "Gold block",     fact: "Gold's lattice never tarnishes - that's why ancient gold still shines." }
+  salt_crystal: { pattern: checker, elements: [Na, Cl], result: WHITE_CONCRETE, name: "Salt crystal", fact: "A salt crystal is sodium and chlorine stacked in an endlessly repeating cube." }
