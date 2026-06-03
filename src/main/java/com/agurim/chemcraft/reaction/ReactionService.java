@@ -34,9 +34,15 @@ public class ReactionService {
                     String.valueOf(raw.get("label")),
                     toCountMap(raw.get("inputs")),
                     toCountMap(raw.get("outputs")),
-                    String.valueOf(raw.getOrDefault("effect", "none")),
-                    String.valueOf(raw.getOrDefault("fact", ""))));
+                    str(raw, "effect", "none"),
+                    str(raw, "fact", "")));
         }
+    }
+
+    // Wildcard-typed YAML maps can't use getOrDefault with a typed default, so read + null-check here.
+    private static String str(Map<?, ?> raw, String key, String def) {
+        Object v = raw.get(key);
+        return (v != null) ? String.valueOf(v) : def;
     }
 
     private Map<String, Integer> toCountMap(Object o) {

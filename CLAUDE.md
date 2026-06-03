@@ -1,4 +1,10 @@
-# CLAUDE.md - ChemCraft
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
+# ChemCraft
 
 Read this first. It's the map of the project for anyone (human or Claude Code) picking it up.
 Deeper docs live in `docs/`. This file stays high-signal.
@@ -14,15 +20,23 @@ Working title: **ChemCraft**. Repo: `Mimecraft_Chemistry_plugin`. Package: `com.
 ## Tech stack & build
 - **PaperMC 1.21.x**, **Java 21** (required by 1.21).
 - **Gradle** (`build.gradle`, Groovy DSL). Build: `gradle build` -> jar in `build/libs/`.
-  No wrapper committed yet; run `gradle wrapper` once or open in IntelliJ.
+  No wrapper committed yet; run `gradle wrapper` once or open in IntelliJ. `settings.gradle` adds the
+  foojay toolchain resolver, so Gradle auto-downloads a JDK 21 if one isn't installed locally.
+- **No automated test suite** (no `src/test/`, no `gradle test` target). The "data-level checks"
+  mentioned under Status are manual/in-game; verification is by building the jar and smoke-testing
+  on a 1.21.x server (see Run / smoke-test below).
 - Paper API dep is pinned to `1.21.8-R0.1-SNAPSHOT`. Change it to match the target server.
 - **Source is ASCII / UTF-8 and uses Adventure `Component`s for all messages** (no legacy `§`
   colour codes) - a deliberate choice to dodge encoding problems. Keep it that way.
 
-> **Status: never compiled against the Paper API yet.** It was written without a Paper toolchain
-> available. First task for anyone continuing: `gradle build` and fix any API drift, then test on a
-> 1.21.x server. Data-level checks pass (reactions balanced, no dangling YAML refs, all internal
-> calls resolve), but the Paper API surface is unverified.
+> **Status: builds and enables against Paper 1.21.8.** First built and deployed on a 1.21.8 server on
+> 2026-06-04. It compiles clean - the *only* error was a Java generics bug in `ReactionService`
+> (`getOrDefault` with a typed default on a wildcard `Map<?,?>`); the **Paper API surface needed no
+> changes**. On the live server the plugin enables with no exceptions, generates its config + content
+> YAML, and the join flow + command registration work (`/chemcraft` from console correctly replies
+> "Players only."). Data-level checks also pass (reactions balanced, no dangling YAML refs). Still
+> unconfirmed end-to-end in-game: the full gameplay loop (2x2x2 cube -> material, reactor menu,
+> wall discover, bond cycling).
 
 ## Run / smoke-test
 1. Jar -> `plugins/`, start a 1.21.x server. It writes its config + content YAML into
