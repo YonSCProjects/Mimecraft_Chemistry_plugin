@@ -36,8 +36,11 @@ The 8 atoms are consumed and you get the block plus a fact. Edit patterns in `ma
 - **Bond order:** **sneak** + right-click an atom on the face toward its neighbour (single->double->triple).
 - **Break an atom:** break the block - it returns to you.
 - **Stations & reactor:** right-click the station block (`COPPER_BLOCK` pan, `BLUE_ICE` air,
-  `BLAST_FURNACE` smelt, `SEA_LANTERN` electrolysis, `FURNACE` reactor).
+  `BLAST_FURNACE` smelt, `SEA_LANTERN` electrolysis, `FURNACE` reactor). A labeled row of these is
+  built next to your wall automatically.
 - Build **one molecule or lattice per cluster**.
+- **Lost?** Type `/cc guide` for the step-by-step loop, or `/cc kit` for another batch of raw
+  materials.
 
 ## Try the new stuff fast
 ```

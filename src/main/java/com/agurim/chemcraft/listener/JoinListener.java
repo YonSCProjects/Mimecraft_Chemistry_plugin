@@ -1,6 +1,8 @@
 package com.agurim.chemcraft.listener;
 
 import com.agurim.chemcraft.ChemCraftPlugin;
+import com.agurim.chemcraft.StarterKit;
+import com.agurim.chemcraft.ui.Guide;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
@@ -25,14 +27,18 @@ public class JoinListener implements Listener {
         if (!plugin.store().isWallBuilt(id)) {
             plugin.wall().build(plot);
             for (String sym : plugin.store().getDiscovered(id)) plugin.wall().lightUp(plot, sym);
+            plugin.kiosk().build(plot);
             plugin.store().setWallBuilt(id, true);
         }
 
         if (firstTime) {
             plugin.plots().teleportToPlot(player, plot);
+            Guide.welcome(player);
             player.sendMessage(Component.text(
-                    "Welcome to ChemCraft! This is your plot - your periodic table is on the wall. Go fill it in.",
+                    "Welcome to ChemCraft! This is your plot - your periodic table is on the wall.",
                     NamedTextColor.GREEN));
+            StarterKit.give(plugin, player);
+            Guide.send(plugin, player);
         }
     }
 }

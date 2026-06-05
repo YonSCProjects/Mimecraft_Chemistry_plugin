@@ -1,10 +1,12 @@
 package com.agurim.chemcraft.command;
 
 import com.agurim.chemcraft.ChemCraftPlugin;
+import com.agurim.chemcraft.StarterKit;
 import com.agurim.chemcraft.element.AtomItems;
 import com.agurim.chemcraft.element.Element;
 import com.agurim.chemcraft.molecule.Molecule;
 import com.agurim.chemcraft.molecule.MoleculeItems;
+import com.agurim.chemcraft.ui.Guide;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
@@ -25,11 +27,17 @@ public class ChemCraftCommand implements CommandExecutor {
         UUID id = player.getUniqueId();
 
         if (args.length == 0) {
-            player.sendMessage(Component.text("/chemcraft tp | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("/chemcraft guide | kit | tp | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
             return true;
         }
 
         switch (args[0].toLowerCase()) {
+            case "guide", "help" -> Guide.send(plugin, player);
+            case "kit" -> {
+                if (!StarterKit.give(plugin, player)) {
+                    player.sendMessage(Component.text("Starter kits are turned off on this server.", NamedTextColor.RED));
+                }
+            }
             case "tp" -> {
                 int plot = plugin.store().getOrAssignPlotIndex(id);
                 plugin.plots().teleportToPlot(player, plot);
@@ -71,8 +79,9 @@ public class ChemCraftCommand implements CommandExecutor {
                 int plot = plugin.store().getOrAssignPlotIndex(id);
                 plugin.wall().build(plot);
                 for (String s : plugin.store().getDiscovered(id)) plugin.wall().lightUp(plot, s);
+                plugin.kiosk().build(plot);
                 plugin.store().setWallBuilt(id, true);
-                player.sendMessage(Component.text("Wall (re)built.", NamedTextColor.GREEN));
+                player.sendMessage(Component.text("Wall and stations (re)built.", NamedTextColor.GREEN));
             }
             case "reload" -> {
                 if (!player.isOp()) { player.sendMessage(Component.text("Op only.", NamedTextColor.RED)); return true; }

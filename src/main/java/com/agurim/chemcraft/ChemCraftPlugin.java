@@ -14,6 +14,7 @@ import com.agurim.chemcraft.molecule.BondStore;
 import com.agurim.chemcraft.molecule.MoleculeEngine;
 import com.agurim.chemcraft.molecule.MoleculeRegistry;
 import com.agurim.chemcraft.plot.PlotManager;
+import com.agurim.chemcraft.plot.StationKiosk;
 import com.agurim.chemcraft.reaction.ReactionService;
 import com.agurim.chemcraft.table.PeriodicWall;
 import com.agurim.chemcraft.world.AtomStore;
@@ -27,6 +28,7 @@ public final class ChemCraftPlugin extends JavaPlugin {
     private ElementRegistry registry;
     private PlayerStore store;
     private PlotManager plots;
+    private StationKiosk kiosk;
     private PeriodicWall wall;
     private ExtractionService extraction;
     private AtomStore atoms;
@@ -41,6 +43,7 @@ public final class ChemCraftPlugin extends JavaPlugin {
     private NamespacedKey recipeKey;
     private NamespacedKey moleculeKey;
     private NamespacedKey reactionKey;
+    private NamespacedKey stationKey;
 
     @Override
     public void onEnable() {
@@ -51,10 +54,12 @@ public final class ChemCraftPlugin extends JavaPlugin {
         this.recipeKey   = new NamespacedKey(this, "recipe");
         this.moleculeKey = new NamespacedKey(this, "molecule");
         this.reactionKey = new NamespacedKey(this, "reaction");
+        this.stationKey  = new NamespacedKey(this, "station");
 
         this.registry         = new ElementRegistry(this);
         this.store            = new PlayerStore(this);
         this.plots            = new PlotManager(this);
+        this.kiosk            = new StationKiosk(this);
         this.wall             = new PeriodicWall(this);
         this.extraction       = new ExtractionService(this);
         this.atoms            = new AtomStore(this);
@@ -85,6 +90,7 @@ public final class ChemCraftPlugin extends JavaPlugin {
     public ElementRegistry registry()         { return registry; }
     public PlayerStore store()                { return store; }
     public PlotManager plots()                { return plots; }
+    public StationKiosk kiosk()               { return kiosk; }
     public PeriodicWall wall()                { return wall; }
     public ExtractionService extraction()     { return extraction; }
     public AtomStore atoms()                  { return atoms; }
@@ -98,4 +104,5 @@ public final class ChemCraftPlugin extends JavaPlugin {
     public NamespacedKey recipeKey()          { return recipeKey; }
     public NamespacedKey moleculeKey()        { return moleculeKey; }
     public NamespacedKey reactionKey()        { return reactionKey; }
+    public NamespacedKey stationKey()         { return stationKey; }
 }

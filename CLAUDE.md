@@ -43,14 +43,17 @@ Working title: **ChemCraft**. Repo: `Mimecraft_Chemistry_plugin`. Package: `com.
    `plugins/ChemCraft/`.
 2. In `config.yml` set `world` and `plot.origin-x/z` to a flat empty area with ground at
    `plot.ground-y`.
-3. Join -> teleported to your plot with a ghost periodic-table wall.
-4. As op, place the station blocks (see `config.yml > stations`). Then:
+3. Join -> teleported to your plot. On first join you get a welcome title, a `/cc guide`
+   walkthrough, a starter kit of raw materials, and a labeled row of station blocks built next to
+   your ghost periodic-table wall (`StationKiosk`) - no op setup needed.
+4. Walk to the wall, use the kiosk stations to extract atoms, and play the loop. For quick admin
+   testing you can still shortcut with:
    ```
    /chemcraft give C 8            # place a 2x2x2 carbon cube -> diamond block
    /chemcraft givemol hydrogen_gas 2
    /chemcraft givemol oxygen_gas 1   # react at the FURNACE -> water
    ```
-   Full commands: `/chemcraft tp | give | givemol | discover | reset | buildwall | reload` (`/cc`).
+   Full commands: `/chemcraft guide | kit | tp | give | givemol | discover | reset | buildwall | reload` (`/cc`).
 
 ## Architecture at a glance
 `ChemCraftPlugin#onEnable` builds every service and registers the listeners. Everything

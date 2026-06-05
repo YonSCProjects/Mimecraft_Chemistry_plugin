@@ -2,6 +2,15 @@
 
 Built in four slices. Versions are pre-release working milestones.
 
+## v0.5.0 - Onboarding & self-serve start
+- **Auto-built station kiosk:** every plot gets a labeled row of station blocks next to its wall
+  (`StationKiosk`), so a player can start without an op placing anything. Names/hints and layout
+  are config-driven (`station-info`, `kiosk`); `/cc buildwall` rebuilds it too.
+- **Starter kit:** first-time players (and `/cc kit`) receive raw materials to bootstrap the
+  stations (`StarterKit`, config `starter-kit`).
+- **In-game guide:** a welcome title plus a step-by-step "how to play" walkthrough on first join and
+  any time via `/cc guide` (`Guide`), including a "X / Y elements discovered" progress line.
+
 ## v0.4.0 - Reactions & materials (Act 3)
 - Reactor station (`FURNACE`) with a reaction GUI; 5 balanced reactions (`reactions.yml`).
 - Molecules can be reacted into products; the balanced equation and conservation of mass are shown;
