@@ -18,10 +18,10 @@ public final class AtomItems {
     public static ItemStack create(ChemCraftPlugin plugin, Element e, int amount) {
         ItemStack item = new ItemStack(Families.material(e.family()), Math.max(1, amount));
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(Component.text(e.name() + " atom (" + e.symbol() + ")", NamedTextColor.AQUA)
+        meta.displayName(Component.text("אטום " + e.name() + " (" + e.symbol() + ")", NamedTextColor.AQUA)
                 .decoration(TextDecoration.ITALIC, false));
         meta.lore(List.of(
-                Component.text("Element #" + e.number() + "  -  wants " + e.valence() + " bond(s)", NamedTextColor.GRAY)
+                Component.text("יסוד #" + e.number() + "  -  רוצה " + e.valence() + " קשרים", NamedTextColor.GRAY)
                         .decoration(TextDecoration.ITALIC, false),
                 Component.text(e.fact(), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)));
         meta.getPersistentDataContainer().set(plugin.atomKey(), PersistentDataType.STRING, e.symbol());

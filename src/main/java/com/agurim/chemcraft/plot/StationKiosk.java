@@ -78,7 +78,7 @@ public class StationKiosk {
     }
 
     private String stationHint(String method) {
-        return plugin.getConfig().getString("station-info." + method + ".hint", "Right-click to use");
+        return plugin.getConfig().getString("station-info." + method + ".hint", "לחיצה ימנית כדי להשתמש");
     }
 
     private String prettify(String method) {

@@ -44,11 +44,11 @@ public class StationMenu implements InventoryHolder {
             meta.displayName(Component.text(r.label(), affordable ? NamedTextColor.GREEN : NamedTextColor.RED)
                     .decoration(TextDecoration.ITALIC, false));
             List<Component> lore = new ArrayList<>();
-            lore.add(Component.text("Needs: " + plugin.extraction().describeInputs(r), NamedTextColor.GRAY)
+            lore.add(Component.text("צריך: " + plugin.extraction().describeInputs(r), NamedTextColor.GRAY)
                     .decoration(TextDecoration.ITALIC, false));
-            lore.add(Component.text("Gives: " + describeOutputs(r), NamedTextColor.GRAY)
+            lore.add(Component.text("נותן: " + describeOutputs(r), NamedTextColor.GRAY)
                     .decoration(TextDecoration.ITALIC, false));
-            if (!affordable) lore.add(Component.text("You're missing something.", NamedTextColor.DARK_RED)
+            if (!affordable) lore.add(Component.text("חסר לכם משהו.", NamedTextColor.DARK_RED)
                     .decoration(TextDecoration.ITALIC, false));
             meta.lore(lore);
             meta.getPersistentDataContainer().set(plugin.recipeKey(), PersistentDataType.STRING, r.id());
@@ -67,11 +67,11 @@ public class StationMenu implements InventoryHolder {
 
     private String title() {
         return switch (station) {
-            case "panning"        -> "Panning Station";
-            case "air_separation" -> "Air-Separation Tower";
-            case "smelter"        -> "Smelter";
-            case "electrolysis"   -> "Electrolysis Lab";
-            default               -> "Station";
+            case "panning"        -> "עמדת ניפוי";
+            case "air_separation" -> "מגדל הפרדת אוויר";
+            case "smelter"        -> "מתיך";
+            case "electrolysis"   -> "מעבדת אלקטרוליזה";
+            default               -> "עמדה";
         };
     }
 

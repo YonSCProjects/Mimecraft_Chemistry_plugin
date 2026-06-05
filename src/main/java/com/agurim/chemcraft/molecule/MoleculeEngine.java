@@ -90,8 +90,8 @@ public class MoleculeEngine {
 
         if (anyOver) {
             unmark(comp);
-            player.sendMessage(Component.text("Too many bonds on " + overSym + " - it wants "
-                    + overWants + " but has " + overUsed + ".", NamedTextColor.RED));
+            player.sendMessage(Component.text("יותר מדי קשרים על " + overSym + " - הוא רוצה "
+                    + overWants + " אבל יש לו " + overUsed + ".", NamedTextColor.RED));
             return;
         }
         if (anyIncomplete) { unmark(comp); return; } // still building - stay quiet
@@ -119,7 +119,7 @@ public class MoleculeEngine {
 
         Molecule m = plugin.moleculeRegistry().match(composition);
         if (m != null) {
-            player.sendMessage(Component.text("You built " + m.name() + " (" + m.display() + ")!", NamedTextColor.GOLD)
+            player.sendMessage(Component.text("בניתם " + m.name() + " (" + m.display() + ")!", NamedTextColor.GOLD)
                     .append(Component.text("  " + m.fact(), NamedTextColor.WHITE)));
             if (m.reward() != null) {
                 Material mat = Material.matchMaterial(m.reward());
@@ -128,8 +128,8 @@ public class MoleculeEngine {
             // capture the molecule as a sample item, usable as a reaction input
             player.getInventory().addItem(MoleculeItems.create(plugin, m, 1));
         } else {
-            player.sendMessage(Component.text("Stable molecule! " + formula(composition)
-                    + " - every atom's bonds are satisfied.", NamedTextColor.AQUA));
+            player.sendMessage(Component.text("מולקולה יציבה! " + formula(composition)
+                    + " - הקשרים של כל אטום מסופקים.", NamedTextColor.AQUA));
         }
     }
 
@@ -148,19 +148,19 @@ public class MoleculeEngine {
         if (atomAt(atomLoc) == null) return;
         Location n = neighbor(atomLoc, face);
         if (atomAt(n) == null) {
-            player.sendMessage(Component.text("No atom on that side to bond with.", NamedTextColor.GRAY));
+            player.sendMessage(Component.text("אין אטום בצד הזה ליצור איתו קשר.", NamedTextColor.GRAY));
             return;
         }
         int next = (plugin.bonds().order(atomLoc, n) % 3) + 1;
         plugin.bonds().setOrder(atomLoc, n, next);
-        player.sendMessage(Component.text("Bond set to " + bondName(next) + ".", NamedTextColor.YELLOW));
+        player.sendMessage(Component.text("הקשר הוגדר ל" + bondName(next) + ".", NamedTextColor.YELLOW));
         Location mid = atomLoc.clone().add(0.5, 0.5, 0.5).add(n.clone().add(0.5, 0.5, 0.5)).multiply(0.5);
         player.getWorld().spawnParticle(Particle.CRIT, mid, 8, 0.1, 0.1, 0.1);
         evaluate(atomLoc, player);
     }
 
     private String bondName(int order) {
-        return switch (order) { case 2 -> "double"; case 3 -> "triple"; default -> "single"; };
+        return switch (order) { case 2 -> "כפול"; case 3 -> "משולש"; default -> "בודד"; };
     }
 
     private String formula(Map<String, Integer> comp) {

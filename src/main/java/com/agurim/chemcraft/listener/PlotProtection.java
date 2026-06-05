@@ -24,7 +24,7 @@ public class PlotProtection implements Listener {
         if (here != mine) { event.setCancelled(true); deny(p); return; }
         if (plugin.wall().isWallTile(mine, event.getBlock().getLocation())) {
             event.setCancelled(true);
-            p.sendMessage(Component.text("That's part of your periodic table - you can't break it.", NamedTextColor.RED));
+            p.sendMessage(Component.text("זה חלק מהטבלה המחזורית שלכם - אי אפשר לשבור אותו.", NamedTextColor.RED));
         }
     }
 
@@ -38,6 +38,6 @@ public class PlotProtection implements Listener {
     }
 
     private void deny(Player p) {
-        p.sendMessage(Component.text("You can only build on your own plot.", NamedTextColor.RED));
+        p.sendMessage(Component.text("אפשר לבנות רק בחלקה שלכם.", NamedTextColor.RED));
     }
 }

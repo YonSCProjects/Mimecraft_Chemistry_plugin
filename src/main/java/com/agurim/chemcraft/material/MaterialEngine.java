@@ -107,7 +107,7 @@ public class MaterialEngine {
         Location center = origin.clone().add(1.0, 1.0, 1.0);
         player.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, center, 20, 0.6, 0.6, 0.6);
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 0.8f);
-        player.sendMessage(Component.text("Crystal formed: " + def.name() + "! ", NamedTextColor.GOLD)
+        player.sendMessage(Component.text("התגבש: " + def.name() + "! ", NamedTextColor.GOLD)
                 .append(Component.text(materialFact(def), NamedTextColor.WHITE)));
     }
 

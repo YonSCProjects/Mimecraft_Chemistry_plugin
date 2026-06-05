@@ -80,7 +80,7 @@ public class ExtractionService {
     /** Consume inputs, give output atoms, mark discovered, light the wall, play feedback. */
     public boolean extract(Player player, Recipe r) {
         if (!canAfford(player, r)) {
-            player.sendMessage(Component.text("You don't have what this needs: " + describeInputs(r), NamedTextColor.RED));
+            player.sendMessage(Component.text("אין לכם את מה שצריך: " + describeInputs(r), NamedTextColor.RED));
             return false;
         }
         PlayerInventory inv = player.getInventory();
@@ -103,7 +103,7 @@ public class ExtractionService {
             plugin.store().discover(player.getUniqueId(), el.symbol());
             plugin.wall().lightUp(plot, el.symbol());
             if (isNew) {
-                player.sendMessage(Component.text("Discovered " + el.name() + " (" + el.symbol() + ") - ", NamedTextColor.GREEN)
+                player.sendMessage(Component.text("התגלה " + el.name() + " (" + el.symbol() + ") - ", NamedTextColor.GREEN)
                         .append(Component.text(el.fact(), NamedTextColor.WHITE)));
             }
         }
@@ -132,9 +132,9 @@ public class ExtractionService {
     }
 
     public String describeInputs(Recipe r) {
-        if (r.inputs().isEmpty()) return "(nothing)";
+        if (r.inputs().isEmpty()) return "(כלום)";
         List<String> parts = new ArrayList<>();
-        r.inputs().forEach((k, v) -> parts.add(v + "x " + (k.startsWith("atom:") ? k.substring(5) + " atom" : k.toLowerCase())));
+        r.inputs().forEach((k, v) -> parts.add(v + "x " + (k.startsWith("atom:") ? "אטום " + k.substring(5) : k.toLowerCase())));
         return String.join(", ", parts);
     }
 }

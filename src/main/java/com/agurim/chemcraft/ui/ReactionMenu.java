@@ -24,7 +24,7 @@ public class ReactionMenu implements InventoryHolder {
     public Inventory open(ChemCraftPlugin plugin, Player player) {
         List<Reaction> rs = plugin.reactions().all();
         int rows = Math.max(1, (int) Math.ceil(rs.size() / 9.0));
-        this.inventory = Bukkit.createInventory(this, Math.min(54, rows * 9), Component.text("Reactor", NamedTextColor.DARK_RED));
+        this.inventory = Bukkit.createInventory(this, Math.min(54, rows * 9), Component.text("כור", NamedTextColor.DARK_RED));
         for (Reaction r : rs) {
             boolean ok = plugin.reactions().canAfford(player, r);
             ItemStack item = new ItemStack(ok ? Material.GLASS_BOTTLE : Material.GRAY_STAINED_GLASS_PANE);
@@ -33,7 +33,7 @@ public class ReactionMenu implements InventoryHolder {
                     .decoration(TextDecoration.ITALIC, false));
             List<Component> lore = new ArrayList<>();
             lore.add(Component.text(plugin.reactions().equation(r), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-            if (!ok) lore.add(Component.text("You don't have the reactants yet.", NamedTextColor.DARK_RED).decoration(TextDecoration.ITALIC, false));
+            if (!ok) lore.add(Component.text("אין לכם עדיין את החומרים המגיבים.", NamedTextColor.DARK_RED).decoration(TextDecoration.ITALIC, false));
             meta.lore(lore);
             meta.getPersistentDataContainer().set(plugin.reactionKey(), PersistentDataType.STRING, r.id());
             item.setItemMeta(meta);

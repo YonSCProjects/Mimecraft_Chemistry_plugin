@@ -2,6 +2,17 @@
 
 Built in four slices. Versions are pre-release working milestones.
 
+## v0.6.0 - Hebrew localization
+- All in-game player-facing text is now **Hebrew**: chat messages, titles, menu/station names,
+  item names and lore, the `/cc guide`, and all educational content (element/molecule/material
+  facts, recipe/reaction labels) in the YAML.
+- Kept in Latin where translating would be wrong: element symbols, chemical formulas, command
+  keywords, YAML keys/ids, and Bukkit `Material` names.
+- No code-structure change; `build.gradle` already compiles sources and resources as UTF-8.
+- Note: Minecraft renders Hebrew right-to-left; lines mixing Hebrew with Latin symbols/numbers may
+  visually reorder in-game and can need small wording tweaks after a live pass. Dev/teacher docs
+  (`README.md`, `docs/`) stay in English.
+
 ## v0.5.0 - Onboarding & self-serve start
 - **Auto-built station kiosk:** every plot gets a labeled row of station blocks next to its wall
   (`StationKiosk`), so a player can start without an op placing anything. Names/hints and layout

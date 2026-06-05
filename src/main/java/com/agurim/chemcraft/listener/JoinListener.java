@@ -35,7 +35,7 @@ public class JoinListener implements Listener {
             plugin.plots().teleportToPlot(player, plot);
             Guide.welcome(player);
             player.sendMessage(Component.text(
-                    "Welcome to ChemCraft! This is your plot - your periodic table is on the wall.",
+                    "ברוכים הבאים ל-ChemCraft! זו החלקה שלכם - הטבלה המחזורית שלכם על הקיר.",
                     NamedTextColor.GREEN));
             StarterKit.give(plugin, player);
             Guide.send(plugin, player);

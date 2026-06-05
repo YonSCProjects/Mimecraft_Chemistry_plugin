@@ -27,7 +27,7 @@ public final class StarterKit {
         }
         if (gave) {
             player.sendMessage(Component.text(
-                    "A starter kit of raw materials is in your inventory - take it to the stations.",
+                    "ערכת פתיחה של חומרי גלם נמצאת במלאי שלכם - קחו אותה לעמדות.",
                     NamedTextColor.GREEN));
         }
         return gave;

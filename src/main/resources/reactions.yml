@@ -1,7 +1,8 @@
 # inputs/outputs: molecule ids, or "atom:C" for an element atom. All reactions are balanced.
+# label + fact are player-facing (Hebrew); id/inputs/outputs/effect stay in Latin/English.
 reactions:
-  - { id: burn_hydrogen, label: "Burn hydrogen",      inputs: { hydrogen_gas: 2, oxygen_gas: 1 }, outputs: { water: 2 },                       effect: explosion, fact: "Hydrogen burning in oxygen makes water - the reaction that lifts rockets." }
-  - { id: burn_carbon,   label: "Burn carbon",        inputs: { "atom:C": 1, oxygen_gas: 1 },     outputs: { carbon_dioxide: 1 },              effect: fire,      fact: "Burning carbon gives carbon dioxide - the same gas a fire or a campfire breathes out." }
-  - { id: burn_methane,  label: "Burn methane",       inputs: { methane: 1, oxygen_gas: 2 },      outputs: { carbon_dioxide: 1, water: 2 },    effect: fire,      fact: "Natural gas burns to carbon dioxide and water - that's the flame on a stove." }
-  - { id: make_salt,     label: "Burn sodium in chlorine", inputs: { "atom:Na": 2, chlorine_gas: 1 }, outputs: { salt: 2 },                     effect: fire,      fact: "A violent metal meets a poison gas and calmly becomes table salt." }
-  - { id: make_ammonia,  label: "Haber process",      inputs: { nitrogen_gas: 1, hydrogen_gas: 3 }, outputs: { ammonia: 2 },                   effect: none,      fact: "Nitrogen + hydrogen -> ammonia: the reaction whose fertilizer feeds half the world." }
+  - { id: burn_hydrogen, label: "שריפת מימן",          inputs: { hydrogen_gas: 2, oxygen_gas: 1 }, outputs: { water: 2 },                       effect: explosion, fact: "מימן שנשרף בחמצן יוצר מים - התגובה שמרימה טילים." }
+  - { id: burn_carbon,   label: "שריפת פחמן",          inputs: { "atom:C": 1, oxygen_gas: 1 },     outputs: { carbon_dioxide: 1 },              effect: fire,      fact: "שריפת פחמן נותנת פחמן דו-חמצני - אותו גז שאש או מדורה פולטת." }
+  - { id: burn_methane,  label: "שריפת מתאן",          inputs: { methane: 1, oxygen_gas: 2 },      outputs: { carbon_dioxide: 1, water: 2 },    effect: fire,      fact: "גז טבעי נשרף לפחמן דו-חמצני ומים - זו הלהבה שעל הכיריים." }
+  - { id: make_salt,     label: "שריפת נתרן בכלור",    inputs: { "atom:Na": 2, chlorine_gas: 1 },  outputs: { salt: 2 },                        effect: fire,      fact: "מתכת אלימה פוגשת גז רעל והופכת בשלווה למלח שולחן." }
+  - { id: make_ammonia,  label: "תהליך הָבֶּר",          inputs: { nitrogen_gas: 1, hydrogen_gas: 3 }, outputs: { ammonia: 2 },                   effect: none,      fact: "חנקן + מימן -> אמוניה: התגובה שהדשן שלה מאכיל חצי מהעולם." }

@@ -26,8 +26,12 @@ Working title: **ChemCraft**. Repo: `Mimecraft_Chemistry_plugin`. Package: `com.
   mentioned under Status are manual/in-game; verification is by building the jar and smoke-testing
   on a 1.21.x server (see Run / smoke-test below).
 - Paper API dep is pinned to `1.21.8-R0.1-SNAPSHOT`. Change it to match the target server.
-- **Source is ASCII / UTF-8 and uses Adventure `Component`s for all messages** (no legacy `§`
-  colour codes) - a deliberate choice to dodge encoding problems. Keep it that way.
+- **All messages use Adventure `Component`s** (no legacy `§` colour codes) - a deliberate choice to
+  dodge encoding problems. **Player-facing text is Hebrew (UTF-8);** keep it that way. `build.gradle`
+  pins the compiler and resource encoding to UTF-8 (`options.encoding`, `filteringCharset`), so
+  Hebrew in `.java` and `.yml` builds correctly. Keep non-displayed tokens in Latin/ASCII: element
+  symbols (H, O), chemical formulas (H2O), command keywords (`/cc give`), YAML keys/ids, and Bukkit
+  `Material`/enum names.
 
 > **Status: builds and enables against Paper 1.21.8.** First built and deployed on a 1.21.8 server on
 > 2026-06-04. It compiles clean - the *only* error was a Java generics bug in `ReactionService`
@@ -106,7 +110,8 @@ Runtime state (written by the plugin): `players.yml`, `atoms.yml`, `bonds.yml`.
    with identity in a location map (`AtomStore`) and a `custom_model_data` value for a future
    resource pack. **You cannot register new block IDs in a server plugin** - don't try.
 3. **Per-block identity lives in location maps**, never in block state.
-4. **Messages = Adventure `Component`**, ASCII source only.
+4. **Messages = Adventure `Component`**; player-facing text in Hebrew (UTF-8), with symbols /
+   formulas / command keywords / YAML ids / `Material` names kept in Latin.
 5. **Listeners that must run after protection use `EventPriority.HIGH` + `ignoreCancelled`.**
 
 ## Known issues / caveats

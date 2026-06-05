@@ -24,11 +24,11 @@ stations:
 
 # Friendly name + one-line hint shown on the floating label above each auto-built station.
 station-info:
-  panning:        { name: "Panning Station",      hint: "Pan native metals & sulfur" }
-  air_separation: { name: "Air-Separation Tower",  hint: "Pull gases out of the air" }
-  smelter:        { name: "Smelter",               hint: "Burn wood & smelt ores into atoms" }
-  electrolysis:   { name: "Electrolysis Lab",      hint: "Split water & salt with redstone" }
-  reactor:        { name: "Reactor",               hint: "React molecules into new compounds" }
+  panning:        { name: "עמדת ניפוי",        hint: "נפו מתכות טבעיות וגופרית" }
+  air_separation: { name: "מגדל הפרדת אוויר",   hint: "הפיקו גזים מהאוויר" }
+  smelter:        { name: "מתיך",               hint: "שרפו עץ והתיכו עפרות לאטומים" }
+  electrolysis:   { name: "מעבדת אלקטרוליזה",   hint: "פצלו מים ומלח בעזרת אבן אדומה" }
+  reactor:        { name: "כור",                hint: "הגיבו מולקולות לתרכובות חדשות" }
 
 # Each plot gets a row of station blocks built next to its wall so players can start solo.
 # Offsets are relative to the plot corner (kiosk sits just in front of the periodic-table wall).

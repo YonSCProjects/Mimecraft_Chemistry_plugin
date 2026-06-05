@@ -69,7 +69,7 @@ public class ReactionService {
 
     public boolean react(Player player, Reaction r) {
         if (!canAfford(player, r)) {
-            player.sendMessage(Component.text("You need: " + describeSide(r.inputs()), NamedTextColor.RED));
+            player.sendMessage(Component.text("אתם צריכים: " + describeSide(r.inputs()), NamedTextColor.RED));
             return false;
         }
         for (Map.Entry<String, Integer> e : r.inputs().entrySet()) {
@@ -88,10 +88,10 @@ public class ReactionService {
             }
         }
         playEffect(player, r.effect());
-        player.sendMessage(Component.text("Reaction! ", NamedTextColor.GOLD)
+        player.sendMessage(Component.text("תגובה! ", NamedTextColor.GOLD)
                 .append(Component.text(equation(r), NamedTextColor.YELLOW)));
         if (!r.fact().isEmpty()) player.sendMessage(Component.text(r.fact(), NamedTextColor.WHITE));
-        player.sendMessage(Component.text("Mass is conserved - the same atoms, just rearranged.", NamedTextColor.GRAY));
+        player.sendMessage(Component.text("המסה נשמרת - אותם אטומים, רק מסודרים מחדש.", NamedTextColor.GRAY));
         return true;
     }
 
