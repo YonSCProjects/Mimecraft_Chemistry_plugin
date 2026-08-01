@@ -19,15 +19,32 @@ import java.util.UUID;
 public class ChemCraftCommand implements CommandExecutor {
 
     private final ChemCraftPlugin plugin;
+    private final java.util.Map<UUID, Long> buildwallLast = new java.util.HashMap<>();
     public ChemCraftCommand(ChemCraftPlugin plugin) { this.plugin = plugin; }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) { sender.sendMessage("לשחקנים בלבד."); return true; }
+        if (!(sender instanceof Player player)) {
+            // Console may drive region building (lets the teacher - or an MCP session - set up
+            // the world without a logged-in player). Everything else stays player-only.
+            if (args.length >= 2 && args[0].equalsIgnoreCase("region")) {
+                switch (args[1].toLowerCase()) {
+                    case "buildall" -> { sender.sendMessage("Built " + plugin.regionBuilder().buildAll() + " regions."); return true; }
+                    case "build" -> {
+                        if (args.length < 3) { sender.sendMessage("Usage: chemcraft region build <id>"); return true; }
+                        sender.sendMessage(plugin.regionBuilder().build(args[2].toLowerCase()) ? "Built." : "Unknown region: " + args[2]);
+                        return true;
+                    }
+                    case "list" -> { sender.sendMessage(plugin.regions().describeAll()); return true; }
+                }
+            }
+            sender.sendMessage("לשחקנים בלבד.");
+            return true;
+        }
         UUID id = player.getUniqueId();
 
         if (args.length == 0) {
-            player.sendMessage(Component.text("/chemcraft guide | kit | tp | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("/chemcraft guide | kit | tp | region | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
             return true;
         }
 
@@ -35,15 +52,21 @@ public class ChemCraftCommand implements CommandExecutor {
             case "guide", "help" -> Guide.send(plugin, player);
             case "kit" -> {
                 if (!StarterKit.give(plugin, player)) {
-                    player.sendMessage(Component.text("ערכות הפתיחה כבויות בשרת הזה.", NamedTextColor.RED));
+                    player.sendMessage(Component.text(
+                            plugin.store().isKitClaimed(id)
+                                    ? "כבר קיבלתם את ערכת הפתיחה - השאר נמצא באזורים."
+                                    : "ערכות הפתיחה כבויות בשרת הזה.",
+                            NamedTextColor.RED));
                 }
             }
+            case "region" -> region(player, args);
             case "tp" -> {
                 int plot = plugin.store().getOrAssignPlotIndex(id);
                 plugin.plots().teleportToPlot(player, plot);
                 player.sendMessage(Component.text("שוגרתם לחלקה שלכם (#" + plot + ").", NamedTextColor.GREEN));
             }
             case "give" -> {
+                if (denyNonAdmin(player)) return true;
                 if (args.length < 2) { player.sendMessage(Component.text("שימוש: /chemcraft give <symbol> [amount]", NamedTextColor.RED)); return true; }
                 Element e = plugin.registry().get(normalize(args[1]));
                 if (e == null) { player.sendMessage(Component.text("יסוד לא מוכר.", NamedTextColor.RED)); return true; }
@@ -52,6 +75,7 @@ public class ChemCraftCommand implements CommandExecutor {
                 player.sendMessage(Component.text("נתתי " + n + "x אטום " + e.symbol() + ".", NamedTextColor.GREEN));
             }
             case "givemol" -> {
+                if (denyNonAdmin(player)) return true;
                 if (args.length < 2) { player.sendMessage(Component.text("שימוש: /chemcraft givemol <id> [amount]  (למשל water, oxygen_gas)", NamedTextColor.RED)); return true; }
                 Molecule m = plugin.moleculeRegistry().byId(args[1].toLowerCase());
                 if (m == null) { player.sendMessage(Component.text("מזהה מולקולה לא מוכר.", NamedTextColor.RED)); return true; }
@@ -60,6 +84,7 @@ public class ChemCraftCommand implements CommandExecutor {
                 player.sendMessage(Component.text("נתתי " + n + "x דגימת " + m.display() + ".", NamedTextColor.GREEN));
             }
             case "discover" -> {
+                if (denyNonAdmin(player)) return true;
                 if (args.length < 2) { player.sendMessage(Component.text("שימוש: /chemcraft discover <symbol>", NamedTextColor.RED)); return true; }
                 String sym = normalize(args[1]);
                 if (!plugin.registry().has(sym)) { player.sendMessage(Component.text("יסוד לא מוכר: " + sym, NamedTextColor.RED)); return true; }
@@ -70,12 +95,21 @@ public class ChemCraftCommand implements CommandExecutor {
                         .append(Component.text(plugin.registry().get(sym).fact(), NamedTextColor.WHITE)));
             }
             case "reset" -> {
+                if (denyNonAdmin(player)) return true;
                 int plot = plugin.store().getOrAssignPlotIndex(id);
                 plugin.store().clearDiscovered(id);
+                plugin.store().clearTileCredit(id); // else stale "discovered with X" lines resurface
                 plugin.wall().build(plot);
                 player.sendMessage(Component.text("הטבלה שלכם אופסה.", NamedTextColor.YELLOW));
             }
             case "buildwall" -> {
+                // open to students (self-repair) but rate-limited: it does ~50 block/entity ops
+                Long last = buildwallLast.get(id);
+                if (last != null && System.currentTimeMillis() - last < 60_000 && !player.hasPermission("chemcraft.admin")) {
+                    player.sendMessage(Component.text("חכו רגע לפני בנייה מחדש נוספת.", NamedTextColor.RED));
+                    return true;
+                }
+                buildwallLast.put(id, System.currentTimeMillis());
                 int plot = plugin.store().getOrAssignPlotIndex(id);
                 plugin.wall().build(plot);
                 for (String s : plugin.store().getDiscovered(id)) plugin.wall().lightUp(plot, s);
@@ -84,12 +118,56 @@ public class ChemCraftCommand implements CommandExecutor {
                 player.sendMessage(Component.text("הקיר והעמדות נבנו מחדש.", NamedTextColor.GREEN));
             }
             case "reload" -> {
-                if (!player.isOp()) { player.sendMessage(Component.text("למפעילים בלבד.", NamedTextColor.RED)); return true; }
+                if (denyNonAdmin(player)) return true;
                 plugin.reloadConfig();
-                player.sendMessage(Component.text("ההגדרות נטענו מחדש. (הפעילו מחדש כדי לטעון יסודות/מתכונים/מולקולות.)", NamedTextColor.GREEN));
+                plugin.regions().reload();
+                player.sendMessage(Component.text("ההגדרות והאזורים נטענו מחדש. (הפעילו מחדש כדי לטעון יסודות/מתכונים/מולקולות.)", NamedTextColor.GREEN));
             }
             default -> player.sendMessage(Component.text("תת-פקודה לא מוכרת.", NamedTextColor.RED));
         }
+        return true;
+    }
+
+    /** /cc region list | tp <id> | build <id> | buildall  (build/buildall admin-only). */
+    private void region(Player player, String[] args) {
+        if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+            if (plugin.regions().isEmpty()) {
+                player.sendMessage(Component.text("אין אזורים מוגדרים עדיין.", NamedTextColor.GRAY));
+                return;
+            }
+            player.sendMessage(Component.text("אזורים: ", NamedTextColor.AQUA)
+                    .append(Component.text(plugin.regions().describeAll(), NamedTextColor.WHITE)));
+            return;
+        }
+        switch (args[1].toLowerCase()) {
+            case "tp" -> {
+                if (!plugin.getConfig().getBoolean("regions.student-tp", true) && denyNonAdmin(player)) return;
+                if (args.length < 3) { player.sendMessage(Component.text("שימוש: /cc region tp <id>", NamedTextColor.RED)); return; }
+                if (!plugin.regionBuilder().tp(player, args[2].toLowerCase())) {
+                    player.sendMessage(Component.text("אזור לא מוכר: " + args[2], NamedTextColor.RED));
+                }
+            }
+            case "build" -> {
+                if (denyNonAdmin(player)) return;
+                if (args.length < 3) { player.sendMessage(Component.text("שימוש: /cc region build <id>", NamedTextColor.RED)); return; }
+                if (plugin.regionBuilder().build(args[2].toLowerCase())) {
+                    player.sendMessage(Component.text("האזור " + args[2] + " נבנה.", NamedTextColor.GREEN));
+                } else {
+                    player.sendMessage(Component.text("אזור לא מוכר: " + args[2], NamedTextColor.RED));
+                }
+            }
+            case "buildall" -> {
+                if (denyNonAdmin(player)) return;
+                int n = plugin.regionBuilder().buildAll();
+                player.sendMessage(Component.text("נבנו " + n + " אזורים.", NamedTextColor.GREEN));
+            }
+            default -> player.sendMessage(Component.text("שימוש: /cc region list | tp <id> | build <id> | buildall", NamedTextColor.RED));
+        }
+    }
+
+    private boolean denyNonAdmin(Player player) {
+        if (player.hasPermission("chemcraft.admin")) return false;
+        player.sendMessage(Component.text("למורים בלבד.", NamedTextColor.RED));
         return true;
     }
 

@@ -65,16 +65,41 @@ public class ExtractionService {
 
     /** Does the player have everything this recipe needs? */
     public boolean canAfford(Player player, Recipe r) {
-        PlayerInventory inv = player.getInventory();
         for (Map.Entry<String, Integer> e : r.inputs().entrySet()) {
             if (e.getKey().startsWith("atom:")) {
                 if (countAtoms(player, e.getKey().substring(5)) < e.getValue()) return false;
             } else {
                 Material m = Material.matchMaterial(e.getKey());
-                if (m == null || !inv.contains(m, e.getValue())) return false;
+                if (m == null || countMaterial(player, m) < e.getValue()) return false;
             }
         }
         return true;
+    }
+
+    /**
+     * Count/remove PLAIN vanilla inputs by Material, skipping anything with a ChemCraft PDC
+     * tag (atoms are stained glass - a glass input must never eat them). Count and removal use
+     * the same predicate: the old contains()/removeItem() pair diverged on renamed items
+     * (isSimilar), letting an anvil-renamed stack pass the check but dodge consumption.
+     */
+    private int countMaterial(Player player, Material m) {
+        int n = 0;
+        for (ItemStack it : player.getInventory().getContents()) {
+            if (it != null && it.getType() == m && AtomItems.symbolOf(plugin, it) == null) n += it.getAmount();
+        }
+        return n;
+    }
+
+    private void removeMaterial(Player player, Material m, int count) {
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length && count > 0; i++) {
+            ItemStack it = contents[i];
+            if (it != null && it.getType() == m && AtomItems.symbolOf(plugin, it) == null) {
+                int take = Math.min(count, it.getAmount());
+                it.setAmount(it.getAmount() - take);
+                count -= take;
+            }
+        }
     }
 
     /** Consume inputs, give output atoms, mark discovered, light the wall, play feedback. */
@@ -88,7 +113,7 @@ public class ExtractionService {
             if (e.getKey().startsWith("atom:")) {
                 removeAtoms(player, e.getKey().substring(5), e.getValue());
             } else {
-                inv.removeItem(new ItemStack(Material.matchMaterial(e.getKey()), e.getValue()));
+                removeMaterial(player, Material.matchMaterial(e.getKey()), e.getValue());
             }
         }
 
@@ -96,7 +121,7 @@ public class ExtractionService {
         for (Map.Entry<String, Integer> e : r.outputs().entrySet()) {
             Element el = plugin.registry().get(e.getKey());
             if (el == null) continue;
-            ItemStack atom = AtomItems.create(plugin, el, e.getValue());
+            ItemStack atom = AtomItems.create(plugin, el, e.getValue(), player);
             inv.addItem(atom).values().forEach(left ->
                     player.getWorld().dropItemNaturally(player.getLocation(), left));
             boolean isNew = !plugin.store().isDiscovered(player.getUniqueId(), el.symbol());

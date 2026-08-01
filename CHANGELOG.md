@@ -1,6 +1,33 @@
 # Changelog
 
-Built in four slices. Versions are pre-release working milestones.
+Built in slices. Versions are pre-release working milestones.
+
+## v0.7.0 - Shared regions & cooperation (campaign Phase 1)
+- **Shared gathering regions** (`regions.yml`, new `region/` package): ten themed zones matching
+  the (previously dead) `region:` field in `elements.yml`. Anyone may harvest the marked gather
+  node beds (custom drop, placeholder, timed regrowth, self-healing on restart); everything else
+  in a zone is protected. Stations move out of the plot kiosk into their regions
+  (`kiosk.stations: [reactor]` keeps only the reactor home); outside regions/kiosks the old
+  material hijack is gone - vanilla blocks behave normally again. Ops: `/cc region
+  list|tp|build|buildall` (build modes: flat platform or stations-only into hand-sculpted
+  terrain; build/buildall also work from console). With no `regions.yml`, everything behaves
+  exactly as v0.6 (legacy mode; upgraded servers stay legacy until an admin opts in).
+- **Wall registration** (`WallRegisterListener`): right-click your own gray periodic-table tile
+  holding a matching atom - the atom is consumed, the tile lights, the fact prints. A second,
+  additive discovery path, so gifted/traded atoms finally count.
+- **Cooperation credit**: extraction-minted atoms carry the extractor's identity (PDC stamp +
+  "הופק על ידי" lore). When a classmate registers your atom for their first-ever discovery of
+  that element you earn an assist: server broadcast, level-up chime (banked offline), a permanent
+  "התגלה יחד עם" line on their wall tile, and a place on the shared "עוזרים מובילים" sidebar
+  (`AssistBoard`). Structurally farm-proof: one credit per (receiver, element) ever; unstamped
+  mints (admin give, block re-drops, reaction outputs) and self-credit pay nothing.
+- **Hardening** (from an adversarial review pass): `chemcraft.admin` permission gates
+  give/givemol/discover/reset/reload; starter kit is once per player and now includes tools;
+  kiosk blocks and node beds are protected from farming (harvest is scoped to the exact bed
+  coordinates); explosions never damage blocks; buckets/fire blocked outside your plot;
+  extraction inputs are counted and consumed by the same Material predicate (closes a
+  renamed-item exploit); zero-input recipes retuned (sulfur=gunpowder, silver=gravel,
+  air gases=redstone - the energy currency).
 
 ## v0.6.0 - Hebrew localization
 - All in-game player-facing text is now **Hebrew**: chat messages, titles, menu/station names,

@@ -1,0 +1,105 @@
+# Shared gathering zones. Region ids match the region: values in elements.yml.
+# Each is an X/Z box (all heights, like plots). anchor = min-x/min-z corner.
+#
+# stations: which extraction stations exist in this zone (blocks placed by /cc region build).
+# gather:   blocks anyone may break here. Two forms:
+#   short:  MATERIAL: <regen-seconds>                       (drops itself, count 1)
+#   long:   MATERIAL: { drop: ITEM, count: 1, regen: 60, placeholder: LIGHT_GRAY_STAINED_GLASS }
+# IMPORTANT: node drops must stay plain unnamed vanilla items - the extraction menu matches
+# inputs by Material only, and a renamed drop would pass the check but fail consumption.
+#
+# The default anchors put all ten zones in a strip WEST of the plot grid (plots start at 0,0
+# and grow east/south), one 24-block zone every 32 blocks. Retune freely; /cc reload +
+# /cc region build <id> is safe mid-class. Max 4 gather materials fit a size-24 zone.
+regions:
+  quarry:
+    name: "מחצבה"
+    anchor: { x: -120, z: 0 }
+    size: 24
+    floor: SMOOTH_STONE
+    stations: [electrolysis, smelter]
+    gather:
+      CALCITE: 45
+      BONE_BLOCK: { drop: BONE_MEAL, count: 2, regen: 60 }
+
+  mines:
+    name: "מכרה"
+    anchor: { x: -120, z: 32 }
+    size: 24
+    floor: DEEPSLATE
+    stations: [smelter, electrolysis]
+    gather:
+      RAW_IRON_BLOCK:   { drop: RAW_IRON,   count: 1, regen: 60 }
+      RAW_COPPER_BLOCK: { drop: RAW_COPPER, count: 1, regen: 60 }
+      RED_SAND:         { drop: RED_SAND,   count: 1, regen: 60 }
+      REDSTONE_BLOCK:   { drop: REDSTONE,   count: 2, regen: 90 }
+
+  forest:
+    name: "יער"
+    anchor: { x: -120, z: 64 }
+    size: 24
+    floor: GRASS_BLOCK
+    stations: [smelter]
+    gather:
+      OAK_LOG: 45
+
+  desert:
+    name: "דיונות המדבר"
+    anchor: { x: -120, z: 96 }
+    size: 24
+    floor: SANDSTONE
+    stations: [smelter]
+    gather:
+      SAND: 30
+
+  volcano:
+    name: "פתחת הגעש"
+    anchor: { x: -120, z: 128 }
+    size: 24
+    floor: BASALT
+    stations: [panning]
+    gather:
+      MAGMA_BLOCK:    { drop: GUNPOWDER, count: 1, regen: 60 }
+      REDSTONE_BLOCK: { drop: REDSTONE,  count: 2, regen: 90 }
+
+  river:
+    name: "נהר"
+    anchor: { x: -120, z: 160 }
+    size: 24
+    floor: MUD          # NEVER a gather material - a gatherable floor becomes a farm
+    stations: [panning]
+    gather:
+      GRAVEL:         { drop: GRAVEL,   count: 1, regen: 30 }
+      RAW_GOLD_BLOCK: { drop: RAW_GOLD, count: 1, regen: 120 }
+
+  salt_flats:
+    name: "מישורי המלח"
+    anchor: { x: -120, z: 192 }
+    size: 24
+    floor: SMOOTH_QUARTZ
+    stations: [electrolysis]
+    gather: {}
+
+  sea:
+    name: "חוף הים"
+    anchor: { x: -120, z: 224 }
+    size: 24
+    floor: PRISMARINE
+    stations: [electrolysis]
+    gather: {}
+
+  air:
+    name: "מגדל האוויר"
+    anchor: { x: -120, z: 256 }
+    size: 24
+    floor: WHITE_CONCRETE
+    stations: [air_separation]
+    gather: {}
+
+  gas:
+    name: "באר הגז"
+    anchor: { x: -120, z: 288 }
+    size: 24
+    floor: TUFF
+    stations: [air_separation]
+    gather: {}

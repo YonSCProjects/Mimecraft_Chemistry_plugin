@@ -26,17 +26,33 @@ stations:
 station-info:
   panning:        { name: "עמדת ניפוי",        hint: "נפו מתכות טבעיות וגופרית" }
   air_separation: { name: "מגדל הפרדת אוויר",   hint: "הפיקו גזים מהאוויר" }
-  smelter:        { name: "מתיך",               hint: "שרפו עץ והתיכו עפרות לאטומים" }
-  electrolysis:   { name: "מעבדת אלקטרוליזה",   hint: "פצלו מים ומלח בעזרת אבן אדומה" }
+  smelter:        { name: "מתיך",               hint: "הפחמן הוא חומר מחזר - הוא חוטף את החמצן מהעפרה" }
+  electrolysis:   { name: "מעבדת אלקטרוליזה",   hint: "האבן האדומה היא החשמל שמפצל את התרכובת" }
   reactor:        { name: "כור",                hint: "הגיבו מולקולות לתרכובות חדשות" }
 
 # Each plot gets a row of station blocks built next to its wall so players can start solo.
 # Offsets are relative to the plot corner (kiosk sits just in front of the periodic-table wall).
+# stations: which methods still live on plots (empty list = all, the legacy layout).
+# With shared regions active, only the reactor stays home.
 kiosk:
   offset-x: 8
   offset-y: 1
   offset-z: 1
   spacing: 3
+  stations: [reactor]
+
+# Shared gathering zones are defined in regions.yml.
+# flatten: true  -> /cc region build generates a flat themed platform
+# flatten: false -> terrain is sculpted by hand; build places only nodes/stations/labels
+# student-tp: may students use /cc region tp (the commute is boring, the regions are not)
+regions:
+  flatten: true
+  student-tp: true
+
+# The shared "helpers" sidebar, scored by assists (see WallRegisterListener).
+assist-board:
+  enabled: true
+  title: "עוזרים מובילים"
 
 # Raw materials handed to a player the first time they join (and via /chemcraft kit).
 # Keys are vanilla Material names; set enabled: false to turn kits off.
@@ -51,6 +67,10 @@ starter-kit:
     RED_SAND: 2
     CALCITE: 2
     REDSTONE: 16
+    BONE_MEAL: 2      # phosphate feedstock for smelt_phos (skeletons may not spawn on a peaceful server)
+    IRON_PICKAXE: 1   # node drops are plugin-side, but tool tier still sets BREAK SPEED - raw-gold blocks dig slowly below iron
+    STONE_SHOVEL: 1   # sand and gravel beds
+    STONE_AXE: 1      # forest logs
 
 atoms:
   base-model-data: 7000

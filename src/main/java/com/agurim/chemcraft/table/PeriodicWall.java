@@ -57,13 +57,24 @@ public class PeriodicWall {
         }
     }
 
-    /** Light a single element's tile: family colour + bright label. */
+    /** Light a single element's tile: family colour + bright label (+ permanent helper credit, if any). */
     public void lightUp(int plotIndex, String symbol) {
         Element e = plugin.registry().get(symbol);
         if (e == null) return;
         Location loc = tileLocation(plotIndex, e);
         world().getBlockAt(loc).setType(familyMaterial(e.family()));
         spawnLabel(e, loc, true);
+    }
+
+    /** The element whose tile occupies this block on the given plot's wall, or null. */
+    public Element elementAt(int plotIndex, Location loc) {
+        for (Element e : plugin.registry().all()) {
+            Location t = tileLocation(plotIndex, e);
+            if (t.getBlockX() == loc.getBlockX()
+                    && t.getBlockY() == loc.getBlockY()
+                    && t.getBlockZ() == loc.getBlockZ()) return e;
+        }
+        return null;
     }
 
     private Location labelAnchor(Location tile) {
@@ -73,14 +84,32 @@ public class PeriodicWall {
 
     private void spawnLabel(Element e, Location tile, boolean lit) {
         removeLabel(e, tile);
+        // A helper's name lives in PlayerStore and is re-read on EVERY relight, so repeat
+        // extractions (which also call lightUp) can never erase the credit line.
+        String credit = null;
+        if (lit) {
+            java.util.UUID owner = ownerOfWall(tile);
+            if (owner != null) credit = plugin.store().tileCredit(owner, e.symbol());
+        }
+        final String creditLine = credit;
         world().spawn(labelAnchor(tile), TextDisplay.class, td -> {
-            td.text(Component.text(e.symbol(), lit ? NamedTextColor.WHITE : NamedTextColor.GRAY)
-                    .append(Component.text("\n" + e.number(), NamedTextColor.GRAY)));
+            Component text = Component.text(e.symbol(), lit ? NamedTextColor.WHITE : NamedTextColor.GRAY)
+                    .append(Component.text("\n" + e.number(), NamedTextColor.GRAY));
+            if (creditLine != null) {
+                text = text.append(Component.text("\nהתגלה יחד עם " + creditLine, NamedTextColor.GOLD));
+            }
+            td.text(text);
             td.setBillboard(Display.Billboard.CENTER);          // always faces the reader
             td.setBrightness(new Display.Brightness(lit ? 15 : 4, lit ? 15 : 4));
             td.setSeeThrough(false);
             td.getPersistentDataContainer().set(plugin.tileKey(), PersistentDataType.STRING, e.symbol());
         });
+    }
+
+    /** UUID of the student whose plot this wall tile stands on, or null. */
+    private java.util.UUID ownerOfWall(Location tile) {
+        int plot = plugin.plots().plotIndexAt(tile);
+        return (plot < 0) ? null : plugin.store().uuidByPlot(plot);
     }
 
     private void removeLabel(Element e, Location tile) {

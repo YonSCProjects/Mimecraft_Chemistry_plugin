@@ -24,6 +24,14 @@ public class JoinListener implements Listener {
         boolean firstTime = !plugin.store().hasPlot(id);
         int plot = plugin.store().getOrAssignPlotIndex(id);
 
+        // offline-mode server: our own name cache is the only trustworthy uuid->name map
+        plugin.store().cacheName(id, player.getName());
+        int pending = plugin.store().flushPendingAssists(id);
+        if (pending > 0) {
+            player.sendMessage(Component.text(
+                    "בזמן שלא הייתם: עזרתם ל-" + pending + " חברים לגלות יסודות!", NamedTextColor.GOLD));
+        }
+
         if (!plugin.store().isWallBuilt(id)) {
             plugin.wall().build(plot);
             for (String sym : plugin.store().getDiscovered(id)) plugin.wall().lightUp(plot, sym);

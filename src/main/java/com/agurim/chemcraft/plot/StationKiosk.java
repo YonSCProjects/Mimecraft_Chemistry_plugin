@@ -37,6 +37,12 @@ public class StationKiosk {
         int oz = plugin.getConfig().getInt("kiosk.offset-z", 1);
         int spacing = Math.max(1, plugin.getConfig().getInt("kiosk.spacing", 3));
 
+        // config kiosk.stations filters which methods still live on plots (absent key or empty
+        // list = all, the legacy layout). With regions active this is typically just [reactor].
+        // The slot index advances for EVERY method so legacy positions stay stable, and
+        // filtered-out methods CLEAR any stale legacy block+label left from the old layout.
+        java.util.List<String> allowed = plugin.kioskStations();
+
         int i = 0;
         for (String method : stations.getKeys(false)) {
             Material mat = Material.matchMaterial(stations.getString(method, ""));
@@ -45,10 +51,37 @@ public class StationKiosk {
                     corner.getBlockX() + ox + i * spacing,
                     corner.getBlockY() + oy,
                     corner.getBlockZ() + oz);
+            if (!allowed.isEmpty() && !allowed.contains(method)) {
+                // migration: remove a retired station left by the old all-stations layout
+                if (world().getBlockAt(loc).getType() == mat) world().getBlockAt(loc).setType(Material.AIR);
+                removeLabel(method, loc.clone().add(0.5, 1.4, 0.5));
+                i++;
+                continue;
+            }
             world().getBlockAt(loc).setType(mat);
             spawnLabel(method, loc);
             i++;
         }
+    }
+
+    /** Is this one of the plot's kiosk station slots (protected from student breaking)? */
+    public boolean isKioskBlock(int plotIndex, Location loc) {
+        ConfigurationSection stations = plugin.getConfig().getConfigurationSection("stations");
+        if (stations == null) return false;
+        Location corner = plugin.plots().plotCorner(plotIndex);
+        int ox = plugin.getConfig().getInt("kiosk.offset-x", 8);
+        int oy = plugin.getConfig().getInt("kiosk.offset-y", 1);
+        int oz = plugin.getConfig().getInt("kiosk.offset-z", 1);
+        int spacing = Math.max(1, plugin.getConfig().getInt("kiosk.spacing", 3));
+        if (loc.getBlockY() != corner.getBlockY() + oy || loc.getBlockZ() != corner.getBlockZ() + oz) return false;
+        int i = 0;
+        for (String method : stations.getKeys(false)) {
+            Material mat = Material.matchMaterial(stations.getString(method, ""));
+            if (mat == null) { i++; continue; }
+            if (loc.getBlockX() == corner.getBlockX() + ox + i * spacing && loc.getBlock().getType() == mat) return true;
+            i++;
+        }
+        return false;
     }
 
     private void spawnLabel(String method, Location block) {

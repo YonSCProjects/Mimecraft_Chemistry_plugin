@@ -11,9 +11,13 @@ import org.bukkit.inventory.ItemStack;
 public final class StarterKit {
     private StarterKit() {}
 
-    /** Give the configured kit. Returns false if kits are disabled or empty. */
+    /**
+     * Give the configured kit, once per player (admins are exempt from the cap).
+     * Returns false if kits are disabled, empty, or already claimed.
+     */
     public static boolean give(ChemCraftPlugin plugin, Player player) {
         if (!plugin.getConfig().getBoolean("starter-kit.enabled", true)) return false;
+        if (!player.hasPermission("chemcraft.admin") && plugin.store().isKitClaimed(player.getUniqueId())) return false;
         ConfigurationSection items = plugin.getConfig().getConfigurationSection("starter-kit.items");
         if (items == null) return false;
         boolean gave = false;
@@ -26,8 +30,11 @@ public final class StarterKit {
             gave = true;
         }
         if (gave) {
+            plugin.store().setKitClaimed(player.getUniqueId());
             player.sendMessage(Component.text(
-                    "ערכת פתיחה של חומרי גלם נמצאת במלאי שלכם - קחו אותה לעמדות.",
+                    plugin.regions().isEmpty()
+                            ? "ערכת פתיחה של חומרי גלם נמצאת במלאי שלכם - קחו אותה לעמדות."
+                            : "ערכת פתיחה של חומרי גלם וכלים נמצאת במלאי שלכם - קחו אותה לאזורים.",
                     NamedTextColor.GREEN));
         }
         return gave;

@@ -6,5 +6,9 @@ description: Teaches chemistry basics through exploration and building.
 commands:
   chemcraft:
     description: ChemCraft commands
-    usage: /chemcraft guide | kit | tp | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload
+    usage: /chemcraft guide | kit | tp | region | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload
     aliases: [cc]
+permissions:
+  chemcraft.admin:
+    description: Admin/debug ChemCraft commands (give, givemol, discover, reset, region build, reload)
+    default: op

@@ -5,6 +5,8 @@ import com.agurim.chemcraft.extraction.Recipe;
 import com.agurim.chemcraft.reaction.Reaction;
 import com.agurim.chemcraft.ui.ReactionMenu;
 import com.agurim.chemcraft.ui.StationMenu;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
@@ -32,9 +34,35 @@ public class StationListener implements Listener {
         if (block == null) return;
         String method = methodForMaterial(block.getType());
         if (method == null) return;
+        if (!allowedHere(event.getPlayer(), block, method)) {
+            // NOT cancelled: outside regions/kiosks the block is just a vanilla block again.
+            // The redirect hint fires only for GUI-less blocks on the clicker's OWN plot
+            // (i.e. retired kiosk stations) - decorative blocks elsewhere stay silent.
+            if (!(block.getState() instanceof org.bukkit.block.Container)
+                    && plugin.plots().plotIndexAt(block.getLocation())
+                       == plugin.store().getOrAssignPlotIndex(event.getPlayer().getUniqueId())) {
+                event.getPlayer().sendMessage(Component.text(
+                        "העמדות נמצאות באזורים המשותפים - /cc region list", NamedTextColor.GRAY));
+            }
+            return;
+        }
         event.setCancelled(true);
         if (method.equals("reactor")) new ReactionMenu().open(plugin, event.getPlayer());
         else new StationMenu(method).open(plugin, event.getPlayer());
+    }
+
+    /**
+     * With no regions defined, every matching block is a station (legacy mode - safe jar swap).
+     * With regions: region stations work inside their region; kiosk methods (config
+     * kiosk.stations, empty list = all) work on the player's own plot.
+     */
+    private boolean allowedHere(Player player, Block block, String method) {
+        if (plugin.regions().isEmpty()) return true;
+        if (plugin.regions().allowsStation(block.getLocation(), method)) return true;
+        java.util.List<String> kioskStations = plugin.kioskStations();
+        if (!kioskStations.isEmpty() && !kioskStations.contains(method)) return false;
+        int here = plugin.plots().plotIndexAt(block.getLocation());
+        return here != -1 && here == plugin.store().getOrAssignPlotIndex(player.getUniqueId());
     }
 
     @EventHandler
