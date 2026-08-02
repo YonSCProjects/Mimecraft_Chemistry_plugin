@@ -5,8 +5,17 @@ plugins {
 group = 'com.agurim'
 version = '0.1.0'
 
+// Dual-target build: `gradle build` targets Paper 1.21.8 (Java 21, the current class server);
+// `gradle build -Pmc=26.2` targets Paper 26.2 stable (Java 25, the next server) and names the
+// jar ChemCraft-<version>-mc26.2.jar. plugin.yml's api-version is templated to match.
+def mcTarget = (findProperty('mc') ?: '1.21').toString()
+def is26 = mcTarget.startsWith('26')
+def paperApi   = is26 ? 'io.papermc.paper:paper-api:26.2.build.87-stable'
+                      : 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
+def apiVersion = is26 ? '26.2' : '1.21'
+
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(is26 ? 25 : 21)
 }
 
 repositories {
@@ -15,8 +24,7 @@ repositories {
 }
 
 dependencies {
-    // Match this to YOUR server version if it differs.
-    compileOnly 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
+    compileOnly paperApi
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -24,4 +32,11 @@ tasks.withType(JavaCompile).configureEach {
 }
 tasks.processResources {
     filteringCharset = 'UTF-8'
+    inputs.property('apiVersion', apiVersion)
+    filesMatching('plugin.yml') {
+        expand('apiVersion': apiVersion)
+    }
+}
+if (is26) {
+    tasks.jar { archiveClassifier = 'mc26.2' }
 }
