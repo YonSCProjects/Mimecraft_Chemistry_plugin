@@ -1,6 +1,8 @@
 package com.agurim.chemcraft.listener;
 
 import com.agurim.chemcraft.ChemCraftPlugin;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -24,6 +26,14 @@ public class MoleculeListener implements Listener {
         if (plugin.atoms().get(block.getLocation()) == null) return; // not an atom block
         event.setCancelled(true);
         Player player = event.getPlayer();
+        // Bond editing is owner-only: a /cc visit guest may look, not touch - and the molecule
+        // completion reward goes to whoever completes it, so this also closes reward theft.
+        if (!player.isOp()
+                && plugin.plots().plotIndexAt(block.getLocation())
+                   != plugin.store().getOrAssignPlotIndex(player.getUniqueId())) {
+            player.sendMessage(Component.text("אפשר לערוך קשרים רק בחלקה שלכם.", NamedTextColor.RED));
+            return;
+        }
         plugin.moleculeEngine().cycleBond(block.getLocation(), event.getBlockFace(), player);
     }
 }

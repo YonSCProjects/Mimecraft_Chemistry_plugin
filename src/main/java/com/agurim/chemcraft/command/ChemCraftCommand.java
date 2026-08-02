@@ -44,7 +44,7 @@ public class ChemCraftCommand implements CommandExecutor {
         UUID id = player.getUniqueId();
 
         if (args.length == 0) {
-            player.sendMessage(Component.text("/chemcraft guide | kit | tp | region | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("/chemcraft guide | kit | tp | region | visit <שם> | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
             return true;
         }
 
@@ -60,6 +60,19 @@ public class ChemCraftCommand implements CommandExecutor {
                 }
             }
             case "region" -> region(player, args);
+            case "visit" -> {
+                int min = plugin.getConfig().getInt("ranks.visit-min-assists", 8);
+                if (!player.hasPermission("chemcraft.admin") && plugin.store().getAssists(id) < min) {
+                    player.sendMessage(Component.text("/cc visit נפתח בדרגת לבורנט (" + min + " עזרות).", NamedTextColor.RED));
+                    return true;
+                }
+                if (args.length < 2) { player.sendMessage(Component.text("שימוש: /cc visit <שם שחקן>", NamedTextColor.RED)); return true; }
+                UUID target = plugin.store().uuidByName(args[1]);
+                if (target == null) { player.sendMessage(Component.text("שחקן לא מוכר: " + args[1], NamedTextColor.RED)); return true; }
+                plugin.plots().teleportToPlot(player, plugin.store().getOrAssignPlotIndex(target));
+                player.sendMessage(Component.text("ביקור אצל " + plugin.store().getName(target)
+                        + " - אפשר להסתכל וללמוד, אי אפשר לבנות.", NamedTextColor.AQUA));
+            }
             case "tp" -> {
                 int plot = plugin.store().getOrAssignPlotIndex(id);
                 plugin.plots().teleportToPlot(player, plot);
@@ -99,6 +112,8 @@ public class ChemCraftCommand implements CommandExecutor {
                 int plot = plugin.store().getOrAssignPlotIndex(id);
                 plugin.store().clearDiscovered(id);
                 plugin.store().clearTileCredit(id); // else stale "discovered with X" lines resurface
+                plugin.store().clearSeen(id);
+                plugin.store().clearDemos(id);
                 plugin.wall().build(plot);
                 player.sendMessage(Component.text("הטבלה שלכם אופסה.", NamedTextColor.YELLOW));
             }

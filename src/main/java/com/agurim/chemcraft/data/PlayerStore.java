@@ -110,6 +110,51 @@ public class PlayerStore {
         save();
     }
 
+    // --- "seen" tier: elements witnessed at a classmate's extraction but not yet earned ---
+
+    public boolean isSeen(UUID id, String sym) {
+        return yml.getStringList(id + ".seen").contains(sym);
+    }
+
+    /** Mark an element as seen. Returns true only on the first marking. */
+    public boolean markSeen(UUID id, String sym) {
+        Set<String> s = new LinkedHashSet<>(yml.getStringList(id + ".seen"));
+        if (!s.add(sym)) return false;
+        yml.set(id + ".seen", new ArrayList<>(s));
+        save();
+        return true;
+    }
+
+    public void clearSeen(UUID id) { yml.set(id + ".seen", null); save(); }
+
+    /** Record who demonstrated an element to this witness - first demonstrator wins. */
+    public void setDemonstratorIfAbsent(UUID witness, String sym, UUID helper) {
+        String key = witness + ".demos." + sym;
+        if (!yml.contains(key)) { yml.set(key, helper.toString()); save(); }
+    }
+
+    public String getDemonstrator(UUID witness, String sym) {
+        return yml.getString(witness + ".demos." + sym, null);
+    }
+
+    public void clearDemonstrator(UUID witness, String sym) {
+        String key = witness + ".demos." + sym;
+        if (yml.contains(key)) { yml.set(key, null); save(); }
+    }
+
+    public void clearDemos(UUID id) { yml.set(id + ".demos", null); save(); }
+
+    /** Cached-name lookup (case-insensitive), for /cc visit on an offline-mode server. */
+    public UUID uuidByName(String name) {
+        for (String key : yml.getKeys(false)) {
+            if (key.startsWith("_")) continue;
+            if (name.equalsIgnoreCase(yml.getString(key + ".name", ""))) {
+                try { return UUID.fromString(key); } catch (IllegalArgumentException ignored) {}
+            }
+        }
+        return null;
+    }
+
     /** Helper name credited on this player's tile for an element, or null. */
     public String tileCredit(UUID id, String sym) {
         return yml.getString(id + ".tile-credit." + sym, null);

@@ -26,6 +26,7 @@ public class JoinListener implements Listener {
 
         // offline-mode server: our own name cache is the only trustworthy uuid->name map
         plugin.store().cacheName(id, player.getName());
+        com.agurim.chemcraft.ui.Ranks.apply(plugin, player, plugin.store().getAssists(id));
         int pending = plugin.store().flushPendingAssists(id);
         if (pending > 0) {
             player.sendMessage(Component.text(

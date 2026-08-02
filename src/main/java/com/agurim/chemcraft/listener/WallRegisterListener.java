@@ -3,6 +3,7 @@ package com.agurim.chemcraft.listener;
 import com.agurim.chemcraft.ChemCraftPlugin;
 import com.agurim.chemcraft.element.AtomItems;
 import com.agurim.chemcraft.element.Element;
+import com.agurim.chemcraft.ui.Credit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -101,20 +102,13 @@ public class WallRegisterListener implements Listener {
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
 
         if (credited) {
-            int assists = plugin.store().addAssist(helper);
-            plugin.getLogger().info("[assist] " + sourceName + " -> " + player.getName()
-                    + " (" + tile.symbol() + "), total " + assists);
+            plugin.getLogger().info("[assist] gift " + sourceName + " -> " + player.getName() + " (" + tile.symbol() + ")");
             Bukkit.getServer().sendMessage(Component.text("גילוי חדש: " + tile.name() + " (" + tile.symbol() + ") - "
                     + player.getName() + " יחד עם " + sourceName + "!", NamedTextColor.GOLD));
-            plugin.assistBoard().update(helper, sourceName, assists);
-            Player helperOnline = Bukkit.getPlayer(helper);
-            if (helperOnline != null) {
-                helperOnline.playSound(helperOnline.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.4f);
-                helperOnline.sendMessage(Component.text("עזרתם ל-" + player.getName() + " לגלות את "
-                        + tile.name() + "! (" + assists + " עזרות)", NamedTextColor.GOLD));
-            } else {
-                plugin.store().addPendingAssist(helper);
-            }
+            Credit.pay(plugin, helper, sourceName,
+                    "עזרתם ל-" + player.getName() + " לגלות את " + tile.name() + "!");
         }
+        // discovery reached via gift - any recorded demonstrator for this element is moot now
+        plugin.store().clearDemonstrator(id, tile.symbol());
     }
 }

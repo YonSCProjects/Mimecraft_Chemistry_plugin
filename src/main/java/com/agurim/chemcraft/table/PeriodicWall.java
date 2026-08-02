@@ -82,28 +82,49 @@ public class PeriodicWall {
         return tile.clone().add(0.5, 0.5, -0.3);
     }
 
+    /** Mark an element's tile as "seen" (witnessed but not earned): tile stays gray, label goes yellow. */
+    public void markSeen(int plotIndex, String symbol) {
+        Element e = plugin.registry().get(symbol);
+        if (e == null) return;
+        spawnLabel(e, tileLocation(plotIndex, e), false); // spawnLabel reads the seen state itself
+    }
+
     private void spawnLabel(Element e, Location tile, boolean lit) {
+        // Wall updates can arrive while the plot chunk is unloaded (witnessing or discovering
+        // at a region far from home). getNearbyEntities cannot see unloaded entities, so force
+        // the ANCHOR chunk's entities in first - the anchor is offset -0.3z and may sit in the
+        // neighboring chunk. Chunk#load() alone is NOT enough: entity data loads separately,
+        // and Paper's Chunk#getEntities() is the call that sync-loads it.
+        labelAnchor(tile).getChunk().getEntities();
         removeLabel(e, tile);
-        // A helper's name lives in PlayerStore and is re-read on EVERY relight, so repeat
-        // extractions (which also call lightUp) can never erase the credit line.
-        String credit = null;
-        if (lit) {
-            java.util.UUID owner = ownerOfWall(tile);
-            if (owner != null) credit = plugin.store().tileCredit(owner, e.symbol());
-        }
-        final String creditLine = credit;
+        // Credit and seen-state live in PlayerStore and are re-read on EVERY (re)spawn, so
+        // repeat extractions / buildwall can never erase them.
+        java.util.UUID owner = ownerOfWall(tile);
+        final String creditLine = (lit && owner != null) ? plugin.store().tileCredit(owner, e.symbol()) : null;
+        final boolean seen = !lit && owner != null && plugin.store().isSeen(owner, e.symbol());
         world().spawn(labelAnchor(tile), TextDisplay.class, td -> {
-            Component text = Component.text(e.symbol(), lit ? NamedTextColor.WHITE : NamedTextColor.GRAY)
+            NamedTextColor symColor = lit ? NamedTextColor.WHITE : (seen ? NamedTextColor.YELLOW : NamedTextColor.GRAY);
+            Component text = Component.text(e.symbol(), symColor)
                     .append(Component.text("\n" + e.number(), NamedTextColor.GRAY));
             if (creditLine != null) {
                 text = text.append(Component.text("\nהתגלה יחד עם " + creditLine, NamedTextColor.GOLD));
             }
+            if (seen) {
+                text = text.append(Component.text("\nנצפה! הפיקו בעצמכם ב" + regionName(e), NamedTextColor.YELLOW));
+            }
             td.text(text);
             td.setBillboard(Display.Billboard.CENTER);          // always faces the reader
-            td.setBrightness(new Display.Brightness(lit ? 15 : 4, lit ? 15 : 4));
+            int light = lit ? 15 : (seen ? 10 : 4);
+            td.setBrightness(new Display.Brightness(light, light));
             td.setSeeThrough(false);
             td.getPersistentDataContainer().set(plugin.tileKey(), PersistentDataType.STRING, e.symbol());
         });
+    }
+
+    /** Display name of the region this element comes from, for the seen-tile hint. */
+    private String regionName(Element e) {
+        var r = plugin.regions().byId(e.region());
+        return (r != null) ? r.name() : e.region();
     }
 
     /** UUID of the student whose plot this wall tile stands on, or null. */

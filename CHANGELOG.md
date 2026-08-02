@@ -2,6 +2,23 @@
 
 Built in slices. Versions are pre-release working milestones.
 
+## v0.8.0 - The teaching layer (campaign Phase 2) + dual-target build
+- **"Seen" tile tier (גילוי בהדגמה):** watching a classmate extract an element you lack (within
+  `demo.radius`) turns your wall tile yellow with a where-to-reproduce hint and records the
+  demonstrator. When you later perform your OWN first extraction of it, the demonstrator earns
+  the assist - teaching pays exactly like gifting, but witnessing alone grants nothing.
+- **Helper ranks (דרגות):** assists earn Hebrew tab-list prefixes (עוזר/ת מעבדה → לבורנט/ית →
+  כימאי/ת → פרופסור, config `ranks.tiers`) - status only, never material perks. Rank 2 unlocks
+  `/cc visit <name>`: teleport to a classmate's plot to look and learn. `Credit` is now the
+  single payout path for both gift and demo assists.
+- **Visit-proofing (from the adversarial review):** bond editing is owner-only (visitors could
+  previously cycle bonds and steal molecule completion rewards - a pre-existing hole), plot
+  containers are owner-only, and wall labels no longer duplicate when updated while the plot
+  chunk is unloaded (remote witnessing/discovery).
+- **Dual-target build:** `gradle build` targets Paper 1.21.8 (Java 21); `gradle build -Pmc=26.2`
+  targets Paper 26.2 stable (Java 25, Minecraft's new year-based versioning) with a templated
+  plugin.yml api-version. Zero source changes were needed for 26.2.
+
 ## v0.7.0 - Shared regions & cooperation (campaign Phase 1)
 - **Shared gathering regions** (`regions.yml`, new `region/` package): ten themed zones matching
   the (previously dead) `region:` field in `elements.yml`. Anyone may harvest the marked gather

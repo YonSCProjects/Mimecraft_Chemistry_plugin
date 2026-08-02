@@ -119,6 +119,23 @@ public class PlotProtection implements Listener {
         }
     }
 
+    /** Visitors (/cc visit) may look, not loot: block-backed inventories are owner-only on plots. */
+    @EventHandler(ignoreCancelled = true)
+    public void onContainerOpen(org.bukkit.event.inventory.InventoryOpenEvent event) {
+        if (!(event.getPlayer() instanceof Player p) || p.isOp()) return;
+        org.bukkit.inventory.InventoryHolder h = event.getInventory().getHolder();
+        Location loc;
+        if (h instanceof org.bukkit.inventory.BlockInventoryHolder bih) loc = bih.getBlock().getLocation();
+        else if (h instanceof org.bukkit.block.DoubleChest dc) loc = dc.getLocation();
+        else return; // plugin GUI menus and entity inventories are unaffected
+        if (!loc.getWorld().equals(plugin.plots().world())) return;
+        int here = plugin.plots().plotIndexAt(loc);
+        if (here != -1 && here != plugin.store().getOrAssignPlotIndex(p.getUniqueId())) {
+            event.setCancelled(true);
+            deny(p);
+        }
+    }
+
     /** Explosions never eat blocks in the game world - they'd bypass every check above and desync AtomStore. */
     @EventHandler
     public void onEntityExplode(EntityExplodeEvent event) {

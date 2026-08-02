@@ -54,6 +54,22 @@ assist-board:
   enabled: true
   title: "עוזרים מובילים"
 
+# Watching a classmate extract an element you lack (within radius blocks) turns your wall tile
+# yellow ("seen") and records the demonstrator - who is paid an assist when you reproduce the
+# extraction yourself. 0 disables witnessing.
+demo:
+  radius: 8
+
+# Helper status ranks by assists: tab-list prefix only, never material perks.
+# visit-min-assists gates /cc visit (teleport to a classmate's plot to look and learn).
+ranks:
+  visit-min-assists: 8
+  tiers:
+    3:  { name: "עוזר/ת מעבדה", color: green }
+    8:  { name: "לבורנט/ית",    color: aqua }
+    15: { name: "כימאי/ת",      color: gold }
+    25: { name: "פרופסור",      color: light_purple }
+
 # Raw materials handed to a player the first time they join (and via /chemcraft kit).
 # Keys are vanilla Material names; set enabled: false to turn kits off.
 starter-kit:

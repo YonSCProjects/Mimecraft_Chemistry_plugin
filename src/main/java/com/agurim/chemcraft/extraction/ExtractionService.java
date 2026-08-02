@@ -3,6 +3,7 @@ package com.agurim.chemcraft.extraction;
 import com.agurim.chemcraft.ChemCraftPlugin;
 import com.agurim.chemcraft.element.AtomItems;
 import com.agurim.chemcraft.element.Element;
+import com.agurim.chemcraft.ui.Credit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
@@ -130,10 +131,62 @@ public class ExtractionService {
             if (isNew) {
                 player.sendMessage(Component.text("התגלה " + el.name() + " (" + el.symbol() + ") - ", NamedTextColor.GREEN)
                         .append(Component.text(el.fact(), NamedTextColor.WHITE)));
+                payDemonstrator(player, el);
             }
+            markWitnesses(player, el);
         }
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
         return true;
+    }
+
+    /**
+     * The demonstration credit (Path 2 of the cooperation loop): if someone once showed this
+     * player the extraction of this element (recorded at witness time), that demonstrator is
+     * paid now - when the witness reproduces the experiment as their OWN first discovery.
+     * Same +1 as the gift path, so walking a classmate to the volcano pays like handing over
+     * the atom - but only teaching also works when the receiver holds nothing.
+     */
+    private void payDemonstrator(Player player, Element el) {
+        String demo = plugin.store().getDemonstrator(player.getUniqueId(), el.symbol());
+        if (demo != null) {
+            try {
+                java.util.UUID helper = java.util.UUID.fromString(demo);
+                if (!helper.equals(player.getUniqueId())) {
+                    // verb-free phrasing: no gendered verb about either player
+                    Credit.pay(plugin, helper, plugin.store().getName(helper),
+                            "ההדגמה שלכם עבדה! עכשיו גם ל-" + player.getName() + " יש " + el.name());
+                    player.sendMessage(Component.text(
+                            "שחזרתם את הניסוי שראיתם - הקרדיט על ההדגמה נרשם ל-" + plugin.store().getName(helper) + ".",
+                            NamedTextColor.GOLD));
+                }
+            } catch (IllegalArgumentException ignored) {}
+        }
+        plugin.store().clearDemonstrator(player.getUniqueId(), el.symbol());
+    }
+
+    /**
+     * The "seen" half-state: nearby classmates who lack this element watch the experiment.
+     * Their wall tile turns yellow with a where-to-reproduce hint, and the extractor is
+     * recorded as their demonstrator (first demonstrator wins - re-demoing pays nobody twice).
+     * Witnessing grants knowledge only: no items, no credit, nothing farmable by huddling.
+     */
+    private void markWitnesses(Player extractor, Element el) {
+        int radius = plugin.getConfig().getInt("demo.radius", 8);
+        if (radius <= 0) return;
+        double r2 = (double) radius * radius;
+        for (Player w : extractor.getWorld().getPlayers()) {
+            if (w.equals(extractor)) continue;
+            if (w.getLocation().distanceSquared(extractor.getLocation()) > r2) continue;
+            if (plugin.store().isDiscovered(w.getUniqueId(), el.symbol())) continue;
+            plugin.store().setDemonstratorIfAbsent(w.getUniqueId(), el.symbol(), extractor.getUniqueId());
+            if (plugin.store().markSeen(w.getUniqueId(), el.symbol())) {
+                plugin.wall().markSeen(plugin.store().getOrAssignPlotIndex(w.getUniqueId()), el.symbol());
+                w.sendMessage(Component.text(
+                        "צפיתם בניסוי של " + extractor.getName() + ": " + el.name() + " (" + el.symbol()
+                                + "). חזרו עליו בעצמכם כדי להשלים את הגילוי!",
+                        NamedTextColor.YELLOW));
+            }
+        }
     }
 
     public int countAtoms(Player player, String symbol) {

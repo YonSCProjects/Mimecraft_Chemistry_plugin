@@ -43,6 +43,8 @@ public final class Guide {
         line(player, "5. הגיבו מולקולות יחד בכור שבחלקה שלכם.", NamedTextColor.YELLOW);
         line(player, "6. קיבלתם אטום מחבר? לחצו איתו על האריח האפור בקיר שלכם -", NamedTextColor.YELLOW);
         line(player, "   האטום נטמע, היסוד נרשם, ומי שעזר מקבל קרדיט בלוח \"עוזרים מובילים\".", NamedTextColor.GRAY);
+        line(player, "7. צפיתם בחבר מפיק יסוד חדש? האריח שלכם יצהיב - חזרו על הניסוי", NamedTextColor.YELLOW);
+        line(player, "   בעצמכם כדי להשלים את הגילוי, ומי שהדגים יקבל את הקרדיט.", NamedTextColor.GRAY);
         if (regions) {
             line(player, "טיפ: בערכת הפתיחה יש חומרי גלם וכלים - והשאר מחכה באזורים.", NamedTextColor.GREEN);
             line(player, "פקודות: /cc guide | /cc kit | /cc tp | /cc region list", NamedTextColor.DARK_AQUA);
