@@ -18,8 +18,13 @@ bond atoms into molecules -> react molecules / stack them into materials.**
 Working title: **ChemCraft**. Repo: `Mimecraft_Chemistry_plugin`. Package: `com.agurim.chemcraft`.
 
 ## Tech stack & build
-- **PaperMC 1.21.x**, **Java 21** (required by 1.21).
-- **Gradle** (`build.gradle`, Groovy DSL). Build: `gradle build` -> jar in `build/libs/`.
+- **Dual target.** `gradle build` -> Paper **1.21.8** / Java 21 (legacy class server).
+  `gradle build "-Pmc=26.2"` -> Paper **26.2 stable** / Java 25, jar `ChemCraft-x-mc26.2.jar`.
+  Minecraft switched to year-based versions after 1.21.11; 26.2 needed **zero source changes**.
+  The 26.2 build needs Gradle 9.2+ and `JAVA_HOME` = JDK 25 (Gradle 8.9 can't drive a 25
+  toolchain). `plugin.yml`'s `api-version` is templated from the same property.
+  **The 26.2 server is the primary dev target.**
+- **Gradle** (`build.gradle`, Groovy DSL). Jar lands in `build/libs/`.
   No wrapper committed yet; run `gradle wrapper` once or open in IntelliJ. `settings.gradle` adds the
   foojay toolchain resolver, so Gradle auto-downloads a JDK 21 if one isn't installed locally.
 - **No automated test suite** (no `src/test/`, no `gradle test` target). The "data-level checks"
@@ -115,7 +120,8 @@ Runtime state (written by the plugin): `players.yml`, `atoms.yml`, `bonds.yml`.
 5. **Listeners that must run after protection use `EventPriority.HIGH` + `ignoreCancelled`.**
 
 ## Known issues / caveats
-- Not yet built against Paper (see Status above).
+- **Never `/cc region build` with `regions.flatten: true` on a server whose zones were
+  hand-sculpted** - it re-flattens the terrain. The dev server ships `flatten: false`.
 - Integer-valence bonding model: an **ionic lattice (salt) flashes "over-bonded"** while building
   up before the 2x2x2 completes; resonance molecules (e.g. ozone) can't be represented. Accepted.
 - Molecule recognition is by **composition only** (formula), so isomers aren't distinguished.
@@ -124,11 +130,27 @@ Runtime state (written by the plugin): `players.yml`, `atoms.yml`, `bonds.yml`.
 - `atoms.yml` / `bonds.yml` are saved on every change (fine at classroom scale).
 - `setCustomModelData(int)` is deprecated in 1.21.4 but still works.
 
-## Roadmap (all optional)
+## Roadmap
+### Next up (campaign Phase 3, designed - see docs/DESIGN.md)
+- **Class silo:** a shared cumulative goal (bossbar, e.g. "20 ammonia for the fertilizer silo"),
+  capped at 50% per student, deposits are PDC-tagged molecule samples only, rewards are
+  flavour/speed - **never elements** (a collective gate on individual progress breaks absence
+  resilience). Blocked on a decision: the molecule dup leak must close first, or samples become
+  farmable silo currency.
+- **Co-op reactions:** optional `min-operators: 2` on *new bonus* reactions only (the glucose
+  capstone `6 CO2 + 6 H2O -> glucose + 6 O2`), escrow per reactor block, outputs split
+  proportionally to what each student contributed (no flat payout - that's a currency printer).
+
+### Parked ideas
+- **In-game AI lab assistant (עוזר/ת מעבדה)** available to every student: a log-tailing agent
+  answers chat questions per-student via `tell`, using their real state (position, inventory,
+  `players.yml` progress). Feasible today over RCON/MCP. Open questions: Socratic hints vs.
+  answers, rate limiting, and surfacing the questions to the teacher as formative assessment.
+- **`/cc progress`** teacher overview (per-student tiles lit / assists / seen count) - there is
+  currently no way to see the class without walking plot to plot.
 - **Resource pack** mapping `custom_model_data` (atoms `7000 + atomicNumber`, molecules
-  `8000 + hash`) to real icons - pure visual, no code.
-- More content via YAML.
-- **Classroom layer:** quests, a build-off competition, scoreboards.
+  `8000 + hash`) to real icons - pure visual, no code. Biggest visual win available.
+- More content via YAML; region-filtered recipes that force cross-region supply chains.
 - True 3D geometry reveal on molecule completion (show the real bent/tetrahedral shape).
 
 ## Where to read more

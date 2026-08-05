@@ -108,3 +108,70 @@ Format: **Decision - why - trade-off / alternatives.**
 
 - **~25 elements (first 20 + Fe, Cu, Zn, Ag, Au).** - Enough to teach families and bonding and to
   populate a readable wall, without overwhelming. - Heavier/rarer elements omitted by design.
+
+---
+
+## Campaign layer decision log (2026-08 — multi-class, shared-world)
+
+Context: the game became a **persistent multi-class campaign** on one shared Paper server, where
+walking between places and meeting classmates is a feature, not dead time. Three phases were
+designed together; Phases 1–2 shipped.
+
+### Shipped
+
+- **Shared region zones replace the per-plot kiosk.** — The `region:` field already on every
+  element (`sea`, `mines`, `quarry`, `forest`, `air`, `desert`, `salt_flats`, `volcano`, `river`,
+  `gas`) was dead data; it now drives ten shared, themed zones holding the extraction stations
+  and regenerating gather nodes. Plots stay as home + periodic wall. — Why: the region map *is*
+  the reactivity series drawn as geography (native gold sits in a riverbed because nothing reacts
+  with it; sodium is only ever won from salt by electrolysis). A menu can't teach that. — Rejected
+  alternative: biome-gating inside each student's own plot — a random world seed hands one kid a
+  treeless plot and hard-locks them out of every smelter recipe.
+
+- **Harvest is scoped to the exact node beds, not to Material.** — A gather permission keyed only
+  on block type turned a region's own floor and every natural vein in its column into an infinite
+  farm. — Trade-off: node positions are deterministic (patch *i* at x-offset `4+5i`), which is also
+  what lets `refillBeds()` self-heal a restart mid-regen with no persistence file.
+
+- **Discovery-by-registration, consuming the atom.** — Right-clicking your own gray tile with a
+  matching atom consumes it and lights the tile. Additive to extraction auto-discovery, so solo
+  play is never taxed. — Why not discovery-on-placement: breaking an atom block re-mints a fresh
+  item, so one immortal atom would light every wall in the class.
+
+- **Provenance stamp + first-discovery-capped assist credit.** — Extraction-minted atoms carry the
+  extractor's UUID; a classmate registering your atom for their *first* discovery of that element
+  pays you an assist (broadcast, offline-banked chime, permanent tile credit, sidebar). — Why it
+  can't be farmed: at most one credit per (receiver, element) *ever*; self-credit and unstamped
+  mints (admin give, block re-drops, reaction outputs) pay nothing; the atom is consumed. Extortion
+  is self-defeating — the bully who registers a stolen atom pays the victim.
+
+- **The "seen" tier pays for teaching, not proximity.** — Witnessing a classmate's extraction marks
+  your tile yellow with a where-to-reproduce hint and records them as your demonstrator; they are
+  paid only when *you* reproduce the extraction yourself. — Why: it makes walking someone to the
+  volcano worth exactly as much as handing them the atom, while huddling around a busy station
+  earns nothing. — Rejected: per-witness instant payouts (a day-one credit printer), and waiving
+  the witness's input costs (breaks on multi-output recipes, which would leak free co-products).
+
+- **Status ranks, never material perks.** — Assists buy a tab-list title and `/cc visit`. — Why:
+  converting helper status into progression currency would make helping a resource strategy
+  instead of a social one. — Consequence found in review: `visit` exposed a pre-existing hole
+  (bond editing had no ownership check), so bond editing and plot containers became owner-only.
+
+### Deliberately not built
+
+- **Teams / factions.** A team with an absent member is a blocked team, and rivals become people
+  it is irrational to help. All goals are individual or whole-class.
+- **Trade GUI / currency / shops.** Dropping an item to a classmate in person *is* the social
+  feature; the provenance stamp is what makes it count. A trade subsystem teaches nothing chemical
+  and adds scam adjudication.
+- **Class goals that gate progression.** A collective unlock punishes low-attendance cohorts for
+  something outside their control. Class rewards are flavour and speed only.
+- **Proximity-triggered credit.** Pays hovering, not helping, and misattributes by construction.
+
+### Open — blocks Phase 3
+
+- **The molecule dup leak must close before samples become silo currency** (place → sample →
+  break → repeat). Preferred: completion consumes the blocks (also kills the bond-cycle
+  re-celebrate exploit and teaches conservation); cost is that your build vanishes.
+- **Where co-op reactors live** — a shared plaza (visible, social, one escrow) vs. personal plot
+  reactors.
