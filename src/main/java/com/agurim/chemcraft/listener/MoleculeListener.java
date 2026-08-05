@@ -28,11 +28,14 @@ public class MoleculeListener implements Listener {
         Player player = event.getPlayer();
         // Bond editing is owner-only: a /cc visit guest may look, not touch - and the molecule
         // completion reward goes to whoever completes it, so this also closes reward theft.
-        if (!player.isOp()
-                && plugin.plots().plotIndexAt(block.getLocation())
-                   != plugin.store().getOrAssignPlotIndex(player.getUniqueId())) {
-            player.sendMessage(Component.text("אפשר לערוך קשרים רק בחלקה שלכם.", NamedTextColor.RED));
-            return;
+        if (!player.isOp()) {
+            int here = plugin.plots().plotIndexAt(block.getLocation());
+            int mine = plugin.store().getOrAssignPlotIndex(player.getUniqueId());
+            if (here != mine) {
+                if (here == -1) player.sendMessage(Component.text("אפשר לערוך קשרים רק בחלקה שלכם.", NamedTextColor.RED));
+                else plugin.shield().blocked(player, block.getLocation(), here, "שינוי קשרים");
+                return;
+            }
         }
         plugin.moleculeEngine().cycleBond(block.getLocation(), event.getBlockFace(), player);
     }

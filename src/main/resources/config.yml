@@ -15,8 +15,11 @@ wall:
   tile-spacing: 2
 
 # Right-click one of these blocks to open the matching station.
+# Station blocks are matched by EXACT material, so never use one that changes state on its own:
+# plain COPPER_BLOCK oxidizes (fast, in 26.2's copper age) into OXIDIZED_COPPER and silently
+# stops being a station. Waxed copper looks identical and never weathers.
 stations:
-  panning: COPPER_BLOCK
+  panning: WAXED_COPPER_BLOCK
   air_separation: BLUE_ICE
   smelter: BLAST_FURNACE
   electrolysis: SEA_LANTERN
@@ -59,6 +62,17 @@ assist-board:
 # extraction yourself. 0 disables witnessing.
 demo:
   radius: 8
+
+# What happens when a student tries to touch someone else's plot. The attempt ALWAYS fails
+# regardless of these settings - this only shapes how failing feels, so it is deliberately
+# undramatic: a thunk and a barrier flash so protection feels solid, and after repeated tries
+# a boring teleport home. Nothing is ever damaged, dropped, or lost. Every attempt is counted
+# for the teacher (/cc report), which is the lever that actually changes behaviour.
+plot-shield:
+  enabled: true
+  particles: true
+  escalate-after: 4     # blocked attempts within the window before being sent home
+  window-seconds: 30
 
 # Helper status ranks by assists: tab-list prefix only, never material perks.
 # visit-min-assists gates /cc visit (teleport to a classmate's plot to look and learn).

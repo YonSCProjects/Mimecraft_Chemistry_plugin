@@ -53,7 +53,7 @@ public class PlotProtection implements Listener {
             event.setExpToDrop(0);
             return;
         }
-        if (here != mine) { event.setCancelled(true); deny(p); return; }
+        if (here != mine) { event.setCancelled(true); plugin.shield().blocked(p, loc, here, "שבירה"); return; }
         if (plugin.wall().isWallTile(mine, loc)) {
             event.setCancelled(true);
             p.sendMessage(Component.text("זה חלק מהטבלה המחזורית שלכם - אי אפשר לשבור אותו.", NamedTextColor.RED));
@@ -87,9 +87,13 @@ public class PlotProtection implements Listener {
     public void onPlace(BlockPlaceEvent event) {
         Player p = event.getPlayer();
         if (p.isOp()) return;
-        int here = plugin.plots().plotIndexAt(event.getBlock().getLocation());
+        Location loc = event.getBlock().getLocation();
+        int here = plugin.plots().plotIndexAt(loc);
         int mine = plugin.store().getOrAssignPlotIndex(p.getUniqueId());
-        if (here != mine) { event.setCancelled(true); deny(p); }
+        if (here == mine) return;
+        event.setCancelled(true);
+        // here == -1 is a shared region or the gap: not someone's plot, so no shield, just a note.
+        if (here == -1) deny(p); else plugin.shield().blocked(p, loc, here, "בנייה");
     }
 
     /** Region-scoping the station hijack restores vanilla furnaces -> buckets and fire exist again. */
@@ -101,7 +105,9 @@ public class PlotProtection implements Listener {
         if (!loc.getWorld().equals(plugin.plots().world())) return; // only the game world
         int here = plugin.plots().plotIndexAt(loc);
         int mine = plugin.store().getOrAssignPlotIndex(p.getUniqueId());
-        if (here != mine) { event.setCancelled(true); deny(p); }
+        if (here == mine) return;
+        event.setCancelled(true);
+        if (here == -1) deny(p); else plugin.shield().blocked(p, loc, here, "שפיכת נוזל");
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -113,7 +119,9 @@ public class PlotProtection implements Listener {
             if (p.isOp()) return;
             int here = plugin.plots().plotIndexAt(loc);
             int mine = plugin.store().getOrAssignPlotIndex(p.getUniqueId());
-            if (here != mine) { event.setCancelled(true); deny(p); }
+            if (here == mine) return;
+            event.setCancelled(true);
+            if (here == -1) deny(p); else plugin.shield().blocked(p, loc, here, "הצתה");
         } else if (plugin.regions().at(loc) != null) {
             event.setCancelled(true); // no natural fire spread inside regions
         }
@@ -132,7 +140,7 @@ public class PlotProtection implements Listener {
         int here = plugin.plots().plotIndexAt(loc);
         if (here != -1 && here != plugin.store().getOrAssignPlotIndex(p.getUniqueId())) {
             event.setCancelled(true);
-            deny(p);
+            plugin.shield().blocked(p, loc, here, "פתיחת תיבה");
         }
     }
 

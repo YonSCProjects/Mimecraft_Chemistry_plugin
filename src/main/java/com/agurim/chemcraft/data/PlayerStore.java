@@ -144,6 +144,34 @@ public class PlayerStore {
 
     public void clearDemos(UUID id) { yml.set(id + ".demos", null); save(); }
 
+    // --- plot shield: blocked cross-plot attempts, surfaced to the teacher via /cc report ---
+
+    /** Record a blocked attempt; returns this player's lifetime total. */
+    public int addShieldBlock(UUID id, String victimName) {
+        int n = yml.getInt(id + ".shield.count", 0) + 1;
+        yml.set(id + ".shield.count", n);
+        yml.set(id + ".shield.last-victim", victimName);
+        save();
+        return n;
+    }
+
+    public int getShieldBlocks(UUID id)     { return yml.getInt(id + ".shield.count", 0); }
+    public String getShieldVictim(UUID id)  { return yml.getString(id + ".shield.last-victim", "?"); }
+    public void clearShield(UUID id)        { yml.set(id + ".shield", null); save(); }
+
+    /** All players with at least one blocked attempt, for the teacher report. */
+    public java.util.Map<UUID, Integer> allShieldBlocks() {
+        java.util.Map<UUID, Integer> out = new java.util.LinkedHashMap<>();
+        for (String key : yml.getKeys(false)) {
+            if (key.startsWith("_")) continue;
+            int n = yml.getInt(key + ".shield.count", 0);
+            if (n > 0) {
+                try { out.put(UUID.fromString(key), n); } catch (IllegalArgumentException ignored) {}
+            }
+        }
+        return out;
+    }
+
     /** Cached-name lookup (case-insensitive), for /cc visit on an offline-mode server. */
     public UUID uuidByName(String name) {
         for (String key : yml.getKeys(false)) {

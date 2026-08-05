@@ -44,7 +44,7 @@ public class ChemCraftCommand implements CommandExecutor {
         UUID id = player.getUniqueId();
 
         if (args.length == 0) {
-            player.sendMessage(Component.text("/chemcraft guide | kit | tp | region | visit <שם> | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("/chemcraft guide | kit | tp | region | visit <שם> | report | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
             return true;
         }
 
@@ -60,6 +60,27 @@ public class ChemCraftCommand implements CommandExecutor {
                 }
             }
             case "region" -> region(player, args);
+            case "report" -> {
+                if (denyNonAdmin(player)) return true;
+                if (args.length > 1 && args[1].equalsIgnoreCase("clear")) {
+                    for (UUID u : plugin.store().allShieldBlocks().keySet()) plugin.store().clearShield(u);
+                    player.sendMessage(Component.text("דוח המגן אופס.", NamedTextColor.GREEN));
+                    return true;
+                }
+                var blocks = plugin.store().allShieldBlocks();
+                if (blocks.isEmpty()) {
+                    player.sendMessage(Component.text("אין ניסיונות פגיעה בחלקות של אחרים. ", NamedTextColor.GREEN));
+                    return true;
+                }
+                player.sendMessage(Component.text("== ניסיונות פגיעה בחלקות (מגן החלקה) ==", NamedTextColor.YELLOW));
+                blocks.entrySet().stream()
+                        .sorted((a, b) -> b.getValue() - a.getValue())
+                        .forEach(e -> player.sendMessage(Component.text(
+                                "  " + plugin.store().getName(e.getKey()) + " - " + e.getValue()
+                                        + " ניסיונות (אחרון: " + plugin.store().getShieldVictim(e.getKey()) + ")",
+                                NamedTextColor.WHITE)));
+                player.sendMessage(Component.text("איפוס: /cc report clear", NamedTextColor.DARK_AQUA));
+            }
             case "visit" -> {
                 int min = plugin.getConfig().getInt("ranks.visit-min-assists", 8);
                 if (!player.hasPermission("chemcraft.admin") && plugin.store().getAssists(id) < min) {

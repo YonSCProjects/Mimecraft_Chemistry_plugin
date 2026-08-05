@@ -2,6 +2,21 @@
 
 Built in slices. Versions are pre-release working milestones.
 
+## v0.8.1 - Plot shield, and a station block that rusted shut
+- **Station blocks must never weather.** `panning` was `COPPER_BLOCK`, which oxidizes - fast, in
+  26.2's copper age. Because stations are matched by exact material, an oxidized block silently
+  stops being a station, which would have made gold, silver and sulfur unobtainable mid-campaign
+  with no error message, and made `/cc region tp` refuse those zones. Now `WAXED_COPPER_BLOCK`:
+  identical appearance, never weathers. Found by playtesting, not by review.
+- **Plot shield (מגן החלקה).** Touching another student's plot already failed silently; now it
+  fails *legibly*. Every blocked attempt gets a barrier flash and a thunk so protection feels
+  solid, and repeated attempts inside a window quietly teleport the student home - deliberately
+  boring, because a dramatic punishment turns griefing into a toy for this age group. Nothing is
+  ever damaged, dropped, or lost. Covers breaking, building, buckets, ignition, containers, and
+  bond editing. Config: `plot-shield`.
+- **`/cc report`** (admin): who has been testing plot boundaries and how often - the lever that
+  actually changes behaviour in a classroom is the teacher seeing it. `/cc report clear` resets.
+
 ## v0.8.0 - The teaching layer (campaign Phase 2) + dual-target build
 - **"Seen" tile tier (גילוי בהדגמה):** watching a classmate extract an element you lack (within
   `demo.radius`) turns your wall tile yellow with a where-to-reproduce hint and records the

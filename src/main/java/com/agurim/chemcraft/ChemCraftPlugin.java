@@ -15,6 +15,7 @@ import com.agurim.chemcraft.molecule.MoleculeEngine;
 import com.agurim.chemcraft.molecule.MoleculeRegistry;
 import com.agurim.chemcraft.listener.WallRegisterListener;
 import com.agurim.chemcraft.plot.PlotManager;
+import com.agurim.chemcraft.plot.PlotShield;
 import com.agurim.chemcraft.plot.StationKiosk;
 import com.agurim.chemcraft.reaction.ReactionService;
 import com.agurim.chemcraft.region.RegionBuilder;
@@ -44,6 +45,7 @@ public final class ChemCraftPlugin extends JavaPlugin {
     private RegionManager regions;
     private RegionBuilder regionBuilder;
     private AssistBoard assistBoard;
+    private PlotShield shield;
 
     private NamespacedKey tileKey;
     private NamespacedKey atomKey;
@@ -84,6 +86,7 @@ public final class ChemCraftPlugin extends JavaPlugin {
         this.regions          = new RegionManager(this);
         this.regionBuilder    = new RegionBuilder(this);
         this.assistBoard      = new AssistBoard(this);
+        this.shield           = new PlotShield(this);
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
         getServer().getPluginManager().registerEvents(new PlotProtection(this), this);
@@ -134,6 +137,7 @@ public final class ChemCraftPlugin extends JavaPlugin {
     public RegionManager regions()            { return regions; }
     public RegionBuilder regionBuilder()      { return regionBuilder; }
     public AssistBoard assistBoard()          { return assistBoard; }
+    public PlotShield shield()                { return shield; }
     public NamespacedKey tileKey()            { return tileKey; }
     public NamespacedKey atomKey()            { return atomKey; }
     public NamespacedKey recipeKey()          { return recipeKey; }
