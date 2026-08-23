@@ -1,6 +1,17 @@
-// Lets Gradle auto-download the JDK 21 toolchain (build.gradle) when it isn't installed locally.
+// Multi-project build: independent Paper plugins that share conventions, docs and build config.
+// Each module produces its own jar and runs on its own dedicated server - they are never
+// loaded together, so plot grids / worlds / join flows can't collide.
+//
+//   :chemcraft  ChemCraft - the chemistry teaching plugin
+//   :robotics   the robotics workshop plugin (skeleton; package + plugin name still TBD)
+
+// Lets Gradle auto-download the JDK toolchain (root build.gradle) when it isn't installed locally.
+// 1.0.0+ is required: 0.8.0 crashes on Gradle 9 (JvmVendorSpec.IBM_SEMERU was removed).
 plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
-rootProject.name = 'ChemCraft'
+rootProject.name = 'mimecraft-plugins'
+
+include 'chemcraft'
+include 'robotics'

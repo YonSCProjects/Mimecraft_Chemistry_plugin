@@ -16,23 +16,51 @@ server into a game. The full loop:
 bond atoms into molecules -> react molecules / stack them into materials.**
 
 Working title: **ChemCraft**. Repo: `Mimecraft_Chemistry_plugin`. Package: `com.agurim.chemcraft`.
+Lives in the **`chemcraft/`** module of a Gradle multi-project (see Repo layout).
+
+## Repo layout
+This repo is a **Gradle multi-project holding two unrelated teaching plugins** that share build
+config, conventions and docs - not a library and a consumer. They are **never loaded together**:
+each runs on its own dedicated server, so plot grids, worlds and join flows can't collide.
+
+```
+build.gradle       shared config: Paper dep, toolchain, UTF-8, the -Pmc dual-target switch
+settings.gradle    includes :chemcraft and :robotics
+chemcraft/         ChemCraft - this document describes this module
+robotics/          the robotics workshop plugin (skeleton: no source or plugin.yml yet)
+docs/              shared design/architecture docs
+```
+
+**No shared `core` module yet, deliberately.** The generic classroom infrastructure
+(`PlotManager`, `PlotShield`, `Whisper`, `Ranks`, `Credit`, `Guide`) is ~400 LOC of ChemCraft's
+~4000 and couples only to the plugin main class, used purely as a `JavaPlugin`. Extracting a
+platform from one example encodes ChemCraft's accidents as the interface, so **robotics copies what
+it needs first**; the shared core gets extracted once a second implementation shows where the real
+seam is. Because the coupling is a mechanical `ChemCraftPlugin` -> `JavaPlugin` swap, waiting is
+cheap.
 
 ## Tech stack & build
 - **Dual target.** `gradle build` -> Paper **1.21.8** / Java 21 (legacy class server).
   `gradle build "-Pmc=26.2"` -> Paper **26.2 stable** / Java 25, jar `ChemCraft-x-mc26.2.jar`.
   Minecraft switched to year-based versions after 1.21.11; 26.2 needed **zero source changes**.
-  The 26.2 build needs Gradle 9.2+ and `JAVA_HOME` = JDK 25 (Gradle 8.9 can't drive a 25
-  toolchain). `plugin.yml`'s `api-version` is templated from the same property.
+  The 26.2 build needs Gradle 9.2+ (Gradle 8.9 can't drive a 25 toolchain); the JDK 25 itself is
+  auto-provisioned by the foojay resolver, so no `JAVA_HOME` juggling.
+  `plugin.yml`'s `api-version` is templated from the same property.
   **The 26.2 server is the primary dev target.**
-- **Gradle** (`build.gradle`, Groovy DSL). Jar lands in `build/libs/`.
-  No wrapper committed yet; run `gradle wrapper` once or open in IntelliJ. `settings.gradle` adds the
-  foojay toolchain resolver, so Gradle auto-downloads a JDK 21 if one isn't installed locally.
-- **No automated test suite** (no `src/test/`, no `gradle test` target). The "data-level checks"
-  mentioned under Status are manual/in-game; verification is by building the jar and smoke-testing
-  on a 1.21.x server (see Run / smoke-test below).
-- Paper API dep is pinned to `1.21.8-R0.1-SNAPSHOT`. Change it to match the target server.
+- **Gradle multi-project** (Groovy DSL). All shared config - Paper dep, toolchain, UTF-8, the
+  dual-target switch - lives in the **root `build.gradle`**; `chemcraft/build.gradle` holds only the
+  version and the jar name. Build from the repo root; jar lands in **`chemcraft/build/libs/`**.
+  `gradle :chemcraft:build` builds just this plugin. No wrapper committed yet; run
+  `gradle wrapper` once or open in IntelliJ. `settings.gradle` adds the foojay toolchain
+  resolver, so Gradle auto-downloads the JDK 21/25 toolchain if it isn't installed locally - it
+  must be **1.0.0+**, since 0.8.0 crashes on Gradle 9 (`JvmVendorSpec.IBM_SEMERU`).
+- **No automated test suite** (no `chemcraft/src/test/`, no `gradle test` target). The
+  "data-level checks" mentioned under Status are manual/in-game; verification is by building the
+  jar and smoke-testing on a 1.21.x server (see Run / smoke-test below).
+- Paper API dep is pinned to `1.21.8-R0.1-SNAPSHOT` in the **root** `build.gradle`. Change it there
+  to match the target server.
 - **All messages use Adventure `Component`s** (no legacy `§` colour codes) - a deliberate choice to
-  dodge encoding problems. **Player-facing text is Hebrew (UTF-8);** keep it that way. `build.gradle`
+  dodge encoding problems. **Player-facing text is Hebrew (UTF-8);** keep it that way. The root `build.gradle`
   pins the compiler and resource encoding to UTF-8 (`options.encoding`, `filteringCharset`), so
   Hebrew in `.java` and `.yml` builds correctly. Keep non-displayed tokens in Latin/ASCII: element
   symbols (H, O), chemical formulas (H2O), command keywords (`/cc give`), YAML keys/ids, and Bukkit
@@ -68,7 +96,7 @@ Working title: **ChemCraft**. Repo: `Mimecraft_Chemistry_plugin`. Package: `com.
 `ChemCraftPlugin#onEnable` builds every service and registers the listeners. Everything
 gameplay-related is **driven by YAML** so content can change without recompiling.
 
-Packages (`src/main/java/com/agurim/chemcraft/`):
+Packages (`chemcraft/src/main/java/com/agurim/chemcraft/`):
 - `element/` - `Element` (record), `ElementRegistry` (loads `elements.yml`), `Families`
   (family -> block colour), `AtomItems` (atoms as items: PDC tag + `custom_model_data`).
 - `world/AtomStore` - location -> element symbol for placed atom blocks (persisted `atoms.yml`).
@@ -88,7 +116,8 @@ Packages (`src/main/java/com/agurim/chemcraft/`):
 - `command/ChemCraftCommand` - admin/debug commands.
 
 ### Data files
-Read once at enable (bundled in `resources/`, also written to `plugins/ChemCraft/` on first run):
+Read once at enable (bundled in `chemcraft/src/main/resources/`, also written to
+`plugins/ChemCraft/` on first run):
 `config.yml`, `elements.yml`, `extraction.yml`, `molecules.yml`, `reactions.yml`, `materials.yml`.
 Runtime state (written by the plugin): `players.yml`, `atoms.yml`, `bonds.yml`.
 

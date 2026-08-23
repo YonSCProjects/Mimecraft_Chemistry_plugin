@@ -1,42 +1,55 @@
-plugins {
-    id 'java'
-}
+// Root of the multi-project build. Holds only shared conventions - every module is a Paper
+// plugin built the same way, so the real content of a module's build.gradle is its version.
 
-group = 'com.agurim'
-version = '0.1.0'
-
-// Dual-target build: `gradle build` targets Paper 1.21.8 (Java 21, the current class server);
-// `gradle build -Pmc=26.2` targets Paper 26.2 stable (Java 25, the next server) and names the
-// jar ChemCraft-<version>-mc26.2.jar. plugin.yml's api-version is templated to match.
+// Dual-target build, applied to every module: `gradle build` targets Paper 1.21.8 (Java 21,
+// the legacy class server); `gradle build "-Pmc=26.2"` targets Paper 26.2 stable (Java 25, the
+// primary dev target) and adds an `mc26.2` classifier to each jar. plugin.yml's api-version is
+// templated from the same property. The 26.2 build needs Gradle 9.2+ and a JDK 25 toolchain.
 def mcTarget = (findProperty('mc') ?: '1.21').toString()
 def is26 = mcTarget.startsWith('26')
-def paperApi   = is26 ? 'io.papermc.paper:paper-api:26.2.build.87-stable'
-                      : 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
-def apiVersion = is26 ? '26.2' : '1.21'
 
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(is26 ? 25 : 21)
+ext {
+    paperApi    = is26 ? 'io.papermc.paper:paper-api:26.2.build.87-stable'
+                       : 'io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT'
+    apiVersion  = is26 ? '26.2' : '1.21'
+    javaVersion = is26 ? 25 : 21
+    classified  = is26
 }
 
-repositories {
-    mavenCentral()
-    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
-}
+subprojects {
+    apply plugin: 'java'
 
-dependencies {
-    compileOnly paperApi
-}
+    group = 'com.agurim'
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-}
-tasks.processResources {
-    filteringCharset = 'UTF-8'
-    inputs.property('apiVersion', apiVersion)
-    filesMatching('plugin.yml') {
-        expand('apiVersion': apiVersion)
+    java {
+        toolchain.languageVersion = JavaLanguageVersion.of(rootProject.ext.javaVersion)
     }
-}
-if (is26) {
-    tasks.jar { archiveClassifier = 'mc26.2' }
+
+    repositories {
+        mavenCentral()
+        maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    }
+
+    dependencies {
+        compileOnly rootProject.ext.paperApi
+    }
+
+    // Player-facing text is Hebrew and lives in both .java and .yml - pin both to UTF-8.
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+    }
+
+    tasks.named('processResources') {
+        filteringCharset = 'UTF-8'
+        inputs.property('apiVersion', rootProject.ext.apiVersion)
+        filesMatching('plugin.yml') {
+            expand('apiVersion': rootProject.ext.apiVersion)
+        }
+    }
+
+    if (rootProject.ext.classified) {
+        tasks.named('jar') {
+            archiveClassifier = 'mc26.2'
+        }
+    }
 }

@@ -56,10 +56,11 @@ plot protection; four extraction stations on the reactivity ladder; the valence/
 engine; atoms and molecules as resource-pack-ready items.
 
 ## Build & run
-JDK 21 + Gradle (or open in IntelliJ): `gradle build` -> jar in `build/libs/`. Drop it into
-`plugins/` on a **1.21.x** server; it writes `config.yml`, `elements.yml`, `extraction.yml`,
-`molecules.yml`, `reactions.yml`, and `materials.yml` into `plugins/ChemCraft/`. If your server
-isn't 1.21.8, change the `paper-api` version in `build.gradle`.
+JDK 21 + Gradle (or open in IntelliJ), run from the repo root: `gradle build` -> jar in
+`chemcraft/build/libs/`. Drop it into `plugins/` on a **1.21.x** server; it writes `config.yml`,
+`elements.yml`, `extraction.yml`, `molecules.yml`, `reactions.yml`, and `materials.yml` into
+`plugins/ChemCraft/`. If your server isn't 1.21.8, change the `paper-api` version in the root
+`build.gradle`.
 
 ## Honest caveats
 - It's a scaffold - **build and test on a 1.21.8 Paper server** before classroom use. I can't

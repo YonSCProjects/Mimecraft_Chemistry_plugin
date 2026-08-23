@@ -1,6 +1,6 @@
 # ChemCraft - Adding Content
 
-Almost everything is data. Edit the YAML in `src/main/resources/` (then rebuild), **or** edit the
+Almost everything is data. Edit the YAML in `chemcraft/src/main/resources/` (then rebuild), **or** edit the
 live copy in `plugins/ChemCraft/` on the server. A bundled file is only copied to the server if it
 is absent there, so to push new defaults to a running server, edit/delete the server copy.
 

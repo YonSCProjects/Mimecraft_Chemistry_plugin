@@ -1,0 +1,8 @@
+// ChemCraft - the chemistry teaching plugin.
+// Shared build config (Paper dep, toolchain, UTF-8, dual-target) lives in the root build.gradle.
+version = '0.1.0'
+
+// Keep the historical jar name: ChemCraft-<version>[-mc26.2].jar, not chemcraft-<version>.jar.
+base {
+    archivesName = 'ChemCraft'
+}

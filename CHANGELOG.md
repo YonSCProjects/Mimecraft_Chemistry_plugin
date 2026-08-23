@@ -2,6 +2,29 @@
 
 Built in slices. Versions are pre-release working milestones.
 
+## v0.8.2 - Multi-project build: room for a second plugin
+- **Repo is now a Gradle multi-project** holding two unrelated teaching plugins: `chemcraft/` and
+  `robotics/` (a robotics workshop plugin, skeleton only). They are *not* a library and a consumer -
+  each runs on its own dedicated server and they are never loaded together, so plot grids, worlds
+  and join flows can't collide. All 52 ChemCraft files moved with `git mv`, so history follows them.
+- **Shared build config hoisted to the root `build.gradle`:** the Paper dependency, the toolchain,
+  the UTF-8 pins and the whole `-Pmc=26.2` dual-target switch are now written once for every module.
+  `chemcraft/build.gradle` is down to a version and a jar name. Jar moved to
+  `chemcraft/build/libs/`; `base.archivesName` keeps it `ChemCraft-<version>[-mc26.2].jar`.
+- **No shared `core` module, deliberately.** The generic classroom infrastructure (`PlotManager`,
+  `PlotShield`, `Whisper`, `Ranks`, `Credit`, `Guide`) is ~400 LOC of ~4000 and couples only to the
+  plugin main class, used purely as a `JavaPlugin`. Extracting a platform from a single example
+  encodes ChemCraft's accidents as the interface - robotics copies what it needs first, and the
+  seam gets cut once a second implementation shows where it actually is. The eventual extraction is
+  a mechanical `ChemCraftPlugin` -> `JavaPlugin` swap, so waiting costs nothing.
+- **Fixed a latent build bug:** the foojay toolchain resolver was pinned at `0.8.0`, which crashes
+  on Gradle 9 (`JvmVendorSpec.IBM_SEMERU` was removed). It never surfaced because JDK 21 was
+  installed locally so the resolver never ran - but the documented `-Pmc=26.2` target needs JDK 25
+  and tripped it immediately. Now `1.0.0`, and Gradle auto-provisions the JDK 25; `JAVA_HOME`
+  juggling is no longer needed for the 26.2 build.
+- Both targets verified with clean builds. No behaviour change to ChemCraft: not one source file
+  was edited.
+
 ## v0.8.1 - Plot shield, and a station block that rusted shut
 - **Station blocks must never weather.** `panning` was `COPPER_BLOCK`, which oxidizes - fast, in
   26.2's copper age. Because stations are matched by exact material, an oxidized block silently
