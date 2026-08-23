@@ -53,6 +53,9 @@ public class ExtractionService {
         return map;
     }
 
+    /** Every loaded recipe (used to answer "where does element X come from?"). */
+    public List<Recipe> all() { return recipes; }
+
     public List<Recipe> recipesFor(String station) {
         List<Recipe> out = new ArrayList<>();
         for (Recipe r : recipes) if (r.station().equals(station)) out.add(r);
@@ -136,6 +139,7 @@ public class ExtractionService {
             markWitnesses(player, el);
         }
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
+        plugin.missionBar().update(player);
         return true;
     }
 

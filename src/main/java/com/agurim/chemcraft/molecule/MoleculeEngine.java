@@ -60,7 +60,8 @@ public class MoleculeEngine {
         return out;
     }
 
-    private int usedValence(Location loc) {
+    /** Bonds currently used by this atom (public: the block label renders used/wanted). */
+    public int usedValence(Location loc) {
         int used = 0;
         for (BlockFace f : FACES) {
             Location n = neighbor(loc, f);
@@ -88,13 +89,20 @@ public class MoleculeEngine {
             }
         }
 
+        // The board must be readable while it is being played: every atom shows used/wanted.
+        for (Location loc : comp) com.agurim.chemcraft.world.AtomLabels.refresh(plugin, loc);
+
         if (anyOver) {
             unmark(comp);
             player.sendMessage(Component.text("יותר מדי קשרים על " + overSym + " - הוא רוצה "
                     + overWants + " אבל יש לו " + overUsed + ".", NamedTextColor.RED));
             return;
         }
-        if (anyIncomplete) { unmark(comp); return; } // still building - stay quiet
+        if (anyIncomplete) {
+            unmark(comp);
+            nudgeIncomplete(player, comp);   // used to stay silent, which hid the whole puzzle
+            return;
+        }
 
         // complete: celebrate only on the transition
         boolean isNew = false;
@@ -102,6 +110,32 @@ public class MoleculeEngine {
         if (!isNew) return;
         comp.forEach(loc -> celebrated.add(key(loc)));
         celebrate(player, comp);
+    }
+
+    /**
+     * An actionbar nudge naming what is still missing. Actionbar, not chat: this fires on every
+     * placement, and chat spam would be worse than the old silence.
+     *
+     * It names the COUNT, never the answer - "O needs 1 more bond" leaves the student to
+     * discover that a second bond between the same pair is what a double bond means. The
+     * Shift+right-click gesture is taught once, the first time a player is ever short a bond,
+     * because it is undiscoverable and only useful at exactly this moment.
+     */
+    private void nudgeIncomplete(Player player, List<Location> comp) {
+        for (Location loc : comp) {
+            Element el = plugin.registry().get(atomAt(loc));
+            if (el == null) continue;
+            int missing = el.valence() - usedValence(loc);
+            if (missing <= 0) continue;
+            player.sendActionBar(Component.text(
+                    "חסרים " + missing + " קשרים ל-" + el.symbol(), NamedTextColor.YELLOW));
+            if (plugin.store().teachOnce(player.getUniqueId(), "bond")) {
+                player.sendMessage(Component.text(
+                        "טיפ: כיפוף (Shift) + לחיצה ימנית על הפאה שבין שני אטומים מחזקת את הקשר ביניהם.",
+                        NamedTextColor.AQUA));
+            }
+            return;
+        }
     }
 
     private void unmark(List<Location> comp) {
@@ -156,6 +190,8 @@ public class MoleculeEngine {
         player.sendMessage(Component.text("הקשר הוגדר ל" + bondName(next) + ".", NamedTextColor.YELLOW));
         Location mid = atomLoc.clone().add(0.5, 0.5, 0.5).add(n.clone().add(0.5, 0.5, 0.5)).multiply(0.5);
         player.getWorld().spawnParticle(Particle.CRIT, mid, 8, 0.1, 0.1, 0.1);
+        com.agurim.chemcraft.world.AtomLabels.refresh(plugin, atomLoc);
+        com.agurim.chemcraft.world.AtomLabels.refresh(plugin, n);
         evaluate(atomLoc, player);
     }
 

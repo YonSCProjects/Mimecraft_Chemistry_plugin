@@ -143,8 +143,11 @@ Runtime state (written by the plugin): `players.yml`, `atoms.yml`, `bonds.yml`.
 
 ### Parked ideas
 - **In-game AI lab assistant (עוזר/ת מעבדה)** available to every student: a log-tailing agent
-  answers chat questions per-student via `tell`, using their real state (position, inventory,
-  `players.yml` progress). Feasible today over RCON/MCP. Open questions: Socratic hints vs.
+  answers chat questions per-student, using their real state (position, inventory,
+  `players.yml` progress). **NOT BUILT.** Reads are feasible today over RCON/MCP, but delivery
+  is not: on 26.2 `tell`/`tellraw`/`msg` execute silently over RCON and deliver nothing (only
+  `say` and `title`/`actionbar` work), so private replies need a plugin-side command
+  (e.g. `/cc whisper`) rather than a console command. Open questions: Socratic hints vs.
   answers, rate limiting, and surfacing the questions to the teacher as formative assessment.
 - **`/cc progress`** teacher overview (per-student tiles lit / assists / seen count) - there is
   currently no way to see the class without walking plot to plot.

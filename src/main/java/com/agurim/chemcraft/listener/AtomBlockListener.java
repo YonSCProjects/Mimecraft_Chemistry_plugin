@@ -28,7 +28,7 @@ public class AtomBlockListener implements Listener {
         if (sym == null) return;
         Location loc = event.getBlockPlaced().getLocation();
         plugin.atoms().put(loc, sym);
-        spawnLabel(loc, sym);
+        com.agurim.chemcraft.world.AtomLabels.refresh(plugin, loc);
         // a completed lattice takes priority; otherwise evaluate the molecule
         if (!plugin.materials().check(loc, event.getPlayer())) {
             plugin.moleculeEngine().evaluate(loc, event.getPlayer());
@@ -44,7 +44,7 @@ public class AtomBlockListener implements Listener {
         Element e = plugin.registry().get(sym);
         event.setDropItems(false);
         plugin.atoms().remove(loc);
-        removeLabel(loc, sym);
+        com.agurim.chemcraft.world.AtomLabels.remove(plugin, loc, sym);
         if (e != null) loc.getWorld().dropItemNaturally(loc.clone().add(0.5, 0.5, 0.5), AtomItems.create(plugin, e, 1));
         plugin.moleculeEngine().onAtomRemoved(loc, player);
     }

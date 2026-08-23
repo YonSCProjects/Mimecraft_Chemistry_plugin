@@ -38,13 +38,20 @@ public class ChemCraftCommand implements CommandExecutor {
                     case "list" -> { sender.sendMessage(plugin.regions().describeAll()); return true; }
                 }
             }
+            // whisper is the delivery channel for an external assistant agent: on 26.2 the
+            // vanilla tell/tellraw/msg console commands silently deliver nothing, so the
+            // plugin sends the message itself.
+            if (args.length >= 3 && args[0].equalsIgnoreCase("whisper")) {
+                sender.sendMessage(whisper(args) ? "sent" : "player not online: " + args[1]);
+                return true;
+            }
             sender.sendMessage("לשחקנים בלבד.");
             return true;
         }
         UUID id = player.getUniqueId();
 
         if (args.length == 0) {
-            player.sendMessage(Component.text("/chemcraft guide | kit | tp | region | visit <שם> | report | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("/chemcraft guide | kit | tp | region | visit <שם> | ask <שאלה> | report | questions | whisper | give <sym> [n] | givemol <id> [n] | discover <sym> | reset | buildwall | reload", NamedTextColor.YELLOW));
             return true;
         }
 
@@ -60,6 +67,44 @@ public class ChemCraftCommand implements CommandExecutor {
                 }
             }
             case "region" -> region(player, args);
+            case "whisper" -> {
+                if (denyNonAdmin(player)) return true;
+                if (args.length < 3) {
+                    player.sendMessage(Component.text("שימוש: /cc whisper <שחקן> [chat|actionbar|title] <טקסט>", NamedTextColor.RED));
+                    return true;
+                }
+                if (!whisper(args)) {
+                    player.sendMessage(Component.text("השחקן לא מחובר: " + args[1], NamedTextColor.RED));
+                }
+            }
+            case "ask" -> {
+                if (args.length < 2) {
+                    player.sendMessage(Component.text("שימוש: /cc ask <שאלה>   -   למשל: /cc ask איפה מוצאים נתרן?", NamedTextColor.RED));
+                    return true;
+                }
+                long wait = plugin.ask().cooldownRemaining(id);
+                if (wait > 0) {
+                    player.sendMessage(Component.text("רגע אחד - אפשר לשאול שוב בעוד " + wait + " שניות.", NamedTextColor.GRAY));
+                    return true;
+                }
+                String question = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                if (plugin.ask().ask(player, question)) {
+                    player.sendMessage(Component.text("השאלה נשלחה לעוזר/ת המעבדה. התשובה תגיע אליכם בקרוב.", NamedTextColor.LIGHT_PURPLE));
+                } else {
+                    player.sendMessage(Component.text("לא הצלחתי לשלוח את השאלה. נסו שוב.", NamedTextColor.RED));
+                }
+            }
+            case "questions" -> {
+                if (denyNonAdmin(player)) return true;
+                int n = (args.length > 1) ? Math.max(1, Math.min(50, parseIntOr(args[1], 10))) : 10;
+                var lines = plugin.ask().recent(n);
+                if (lines.isEmpty()) {
+                    player.sendMessage(Component.text("עדיין לא נשאלו שאלות.", NamedTextColor.GRAY));
+                    return true;
+                }
+                player.sendMessage(Component.text("== " + lines.size() + " השאלות האחרונות ==", NamedTextColor.YELLOW));
+                for (String l : lines) player.sendMessage(Component.text(summarize(l), NamedTextColor.WHITE));
+            }
             case "report" -> {
                 if (denyNonAdmin(player)) return true;
                 if (args.length > 1 && args[1].equalsIgnoreCase("clear")) {
@@ -199,6 +244,49 @@ public class ChemCraftCommand implements CommandExecutor {
             }
             default -> player.sendMessage(Component.text("שימוש: /cc region list | tp <id> | build <id> | buildall", NamedTextColor.RED));
         }
+    }
+
+    /**
+     * /cc whisper <player> [chat|actionbar|title] <text...>
+     * The channel word is optional; without it the message goes to chat. Callable from the
+     * console so an external agent can use it over RCON.
+     */
+    private boolean whisper(String[] args) {
+        Player target = com.agurim.chemcraft.ui.Whisper.find(args[1]);
+        if (target == null) return false;
+        int from = 2;
+        String channel = "chat";
+        String maybe = args[2].toLowerCase();
+        if (maybe.equals("chat") || maybe.equals("actionbar") || maybe.equals("title")) {
+            channel = maybe;
+            from = 3;
+        }
+        if (from >= args.length) return false;
+        String text = String.join(" ", java.util.Arrays.copyOfRange(args, from, args.length));
+        return switch (channel) {
+            case "actionbar" -> com.agurim.chemcraft.ui.Whisper.actionbar(plugin, target, text);
+            case "title"     -> com.agurim.chemcraft.ui.Whisper.title(plugin, target, text);
+            default          -> com.agurim.chemcraft.ui.Whisper.chat(plugin, target, text);
+        };
+    }
+
+    private static int parseIntOr(String s, int def) {
+        try { return Integer.parseInt(s); } catch (NumberFormatException e) { return def; }
+    }
+
+    /** Pull just player + question out of a stored JSONL line, for the teacher list. */
+    private static String summarize(String jsonLine) {
+        String who = between(jsonLine, "\"player\":\"", "\"");
+        String what = between(jsonLine, "\"question\":\"", "\"");
+        return "  " + (who.isEmpty() ? "?" : who) + ": " + what;
+    }
+
+    private static String between(String s, String open, String close) {
+        int a = s.indexOf(open);
+        if (a < 0) return "";
+        a += open.length();
+        int b = s.indexOf(close, a);
+        return (b < 0) ? s.substring(a) : s.substring(a, b);
     }
 
     private boolean denyNonAdmin(Player player) {

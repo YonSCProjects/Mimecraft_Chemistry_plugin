@@ -144,6 +144,15 @@ public class PlayerStore {
 
     public void clearDemos(UUID id) { yml.set(id + ".demos", null); save(); }
 
+    /** True exactly once per player per topic - for one-time "how does this work" tips. */
+    public boolean teachOnce(UUID id, String topic) {
+        String key = id + ".taught." + topic;
+        if (yml.getBoolean(key, false)) return false;
+        yml.set(key, true);
+        save();
+        return true;
+    }
+
     // --- plot shield: blocked cross-plot attempts, surfaced to the teacher via /cc report ---
 
     /** Record a blocked attempt; returns this player's lifetime total. */

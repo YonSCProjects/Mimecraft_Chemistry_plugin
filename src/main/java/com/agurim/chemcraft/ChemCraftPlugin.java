@@ -22,6 +22,8 @@ import com.agurim.chemcraft.region.RegionBuilder;
 import com.agurim.chemcraft.region.RegionManager;
 import com.agurim.chemcraft.table.PeriodicWall;
 import com.agurim.chemcraft.ui.AssistBoard;
+import com.agurim.chemcraft.assistant.AskService;
+import com.agurim.chemcraft.ui.MissionBar;
 import com.agurim.chemcraft.world.AtomStore;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -46,6 +48,8 @@ public final class ChemCraftPlugin extends JavaPlugin {
     private RegionBuilder regionBuilder;
     private AssistBoard assistBoard;
     private PlotShield shield;
+    private MissionBar missionBar;
+    private AskService ask;
 
     private NamespacedKey tileKey;
     private NamespacedKey atomKey;
@@ -87,6 +91,8 @@ public final class ChemCraftPlugin extends JavaPlugin {
         this.regionBuilder    = new RegionBuilder(this);
         this.assistBoard      = new AssistBoard(this);
         this.shield           = new PlotShield(this);
+        this.missionBar       = new MissionBar(this);
+        this.ask              = new AskService(this);
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
         getServer().getPluginManager().registerEvents(new PlotProtection(this), this);
@@ -138,6 +144,8 @@ public final class ChemCraftPlugin extends JavaPlugin {
     public RegionBuilder regionBuilder()      { return regionBuilder; }
     public AssistBoard assistBoard()          { return assistBoard; }
     public PlotShield shield()                { return shield; }
+    public MissionBar missionBar()            { return missionBar; }
+    public AskService ask()                   { return ask; }
     public NamespacedKey tileKey()            { return tileKey; }
     public NamespacedKey atomKey()            { return atomKey; }
     public NamespacedKey recipeKey()          { return recipeKey; }

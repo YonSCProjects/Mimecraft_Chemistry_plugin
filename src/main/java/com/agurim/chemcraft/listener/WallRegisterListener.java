@@ -4,6 +4,7 @@ import com.agurim.chemcraft.ChemCraftPlugin;
 import com.agurim.chemcraft.element.AtomItems;
 import com.agurim.chemcraft.element.Element;
 import com.agurim.chemcraft.ui.Credit;
+import com.agurim.chemcraft.ui.ElementHint;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -33,6 +34,27 @@ public class WallRegisterListener implements Listener {
 
     private final ChemCraftPlugin plugin;
     public WallRegisterListener(ChemCraftPlugin plugin) { this.plugin = plugin; }
+
+    /**
+     * An unlit tile is the goal object a student points at when they ask "what now?", and it
+     * used to answer by restating the rule they had just tried to follow. Now it answers the
+     * actual question: what this element is, how many bonds it wants, and where to go get it.
+     * The wall stops being 25 dead squares and becomes 25 quest cards.
+     */
+    private void questCard(Player player, Element tile) {
+        player.sendMessage(Component.text(tile.name() + " (" + tile.symbol() + ")", NamedTextColor.AQUA)
+                .append(Component.text("  ·  יסוד #" + tile.number()
+                        + "  ·  רוצה " + tile.valence() + " קשרים", NamedTextColor.GRAY)));
+        String where = ElementHint.where(plugin, tile);
+        String label = ElementHint.recipeLabel(plugin, tile.symbol());
+        if (!where.isEmpty()) {
+            Component line = Component.text("מפיקים " + where, NamedTextColor.YELLOW);
+            if (!label.isEmpty()) line = line.append(Component.text("  -  " + label, NamedTextColor.GRAY));
+            player.sendMessage(line);
+        }
+        player.sendMessage(Component.text(tile.fact(), NamedTextColor.DARK_GRAY));
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.4f, 1.6f);
+    }
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
@@ -67,11 +89,12 @@ public class WallRegisterListener implements Listener {
         }
 
         if (heldSym == null) {
-            player.sendMessage(Component.text("החזיקו אטום מתאים ולחצו על האריח כדי לרשום את היסוד.", NamedTextColor.GRAY));
+            questCard(player, tile);
             return;
         }
         if (!tile.symbol().equals(heldSym)) {
             player.sendMessage(Component.text("האטום שביד (" + heldSym + ") לא מתאים לאריח הזה (" + tile.symbol() + ").", NamedTextColor.RED));
+            questCard(player, tile);
             return;
         }
 
@@ -100,6 +123,7 @@ public class WallRegisterListener implements Listener {
         player.sendMessage(Component.text("נרשם " + tile.name() + " (" + tile.symbol() + ") - ", NamedTextColor.GREEN)
                 .append(Component.text(tile.fact(), NamedTextColor.WHITE)));
         player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
+        plugin.missionBar().update(player);
 
         if (credited) {
             plugin.getLogger().info("[assist] gift " + sourceName + " -> " + player.getName() + " (" + tile.symbol() + ")");

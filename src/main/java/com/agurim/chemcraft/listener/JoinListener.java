@@ -43,11 +43,19 @@ public class JoinListener implements Listener {
         if (firstTime) {
             plugin.plots().teleportToPlot(player, plot);
             Guide.welcome(player);
-            player.sendMessage(Component.text(
-                    "ברוכים הבאים ל-ChemCraft! זו החלקה שלכם - הטבלה המחזורית שלכם על הקיר.",
-                    NamedTextColor.GREEN));
             StarterKit.give(plugin, player);
-            Guide.send(plugin, player);
+            Guide.firstJoin(plugin, player);
+        } else {
+            // Absence resilience: a student returning after a week gets the same two facts a
+            // first-timer gets - where they are, and what to do next. The old build taught
+            // nothing at all on any join after the first.
+            Guide.sendProgress(plugin, player);
+            com.agurim.chemcraft.element.Element next = plugin.missionBar().nextTarget(id);
+            if (next != null) {
+                player.sendMessage(Component.text("הבא בתור: " + next.name() + " (" + next.symbol() + ") - "
+                        + com.agurim.chemcraft.ui.ElementHint.where(plugin, next), NamedTextColor.YELLOW));
+            }
         }
+        plugin.missionBar().update(player);
     }
 }

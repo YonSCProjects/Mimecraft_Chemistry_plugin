@@ -77,9 +77,19 @@ public class PeriodicWall {
         return null;
     }
 
+    /**
+     * Hover just off the +z face. The plot interior is on +z (the wall sits at wall.offset-z=4
+     * while the plot runs z 0..size), so this is the side the student actually approaches from.
+     * It used to be -0.3 with a comment claiming that was the reading side; it was not, and the
+     * labels faced out of the plot into a 4-block strip behind the wall.
+     */
     private Location labelAnchor(Location tile) {
-        // hover just off the north (-z) face, where players read the wall from
-        return tile.clone().add(0.5, 0.5, -0.3);
+        return tile.clone().add(0.5, 0.5, 1.3);
+    }
+
+    /** Centre of the tile block - used to sweep for labels on EITHER face (old and new anchor). */
+    private Location labelSweepCentre(Location tile) {
+        return tile.clone().add(0.5, 0.5, 0.5);
     }
 
     /** Mark an element's tile as "seen" (witnessed but not earned): tile stays gray, label goes yellow. */
@@ -95,6 +105,7 @@ public class PeriodicWall {
         // the ANCHOR chunk's entities in first - the anchor is offset -0.3z and may sit in the
         // neighboring chunk. Chunk#load() alone is NOT enough: entity data loads separately,
         // and Paper's Chunk#getEntities() is the call that sync-loads it.
+        labelSweepCentre(tile).getChunk().getEntities();
         labelAnchor(tile).getChunk().getEntities();
         removeLabel(e, tile);
         // Credit and seen-state live in PlayerStore and are re-read on EVERY (re)spawn, so
@@ -134,7 +145,8 @@ public class PeriodicWall {
     }
 
     private void removeLabel(Element e, Location tile) {
-        for (Entity ent : world().getNearbyEntities(labelAnchor(tile), 0.6, 0.6, 0.6)) {
+        // Sweep both faces: walls built before the anchor flip still have labels on -z.
+        for (Entity ent : world().getNearbyEntities(labelSweepCentre(tile), 0.6, 0.6, 1.2)) {
             if (ent instanceof TextDisplay td) {
                 String sym = td.getPersistentDataContainer().get(plugin.tileKey(), PersistentDataType.STRING);
                 if (e.symbol().equals(sym)) td.remove();

@@ -63,6 +63,23 @@ assist-board:
 demo:
   radius: 8
 
+# A per-player bossbar carrying the one always-visible objective:
+# "יסודות: 6 / 25 · הבא: ברזל - במכרה". Replaces an 18-line first-join text dump.
+mission-bar:
+  enabled: true
+
+# The in-game assistant voice. /cc whisper <player> [chat|actionbar|title] <text> delivers a
+# PRIVATE message from inside the plugin - needed because on 26.2 the console tell/tellraw/msg
+# commands silently deliver nothing. This is the delivery channel a lab-assistant agent uses.
+# Students ask with /cc ask <question>. The plugin only CAPTURES the question (with the context
+# needed to answer it) into questions.jsonl and DELIVERS replies via /cc whisper - it never talks
+# to an AI itself, so the answering agent is external, swappable, and optional. The questions are
+# a teaching record on their own: /cc questions shows what the class is stuck on.
+assistant:
+  name: "עוזר/ת מעבדה"
+  sound: true
+  cooldown-seconds: 15
+
 # What happens when a student tries to touch someone else's plot. The attempt ALWAYS fails
 # regardless of these settings - this only shapes how failing feels, so it is deliberately
 # undramatic: a thunk and a barrier flash so protection feels solid, and after repeated tries

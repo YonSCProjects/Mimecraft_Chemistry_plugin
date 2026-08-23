@@ -23,6 +23,18 @@ public final class Guide {
                 Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(800))));
     }
 
+    /**
+     * First join: three lines, not eighteen. Minecraft's unfocused chat shows ~10 lines, so the
+     * old block pushed the mission and the only actionable line off screen before they were read,
+     * and taught seven mechanics at a spot where none of them can be performed. The rest of the
+     * teaching now lives where it is usable: the mission bar, the wall tiles, and the atom labels.
+     */
+    public static void firstJoin(ChemCraftPlugin plugin, Player player) {
+        line(player, "ברוכים הבאים ל-ChemCraft! זו החלקה שלכם, והקיר שלפניכם הוא הטבלה המחזורית שלכם.", NamedTextColor.GREEN);
+        line(player, "המטרה: להאיר את כל 25 המשבצות. לחצו על משבצת אפורה כדי לגלות מה היסוד ואיפה מוצאים אותו.", NamedTextColor.YELLOW);
+        line(player, "המדריך המלא: /cc guide", NamedTextColor.DARK_AQUA);
+    }
+
     /** Print the step-by-step gameplay loop into chat. */
     public static void send(ChemCraftPlugin plugin, Player player) {
         boolean regions = !plugin.regions().isEmpty();
