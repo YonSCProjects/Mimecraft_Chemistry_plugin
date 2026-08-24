@@ -79,7 +79,7 @@ the world back exactly as it was.
 ## Honest caveats
 
 - **No human has ever played it.** It runs clean on real Paper servers — both targets, zero
-  exceptions, 82/82 self-test checks — and the click model's layout and semantics are both verified.
+  exceptions, 85/85 self-test checks — and the click model's layout and semantics are both verified.
   Whether the rule table is *learnable* is not something a test can answer.
 - **Two design decisions are not settled.** Why this exists rather than a redstone map, and whether
   robots should move. Both are argued, with the counter-case, in `docs/DESIGN.md`.

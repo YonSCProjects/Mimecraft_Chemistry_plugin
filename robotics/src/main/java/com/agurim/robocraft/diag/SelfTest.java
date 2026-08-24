@@ -68,6 +68,7 @@ public final class SelfTest {
             bench(plugin, sender, origin.clone().add(0, 0, 12), scratch, checks);
             attachment(plugin, origin.clone().add(0, 0, 15), scratch, checks);
             gui(plugin, origin.clone().add(0, 0, 19), scratch, checks);
+            load(plugin, sender, origin.clone().add(0, 0, 24), scratch, checks);
             editing(plugin, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
@@ -685,6 +686,91 @@ public final class SelfTest {
                 RuleEdit.starter(List.of(Rule.ALWAYS, "M1"), targets).text()));
         checks.add(new Check("with nothing attached at all it does not throw",
                 RuleEdit.starter(List.of(), List.of()) != null, "returned null"));
+    }
+
+    // ---------------------------------------------------------- D6. class load
+
+    /** How many robots a class actually produces. Thirty students, most with one working machine. */
+    private static final int CLASS_SIZE = 20;
+
+    /**
+     * Ticks a class-sized fleet and reports how long it took.
+     *
+     * <p>Everything else here checks that one robot is correct. This checks the thing that only
+     * shows up with thirty of them: each tick reads every sensor, writes changed actuators and
+     * repaints every label, twice a second, for every running robot at once. If that does not fit
+     * inside a server tick the whole server stutters, and the symptom - a laggy server during a
+     * lesson - looks nothing like its cause.
+     */
+    private static void load(RoboCraftPlugin plugin, CommandSender sender, Location origin,
+                             Scratch scratch, List<Check> checks) {
+        Part controller = kind(plugin, "controller");
+        Part battery    = kind(plugin, "battery");
+        Part light      = sensor(plugin, "light");
+        Part lamp       = actuator(plugin, "lamp");
+        if (controller == null || battery == null || light == null || lamp == null) return;
+
+        List<Robot> fleet = new ArrayList<>();
+        for (int i = 0; i < CLASS_SIZE; i++) {
+            Location base = origin.clone().add((i % 5) * 6, 0, (i / 5) * 6);
+            String key = PartStore.key(base);
+            for (int dx = 0; dx <= 3; dx++) scratch.clear(base.clone().add(dx, 1, 0));
+            scratch.part(plugin, base, controller, "", "");
+            scratch.part(plugin, base.clone().add(1, 0, 0), battery, key, "");
+            scratch.part(plugin, base.clone().add(2, 0, 0), light, key, "S1");
+            scratch.part(plugin, base.clone().add(3, 0, 0), lamp, key, "A1");
+            scratch.robot(key);
+
+            Robot robot = plugin.robots().getOrCreate(key, null);
+            robot.energy(plugin.batteryCapacity(key));
+            robot.program(nightLight());
+            robot.start(plugin.engine().now());
+            fleet.add(robot);
+        }
+
+        checks.add(new Check("a class-sized fleet builds", fleet.size() == CLASS_SIZE,
+                fleet.size() + " robots"));
+
+        // Two measurements, because they separate two very different costs. Alternating the
+        // reading flips every lamp on every robot every tick - the pathological case, and the one
+        // that exercises the block-write path. A steady reading changes nothing, so what it still
+        // costs is the fixed overhead of scanning, reading and deciding.
+        double churn  = worstTickMs(plugin, fleet, true);
+        double steady = worstTickMs(plugin, fleet, false);
+
+        sender.sendMessage(Component.text(String.format(
+                "   %d robots: %.1f ms worst case, %.1f ms steady (a server tick is 50 ms)",
+                CLASS_SIZE, churn, steady), NamedTextColor.GRAY));
+
+        // Steady state is what a room full of robots actually does most of the time - a night
+        // light flips twice a day, not twice a second - so this one has to be nearly free.
+        checks.add(new Check("a class-sized fleet costs almost nothing when nothing is changing",
+                steady < 5.0, String.format("%.1f ms for %d robots", steady, CLASS_SIZE)));
+
+        // The pathological case still has to fit in a tick. It is reachable: a student whose
+        // thermostat oscillates flips their lamp every single tick, which is exactly the bug
+        // mission 5 is about. The engine only runs every tenth server tick, so there is headroom -
+        // but not enough to be careless with.
+        checks.add(new Check("and still fits inside one server tick when everything flips at once",
+                churn < 40.0, String.format("%.1f ms for %d robots", churn, CLASS_SIZE)));
+
+        for (Robot robot : fleet) robot.stop("selftest");
+    }
+
+    /** Worst of several passes, after a warm-up - the first pass through cold code is all JIT. */
+    private static double worstTickMs(RoboCraftPlugin plugin, List<Robot> fleet, boolean alternate) {
+        for (int warm = 0; warm < 4; warm++) {
+            Map<String, Integer> env = Map.of("light", (alternate && warm % 2 == 0) ? 2 : 14);
+            for (Robot robot : fleet) plugin.engine().tick(robot, env);
+        }
+        long worst = 0;
+        for (int pass = 0; pass < 6; pass++) {
+            Map<String, Integer> env = Map.of("light", (alternate && pass % 2 == 0) ? 2 : 14);
+            long started = System.nanoTime();
+            for (Robot robot : fleet) plugin.engine().tick(robot, env);
+            worst = Math.max(worst, System.nanoTime() - started);
+        }
+        return worst / 1_000_000.0;
     }
 
     // ------------------------------------------------------- E. the vocabulary

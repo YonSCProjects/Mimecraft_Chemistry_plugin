@@ -15,7 +15,7 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 
 > **Status: runs clean on both targets.** Verified on Paper 1.21.8 build 60 (Java 21) and Paper
 > 26.2 build 116 (Java 25): enables, writes its content YAML, registers commands, saves its runtime
-> files on disable, zero exceptions, and **`/rc selftest` passes 82/82 on both**. The mission ladder
+> files on disable, zero exceptions, and **`/rc selftest` passes 85/85 on both**. The mission ladder
 > is separately checked offline (`tools/BenchCheck.java`, 22 checks).
 >
 > **Still unverified: anything that needs a real player at a keyboard** - `JoinListener`,
@@ -93,6 +93,13 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
   is not checked is whether it is *learnable*, and no test can tell us that.
 - `SensorReader` implements `mob` and `random`, but no part in `parts.yml` uses them - dead
   branches until a part is added, kept because both are cheap and obviously useful.
+- **The label refresh is the hot path.** It runs for every part of every running robot twice a
+  second. It short-circuits on a cheap signature and caches the display entity by UUID; a naive
+  version cost 35 ms of a 50 ms tick with twenty robots. If you change what a label shows, change
+  `PartLabels.signature` to match or the label goes stale.
+- **26.2's block-write path is about twice as expensive as 1.21.8's.** Twenty robots all flipping
+  a lamp every tick: 15 ms on 1.21.8, 32 ms on 26.2. Steady state is ~2 ms on both, and that is
+  what a room normally does - but it is worth knowing on the primary target.
 - **Robot memory is not persisted** - a restart zeroes `M1..M4`. Deliberate: real controllers lose
   RAM on power-cycle, and it is worth teaching.
 - Robots only tick while their owner is online (`robot.require-owner-online`).
