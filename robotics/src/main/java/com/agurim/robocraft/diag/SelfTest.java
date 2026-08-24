@@ -58,7 +58,7 @@ public final class SelfTest {
         List<Check> checks = new ArrayList<>();
         Scratch scratch = new Scratch();
         try {
-            loop(plugin, origin, scratch, checks);
+            loop(plugin, sender, origin, scratch, checks);
             actuators(plugin, origin.clone().add(0, 0, 3), scratch, checks);
             sensors(plugin, origin.clone().add(0, 0, 6), scratch, checks);
             portsAndStore(plugin, origin.clone().add(0, 0, 9), scratch, checks);
@@ -78,7 +78,8 @@ public final class SelfTest {
 
     // ------------------------------------------------------------- A. the loop
 
-    private static void loop(RoboCraftPlugin plugin, Location origin, Scratch scratch, List<Check> checks) {
+    private static void loop(RoboCraftPlugin plugin, CommandSender sender, Location origin,
+                             Scratch scratch, List<Check> checks) {
         Part controller = kind(plugin, "controller");
         Part battery    = kind(plugin, "battery");
         Part sensor     = sensor(plugin, "light");
@@ -153,6 +154,17 @@ public final class SelfTest {
         checks.add(new Check("refresh updates the label in place, never duplicates",
                 labels(plugin, sensLoc, sensor.id()) == 1,
                 labels(plugin, sensLoc, sensor.id()) + " labels (want 1)"));
+
+        // Render the state trace over a robot that has readings, memory and a program, so the log
+        // also shows what a student sees when they ask why their robot did something.
+        try {
+            robot.program(nightLight());
+            plugin.engine().tick(robot, Map.of("light", 3));
+            com.agurim.robocraft.ui.Trace.send(plugin, sender, robot);
+            checks.add(new Check("the state trace renders", true, ""));
+        } catch (Exception e) {
+            checks.add(new Check("the state trace renders", false, e.toString()));
+        }
     }
 
     // ---------------------------------------------------------- B. actuators

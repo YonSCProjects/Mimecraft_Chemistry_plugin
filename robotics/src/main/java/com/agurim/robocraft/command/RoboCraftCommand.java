@@ -61,12 +61,13 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "run"      -> startRobot(player);
             case "stop"     -> stopRobot(player);
             case "charge"   -> chargeRobot(player);
+            case "trace"    -> traceRobot(player);
             case "give"     -> give(player, args);
             case "unlock"   -> unlock(player, args);
             case "reset"    -> reset(player);
             case "reload"   -> reload(player);
             default         -> player.sendMessage(Component.text(
-                                    "/rc guide | kit | tp | board | missions | mission <id> | run | stop | charge",
+                                    "/rc guide | kit | tp | board | missions | mission <id> | run | stop | trace | charge",
                                     NamedTextColor.GRAY));
         }
         return true;
@@ -136,6 +137,13 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         robot.energy(capacity);
         plugin.robots().save();
         player.sendMessage(Component.text("הסוללה מלאה: " + capacity, NamedTextColor.GOLD));
+    }
+
+    /** Print the whole state of the loop - the answer to "why did it do that?". */
+    private void traceRobot(Player player) {
+        Robot robot = myRobot(player);
+        if (robot == null) return;
+        com.agurim.robocraft.ui.Trace.send(plugin, player, robot);
     }
 
     private void rebuildBoard(Player player) {
@@ -253,8 +261,8 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
-                                    "run", "stop", "charge", "give", "unlock", "reset", "reload",
-                                    "selftest", "progress")) {
+                                    "run", "stop", "trace", "charge", "give", "unlock", "reset",
+                                    "reload", "selftest", "progress")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("mission")) {

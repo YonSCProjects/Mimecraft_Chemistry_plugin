@@ -268,6 +268,13 @@ public class MissionService {
         if (plugin.getConfig().getBoolean("missions.show-failed-check", true) && !step.because().isEmpty()) {
             run.sender.sendMessage(Component.text("   " + step.because(), NamedTextColor.YELLOW));
         }
+        // The readings at the moment it failed. Without these a student is told the answer was
+        // wrong but not what their program was looking at when it decided - which is the only
+        // thing that lets them find the bug themselves rather than guessing at the threshold.
+        String readings = snapshot(robot);
+        if (!readings.isEmpty()) {
+            run.sender.sendMessage(Component.text("   באותו רגע: " + readings, NamedTextColor.GRAY));
+        }
         if (!run.mission.hint().isEmpty()) {
             run.sender.sendMessage(Component.text("   רמז: " + run.mission.hint(), NamedTextColor.GRAY));
         }
@@ -296,6 +303,17 @@ public class MissionService {
 
     private int batteryCapacity(Robot robot) {
         return plugin.batteryCapacity(robot.key());
+    }
+
+    /** "S1 = 14, M1 = 2, ⚡ 4120" - what the program was looking at when the check failed. */
+    private String snapshot(Robot robot) {
+        List<String> parts = new ArrayList<>();
+        robot.inputs().forEach((port, value) -> parts.add(port + " = " + value));
+        for (int i = 0; i < robot.memory().length; i++) {
+            if (robot.mem(i) != 0) parts.add("M" + (i + 1) + " = " + robot.mem(i));
+        }
+        if (plugin.getConfig().getBoolean("power.enabled", true)) parts.add("⚡ " + robot.energy());
+        return String.join(", ", parts);
     }
 
     private static int parseInt(String s, int fallback) {

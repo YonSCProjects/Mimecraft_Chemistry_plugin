@@ -60,6 +60,20 @@ public final class Evaluator {
         return new Result(commands, lastFired);
     }
 
+    /**
+     * Would this rule's condition fire right now?
+     *
+     * <p>Only used for showing a student their program's state. "Which of my rules matched, and
+     * which one actually decided the output" is the whole answer to "why did it do that?", and
+     * being able to see it is the difference between debugging and guessing.
+     */
+    public static boolean matches(Rule rule, Map<String, Integer> inputs, int[] memory, int timeSeconds) {
+        if (rule.always()) return true;
+        int lhs = value(rule.source(), inputs, memory, timeSeconds);
+        int rhs = operand(rule.rhs(), inputs, memory, timeSeconds);
+        return rule.op().test(lhs, rhs);
+    }
+
     private static int operand(Operand operand, Map<String, Integer> inputs, int[] memory, int timeSeconds) {
         return operand.constant() ? operand.value() : value(operand.source(), inputs, memory, timeSeconds);
     }
