@@ -26,3 +26,23 @@ java  -cp "robotics/build/classes/java/main;/tmp/bc" BenchCheck
 
 Exit code is non-zero if any check fails. Scenarios are transcribed from `missions.yml` rather
 than parsed, so re-check them by eye if you change the mission steps.
+
+## smoke-test.ps1
+
+Downloads nothing and assumes nothing: point it at a directory that already contains a `paper.jar`,
+an accepted `eula.txt` and a `plugins/` folder holding the RoboCraft jar, and it will start the
+server, wait for it to finish booting, run `/rc selftest` and `/rc progress` from the console, stop
+the server cleanly so `onDisable` is exercised too, and leave the log for inspection.
+
+```
+powershell -ExecutionPolicy Bypass -File robotics/tools/smoke-test.ps1 `
+    -ServerDir C:\path	o	estserver `
+    -JavaExe   "C:\Program Files\Eclipse Adoptium\jdk-21...in\java.exe"
+```
+
+Two things it knows that cost a run each to learn: Windows PowerShell writes a UTF-8 BOM on the
+first line it sends to a process, and the server reads it as part of the command - so the script
+burns it on a deliberate blank line first. And both output pipes must be drained asynchronously,
+or a full pipe deadlocks the server mid-boot.
+
+Used against Paper 1.21.8 build 60 (Java 21) and Paper 26.2 build 116 (Java 25).
