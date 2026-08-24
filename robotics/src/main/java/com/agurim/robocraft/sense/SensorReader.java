@@ -24,6 +24,14 @@ public final class SensorReader {
 
     private SensorReader() {}
 
+    /**
+     * Every sensor type this class actually implements. A part whose {@code sensor:} is not in
+     * here reads 0 forever and never says why, so startup validation checks against this list -
+     * a typo in parts.yml should be a log line, not a silent dead sensor.
+     */
+    public static final java.util.Set<String> TYPES = java.util.Set.of(
+            "light", "distance", "player", "mob", "heat", "color", "rain", "redstone", "random");
+
     public static int read(Location loc, Placed placed, Part part, Map<String, Integer> env) {
         String type = part.sensor();
         if (env != null && env.containsKey(type)) return env.get(type);

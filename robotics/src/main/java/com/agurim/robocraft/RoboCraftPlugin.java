@@ -76,7 +76,9 @@ public final class RoboCraftPlugin extends JavaPlugin {
         Objects.requireNonNull(getCommand("robocraft")).setTabCompleter(command);
 
         engine.start();
-        missions.registry().validate(this);   // a stuck mission ladder is invisible in play
+        // Both of these catch content mistakes that are completely invisible from inside the game.
+        com.agurim.robocraft.diag.Validate.run(this);
+        missions.registry().validate(this);
 
         getLogger().info("RoboCraft enabled: " + parts.size() + " parts, "
                 + missions.registry().size() + " missions.");

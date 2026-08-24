@@ -11,11 +11,16 @@ The full loop:
 **pick a mission -> draw parts from the board -> build the mechanism -> write the rule table ->
 run the bench -> unlock parts.**
 
-Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/robotics-<version>[-mc26.2].jar`.
+Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-mc26.2].jar`.
 
-> **Status: compiles against both targets; never yet run on a server.** The mission ladder has
-> been checked offline (`tools/BenchCheck.java`, 22 checks) but nothing here has been smoke-tested
-> in-game. Everything below the engine is unverified against a live Paper server.
+> **Status: runs clean on both targets.** Verified on Paper 1.21.8 build 60 (Java 21) and Paper
+> 26.2 build 116 (Java 25): enables, writes its content YAML, registers commands, saves its runtime
+> files on disable, zero exceptions, and **`/rc selftest` passes 54/54 on both**. The mission ladder
+> is separately checked offline (`tools/BenchCheck.java`, 22 checks).
+>
+> **Still unverified: anything that needs a real player at a keyboard.** `JoinListener`, the
+> `BlockPlaceEvent`/`BlockBreakEvent` attach-and-detach path, `PlotProtection`, `StatusBar`, and
+> actually *clicking* the rule table. The GUI's layout is checked, but no human has ever driven it.
 
 ## The two decisions everything rests on
 1. **Redstone teaches wiring; we teach the program.** Minecraft already ships sensor -> logic ->
@@ -45,7 +50,10 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
 - `plot/` - `PlotManager` (copied from ChemCraft), `WorkshopKiosk` (the charging pad).
 - `data/PlayerStore` - per-UUID progress (`players.yml`): plot, unlocked parts, completed missions.
 - `ui/` - `ProgramMenu` (the rule-table GUI), `ComponentBoard` (the ghost->lit parts wall),
-  `Guide`, `StatusBar`.
+  `Guide`, `StatusBar`, `ProgressReport` (the teacher view).
+- `diag/` - `SelfTest` + `Scratch`: builds real robots out of real blocks, drives known inputs
+  through them, checks real blocks moved, and restores the world exactly. **This is the test
+  suite**, and it is also the answer to "does this work on this server?" before a lesson.
 - `listener/` - `JoinListener`, `PlotProtection`, `PartBlockListener` (attach/detach + ports),
   `InteractListener`, `MenuListener`.
 
@@ -77,8 +85,10 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 6. **Listeners that must run after protection use `EventPriority.HIGH` + `ignoreCancelled`.**
 
 ## Known issues / caveats
-- **Never smoke-tested in game.** Chiefly unverified: the `ProgramMenu` click model, display
-  entity churn, and whether `IRON_TRAPDOOR`/`REDSTONE_LAMP` block-data writes behave as expected.
+- **No human has ever played it.** See the status block for exactly what that leaves unverified.
+  The highest-risk remaining piece is the click model: the layout is checked, the *feel* is not.
+- `SensorReader` implements `mob` and `random`, but no part in `parts.yml` uses them - dead
+  branches until a part is added, kept because both are cheap and obviously useful.
 - **Robot memory is not persisted** - a restart zeroes `M1..M4`. Deliberate: real controllers lose
   RAM on power-cycle, and it is worth teaching.
 - Robots only tick while their owner is online (`robot.require-owner-online`).
@@ -86,14 +96,18 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
   controller menu needs an empty hand. Necessary - otherwise you cannot build against a part.
 - A mission's `expect` targets an actuator **type**, so every lamp on the robot must match. Fine
   for the current ladder; would need per-port expectations for anything subtler.
-- No rovers, no co-op, no teacher overview yet.
+- No rovers and no co-op yet.
+
+## Commands
+`/rc guide | kit | tp | board | missions | mission <id> | run | stop | charge` for students;
+`give | unlock | reset | reload | selftest | progress` for admins. **`selftest` and `progress` also
+run from the console** - the first is what you want before a lesson, the second during one.
 
 ## Roadmap
-- **Smoke-test on the 26.2 server** - the only thing that matters next.
+- **Watch a real student use it.** Everything mechanical is now checked; what is not checked is
+  whether the rule table is *learnable*, and that needs a person, not a test.
 - **Rovers** (Phase 2): a config-capped chassis that shifts a block per move step, carrying its
   parts and labels.
-- **`/rc progress`** teacher overview - which missions the class is stuck on is the single most
-  useful thing a teacher can see.
 - Resource pack mapping `custom_model_data` (`parts.base-model-data` + index) to real part icons.
 - A shared **exhibition hall** of working mechanisms - a showcase, never a shared goal, because a
   collective gate on individual progress breaks absence resilience.

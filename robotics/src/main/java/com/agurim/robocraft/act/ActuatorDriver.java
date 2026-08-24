@@ -19,6 +19,10 @@ public final class ActuatorDriver {
 
     private ActuatorDriver() {}
 
+    /** Every actuator type this class actually drives - see {@code SensorReader.TYPES}. */
+    public static final java.util.Set<String> TYPES = java.util.Set.of(
+            "lamp", "gate", "buzzer", "marker", "display");
+
     public static void apply(Location loc, Part part, int value, int previous) {
         Block block = loc.getBlock();
         boolean on = value != 0;
