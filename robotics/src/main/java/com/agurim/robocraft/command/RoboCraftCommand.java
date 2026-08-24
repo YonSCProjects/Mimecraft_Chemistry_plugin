@@ -53,8 +53,8 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         switch (sub) {
             case "guide"    -> Guide.send(plugin, player);
             case "kit"      -> StarterKit.give(plugin, player);
-            case "tp"       -> plugin.plots().teleportToPlot(player,
-                                    plugin.store().getOrAssignPlotIndex(player.getUniqueId()));
+            case "tp"       -> player.teleport(plugin.board().arrivalSpot(
+                                    plugin.store().getOrAssignPlotIndex(player.getUniqueId())));
             case "board"    -> rebuildBoard(player);
             case "missions" -> listMissions(player);
             case "mission"  -> runMission(player, args);

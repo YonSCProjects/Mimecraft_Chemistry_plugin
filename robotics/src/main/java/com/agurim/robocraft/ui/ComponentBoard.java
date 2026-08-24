@@ -52,6 +52,29 @@ public class ComponentBoard {
                 corner.getBlockZ() + oz);
     }
 
+    /**
+     * Where a student should arrive: a few blocks out from the middle of their board, facing it.
+     *
+     * <p>The plot centre is the obvious spot and it is the wrong one. A plot is 96 blocks across
+     * and the board sits 8 from the corner, so arriving at the centre drops a first-timer in an
+     * empty field some forty blocks from the only thing on their plot - while the welcome text
+     * tells them the wall is in front of them.
+     */
+    public Location arrivalSpot(int plotIndex) {
+        Location corner = plugin.plots().plotCorner(plotIndex);
+        int ox = plugin.getConfig().getInt("board.offset-x", 8);
+        int oz = plugin.getConfig().getInt("board.offset-z", 4);
+        int columns = Math.min(perRow(), Math.max(1, plugin.parts().size()));
+
+        Location spot = new Location(world(),
+                corner.getBlockX() + ox + (columns - 1) * spacing() / 2.0 + 0.5,
+                corner.getBlockY() + 1,
+                corner.getBlockZ() + oz + 6.5);
+        spot.setYaw(180f);      // look back along -z, at the board
+        spot.setPitch(0f);
+        return spot;
+    }
+
     /** (Re)build every tile for this plot, lit according to what the owner has unlocked. */
     public void build(int plotIndex, UUID owner) {
         List<Part> parts = parts();

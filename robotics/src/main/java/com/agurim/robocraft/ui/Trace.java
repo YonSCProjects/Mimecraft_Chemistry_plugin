@@ -34,7 +34,8 @@ public final class Trace {
         sender.sendMessage(Component.text("==== מצב הרובוט ====", NamedTextColor.AQUA));
         sender.sendMessage(Component.text(
                 (robot.running() ? "פועל" : (robot.halt() != null ? robot.halt() : "עצור"))
-                        + "   ⚡ " + robot.energy() + "   זמן " + seconds + "s",
+                        + "   ⚡ " + robot.energy()
+                        + (robot.running() ? "   זמן " + seconds + "s" : ""),
                 robot.running() ? NamedTextColor.GREEN : NamedTextColor.GRAY));
 
         // ---- sensors: the numbers the program is actually looking at ----

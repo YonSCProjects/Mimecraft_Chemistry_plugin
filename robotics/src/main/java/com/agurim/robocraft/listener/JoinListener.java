@@ -42,7 +42,7 @@ public class JoinListener implements Listener {
         }
 
         if (firstTime) {
-            plugin.plots().teleportToPlot(player, plot);
+            player.teleport(plugin.board().arrivalSpot(plot));
             Guide.welcome(player);
             StarterKit.give(plugin, player);
             plugin.store().setKitClaimed(id);

@@ -15,7 +15,7 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 
 > **Status: runs clean on both targets.** Verified on Paper 1.21.8 build 60 (Java 21) and Paper
 > 26.2 build 116 (Java 25): enables, writes its content YAML, registers commands, saves its runtime
-> files on disable, zero exceptions, and **`/rc selftest` passes 76/76 on both**. The mission ladder
+> files on disable, zero exceptions, and **`/rc selftest` passes 79/79 on both**. The mission ladder
 > is separately checked offline (`tools/BenchCheck.java`, 22 checks).
 >
 > **Still unverified: anything that needs a real player at a keyboard** - `JoinListener`,

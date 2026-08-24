@@ -741,6 +741,22 @@ public final class SelfTest {
         checks.add(new Check("plot lookup agrees with the plot's own corner",
                 plugin.plots().plotIndexAt(plugin.plots().plotCorner(3)) == 3,
                 "got " + plugin.plots().plotIndexAt(plugin.plots().plotCorner(3))));
+
+        // A first-timer must land on their own plot, close enough to the board to read it, and
+        // looking at it - the welcome text says the wall is in front of them.
+        Location arrival = plugin.board().arrivalSpot(3);
+        checks.add(new Check("the arrival spot is on the student's own plot",
+                plugin.plots().plotIndexAt(arrival) == 3,
+                "resolves to plot " + plugin.plots().plotIndexAt(arrival)));
+
+        Location middleTile = plugin.board().tileLocation(3, Math.min(2, plugin.parts().size() - 1));
+        double away = Math.hypot(arrival.getX() - (middleTile.getBlockX() + 0.5),
+                                 arrival.getZ() - (middleTile.getBlockZ() + 0.5));
+        checks.add(new Check("the arrival spot is within sight of the board, not across the field",
+                away < 12, String.format("%.1f blocks away", away)));
+        checks.add(new Check("and it faces the board rather than away from it",
+                arrival.getZ() > middleTile.getBlockZ() && Math.abs(arrival.getYaw() - 180f) < 1f,
+                "yaw " + arrival.getYaw()));
     }
 
     // ------------------------------------------------------------- helpers
