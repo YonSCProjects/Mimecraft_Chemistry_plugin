@@ -15,12 +15,14 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 
 > **Status: runs clean on both targets.** Verified on Paper 1.21.8 build 60 (Java 21) and Paper
 > 26.2 build 116 (Java 25): enables, writes its content YAML, registers commands, saves its runtime
-> files on disable, zero exceptions, and **`/rc selftest` passes 54/54 on both**. The mission ladder
+> files on disable, zero exceptions, and **`/rc selftest` passes 76/76 on both**. The mission ladder
 > is separately checked offline (`tools/BenchCheck.java`, 22 checks).
 >
-> **Still unverified: anything that needs a real player at a keyboard.** `JoinListener`, the
-> `BlockPlaceEvent`/`BlockBreakEvent` attach-and-detach path, `PlotProtection`, `StatusBar`, and
-> actually *clicking* the rule table. The GUI's layout is checked, but no human has ever driven it.
+> **Still unverified: anything that needs a real player at a keyboard** - `JoinListener`,
+> `PlotProtection`, `StatusBar`, and the event plumbing in the two block listeners. The *logic*
+> those listeners used to hold has been pulled out into `Attachment` and `RuleEdit`, which the
+> self-test drives directly; what is left in them is the plumbing and the Hebrew messages.
+> No human has ever clicked the rule table.
 
 ## The two decisions everything rests on
 1. **Redstone teaches wiring; we teach the program.** Minecraft already ships sensor -> logic ->
@@ -36,11 +38,13 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 validates the mission ladder. All gameplay content is **YAML-driven**.
 
 Packages (`robotics/src/main/java/com/agurim/robocraft/`):
-- `part/` - `Part` (record), `PartRegistry` (`parts.yml`), `PartStore` (location -> `Placed`,
+- `part/` - `Part` (record), `PartRegistry` (`parts.yml`), `Attachment` (which controller a part
+  joins, and what happens when one is removed), `PartStore` (location -> `Placed`,
   persisted `placements.yml`), `PartItems` (parts as PDC-tagged items), `PartLabels` (the live
   floating readouts - **this is the debugger**).
-- `program/` - `Rule`, `Program`, `Op`, `Verb`, `Operand`, and **`Evaluator`**: one pass of the
-  rule table, deliberately **free of every Bukkit type** so the semantics can be tested offline.
+- `program/` - `Rule`, `Program`, `Op`, `Verb`, `Operand`, plus **`Evaluator`** (one pass of the
+  rule table) and **`RuleEdit`** (what a click on a cell does). Both deliberately **free of every
+  Bukkit type**, so the two things hardest to get right can be tested without a player.
 - `robot/` - `Robot` (runtime state), `RobotStore` (`robots.yml`: owner, energy, rules),
   `RobotEngine` (the tick loop: sense -> decide -> act -> power).
 - `sense/SensorReader` - world (or simulated bench input) -> an int.
@@ -85,8 +89,8 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 6. **Listeners that must run after protection use `EventPriority.HIGH` + `ignoreCancelled`.**
 
 ## Known issues / caveats
-- **No human has ever played it.** See the status block for exactly what that leaves unverified.
-  The highest-risk remaining piece is the click model: the layout is checked, the *feel* is not.
+- **No human has ever played it.** The click model's layout and semantics are both checked; what
+  is not checked is whether it is *learnable*, and no test can tell us that.
 - `SensorReader` implements `mob` and `random`, but no part in `parts.yml` uses them - dead
   branches until a part is added, kept because both are cheap and obviously useful.
 - **Robot memory is not persisted** - a restart zeroes `M1..M4`. Deliberate: real controllers lose

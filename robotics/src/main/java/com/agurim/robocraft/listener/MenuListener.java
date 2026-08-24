@@ -1,9 +1,8 @@
 package com.agurim.robocraft.listener;
 
 import com.agurim.robocraft.RoboCraftPlugin;
-import com.agurim.robocraft.program.Operand;
 import com.agurim.robocraft.program.Rule;
-import com.agurim.robocraft.program.Verb;
+import com.agurim.robocraft.program.RuleEdit;
 import com.agurim.robocraft.robot.Robot;
 import com.agurim.robocraft.ui.ProgramMenu;
 import net.kyori.adventure.text.Component;
@@ -19,16 +18,16 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import java.util.List;
 
 /**
- * Editing the rule table by clicking.
+ * Editing the rule table by clicking: event plumbing and the messages.
+ *
+ * <p>What a click means lives in {@link RuleEdit}, which is Bukkit-free and therefore testable.
  *
  * <p>One interaction model per cell, so there is nothing to memorise: token cells cycle
  * (left = next, right = previous), number cells step (left/right = 1, shift = 10), and the middle
- * click switches a number cell between a literal and a port. Everything is cancelled - this is a
- * control panel, not an inventory.
+ * click swaps a number cell for a port. Everything is cancelled - this is a control panel, not an
+ * inventory, and nothing in it may be picked up.
  */
 public class MenuListener implements Listener {
-
-    private static final int MAX_CONST = 255;
 
     private final RoboCraftPlugin plugin;
 
@@ -61,26 +60,21 @@ public class MenuListener implements Listener {
         Rule rule = robot.program().get(index);
         if (rule == null) return;
 
-        // An ALWAYS rule hides its comparison cells, and a verb with no argument hides its value
-        // cell. Those slots hold fillers, so clicking one must do nothing rather than silently
-        // edit a field the student cannot see.
-        if (rule.always() && (field == 2 || field == 3)) return;
-        if (field == 7 && !rule.verb().needsArg()) return;
-
-        ClickType click = event.getClick();
-        Rule updated = switch (field) {
-            case 1 -> rule.withSource(cycle(ProgramMenu.sources(plugin, menu.robotKey()), rule.source(), click));
-            case 2 -> rule.withOp(rule.op().next());
-            case 3 -> rule.withRhs(editOperand(menu, rule.rhs(), click));
-            case 5 -> retarget(menu, rule, click, player);
-            case 6 -> rule.withVerb(rule.verb().next(isMemory(rule.target())));
-            case 7 -> rule.verb().needsArg() ? rule.withArg(editOperand(menu, rule.arg(), click)) : rule;
-            case 8 -> null;
-            default -> rule;
-        };
-
-        if (field == 8) robot.program().remove(index);
-        else if (updated != null) robot.program().set(index, updated);
+        if (field == RuleEdit.DELETE) {
+            robot.program().remove(index);
+        } else {
+            if (!RuleEdit.editable(rule, field)) return;
+            List<String> targets = ProgramMenu.targets(plugin, menu.robotKey());
+            if (field == RuleEdit.TARGET && targets.isEmpty()) {
+                player.sendMessage(Component.text(
+                        "אין מפעילים מחוברים לבקר. הניחו נורה או שער בקרבת הבקר.", NamedTextColor.RED));
+                return;
+            }
+            robot.program().set(index, RuleEdit.apply(rule, field, click(event.getClick()),
+                    ProgramMenu.sources(plugin, menu.robotKey()),
+                    targets,
+                    ProgramMenu.valueSources(plugin, menu.robotKey())));
+        }
 
         plugin.robots().save();
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.6f);
@@ -88,51 +82,10 @@ public class MenuListener implements Listener {
         player.updateInventory();
     }
 
-    // ---------------------------------------------------------------- cells
-
-    /** Changing the target may make the verb illegal, so normalise it in the same step. */
-    private Rule retarget(ProgramMenu menu, Rule rule, ClickType click, Player player) {
-        List<String> targets = ProgramMenu.targets(plugin, menu.robotKey());
-        if (targets.isEmpty()) {
-            player.sendMessage(Component.text(
-                    "אין מפעילים מחוברים לבקר. הניחו נורה או שער בקרבת הבקר.", NamedTextColor.RED));
-            return rule;
-        }
-        String target = cycle(targets, rule.target(), click);
-        Rule out = rule.withTarget(target);
-        if (isMemory(target) && !out.verb().isMemory())      out = out.withVerb(Verb.SET);
-        else if (!isMemory(target) && out.verb().isMemory()) out = out.withVerb(Verb.ON);
-        return out;
-    }
-
-    private Operand editOperand(ProgramMenu menu, Operand operand, ClickType click) {
-        List<String> sources = ProgramMenu.valueSources(plugin, menu.robotKey());
-
-        // Middle click switches the cell between "a number" and "another value".
-        if (click == ClickType.MIDDLE || click == ClickType.DROP) {
-            if (operand.constant()) return sources.isEmpty() ? operand : Operand.ref(sources.get(0));
-            return Operand.of(0);
-        }
-        if (!operand.constant()) {
-            return Operand.ref(cycle(sources, operand.source(), click));
-        }
-        int step = click.isShiftClick() ? 10 : 1;
-        int value = operand.value() + (click.isRightClick() ? -step : step);
-        return Operand.of(Math.max(0, Math.min(MAX_CONST, value)));
-    }
-
-    private String cycle(List<String> options, String current, ClickType click) {
-        if (options.isEmpty()) return current;
-        int i = options.indexOf(current);
-        if (i < 0) return options.get(0);
-        int next = click.isRightClick() ? (i - 1 + options.size()) % options.size()
-                                       : (i + 1) % options.size();
-        return options.get(next);
-    }
-
-    private boolean isMemory(String target) {
-        return target != null && target.length() >= 2 && target.charAt(0) == 'M'
-                && Character.isDigit(target.charAt(1));
+    /** Reduce a Bukkit click to the three things that change what it means. */
+    private RuleEdit.Click click(ClickType type) {
+        boolean alternate = type == ClickType.MIDDLE || type == ClickType.DROP;
+        return new RuleEdit.Click(type.isRightClick(), type.isShiftClick(), alternate);
     }
 
     // ------------------------------------------------------------- controls

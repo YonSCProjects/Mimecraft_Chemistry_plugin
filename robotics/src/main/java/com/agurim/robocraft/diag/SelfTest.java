@@ -12,6 +12,7 @@ import com.agurim.robocraft.program.Op;
 import com.agurim.robocraft.program.Operand;
 import com.agurim.robocraft.program.Program;
 import com.agurim.robocraft.program.Rule;
+import com.agurim.robocraft.program.RuleEdit;
 import com.agurim.robocraft.program.Verb;
 import com.agurim.robocraft.robot.Robot;
 import com.agurim.robocraft.sense.SensorReader;
@@ -67,6 +68,7 @@ public final class SelfTest {
             bench(plugin, sender, origin.clone().add(0, 0, 12), scratch, checks);
             attachment(plugin, origin.clone().add(0, 0, 15), scratch, checks);
             gui(plugin, origin.clone().add(0, 0, 19), scratch, checks);
+            editing(plugin, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
         } catch (Exception e) {
@@ -568,6 +570,109 @@ public final class SelfTest {
 
     private static Material type(org.bukkit.inventory.Inventory inv, int slot) {
         return (inv.getItem(slot) == null) ? Material.AIR : inv.getItem(slot).getType();
+    }
+
+    // ------------------------------------------------------- D5. click editing
+
+    /**
+     * Every cell of the rule table, clicked every way it can be clicked.
+     *
+     * <p>A bug here does not crash - it edits a different part of the rule than the one the
+     * student clicked, in a tool whose whole premise is that clicking is unambiguous. That is the
+     * kind of bug a person would blame on themselves rather than report.
+     */
+    private static void editing(RoboCraftPlugin plugin, List<Check> checks) {
+        List<String> sources = List.of(Rule.ALWAYS, "S1", "S2", "M1", "TIME");
+        List<String> targets = List.of("A1", "A2", "M1");
+        List<String> values  = List.of("S1", "S2", "M1", "TIME");
+
+        Rule base = new Rule("S1", Op.LT, Operand.of(7), "A1", Verb.ON, Operand.of(0));
+
+        // --- token cells cycle both ways and wrap ---
+        Rule fwd = RuleEdit.apply(base, RuleEdit.SOURCE, RuleEdit.Click.LEFT, sources, targets, values);
+        Rule back = RuleEdit.apply(base, RuleEdit.SOURCE, RuleEdit.Click.RIGHT, sources, targets, values);
+        checks.add(new Check("left cycles a token cell forward, right cycles it back",
+                "S2".equals(fwd.source()) && Rule.ALWAYS.equals(back.source()),
+                fwd.source() + " / " + back.source()));
+
+        Rule wrapped = RuleEdit.apply(base.withSource("TIME"), RuleEdit.SOURCE,
+                RuleEdit.Click.LEFT, sources, targets, values);
+        checks.add(new Check("cycling past the end wraps to the start",
+                Rule.ALWAYS.equals(wrapped.source()), wrapped.source()));
+
+        // --- value cells step, and clamp at both ends ---
+        Rule up = RuleEdit.apply(base, RuleEdit.RHS, RuleEdit.Click.LEFT, sources, targets, values);
+        Rule big = RuleEdit.apply(base, RuleEdit.RHS, RuleEdit.Click.SHIFT, sources, targets, values);
+        checks.add(new Check("a value cell steps by 1, or by 10 with shift",
+                up.rhs().value() == 8 && big.rhs().value() == 17,
+                up.rhs().value() + " / " + big.rhs().value()));
+
+        Rule floor = RuleEdit.apply(base.withRhs(Operand.of(0)), RuleEdit.RHS,
+                RuleEdit.Click.SHIFT_RT, sources, targets, values);
+        Rule ceil = RuleEdit.apply(base.withRhs(Operand.of(RuleEdit.MAX_CONST)), RuleEdit.RHS,
+                RuleEdit.Click.LEFT, sources, targets, values);
+        checks.add(new Check("a value cell cannot go below 0 or past its ceiling",
+                floor.rhs().value() == 0 && ceil.rhs().value() == RuleEdit.MAX_CONST,
+                floor.rhs().value() + " / " + ceil.rhs().value()));
+
+        // --- the alternate click swaps a literal for a port and back ---
+        Rule asPort = RuleEdit.apply(base, RuleEdit.RHS, RuleEdit.Click.ALTERNATE, sources, targets, values);
+        Rule asNumber = RuleEdit.apply(asPort, RuleEdit.RHS, RuleEdit.Click.ALTERNATE, sources, targets, values);
+        checks.add(new Check("the alternate click swaps a number for a port, and back again",
+                !asPort.rhs().constant() && asNumber.rhs().constant(),
+                asPort.rhs().label() + " -> " + asNumber.rhs().label()));
+
+        // --- retargeting must fix up a verb it just made illegal ---
+        Rule toMemory = RuleEdit.apply(base.withTarget("A2"), RuleEdit.TARGET,
+                RuleEdit.Click.LEFT, sources, targets, values);
+        checks.add(new Check("pointing a rule at memory turns ON into SET",
+                "M1".equals(toMemory.target()) && toMemory.verb() == Verb.SET,
+                toMemory.target() + " " + toMemory.verb()));
+
+        Rule memRule = new Rule("S1", Op.LT, Operand.of(7), "M1", Verb.ADD, Operand.of(1));
+        Rule toActuator = RuleEdit.apply(memRule, RuleEdit.TARGET,
+                RuleEdit.Click.LEFT, sources, targets, values);
+        checks.add(new Check("pointing it back at an actuator turns ADD into ON",
+                "A1".equals(toActuator.target()) && toActuator.verb() == Verb.ON,
+                toActuator.target() + " " + toActuator.verb()));
+
+        // --- hidden cells must be inert ---
+        Rule always = base.withSource(Rule.ALWAYS);
+        checks.add(new Check("an ALWAYS rule's hidden comparison cells are not editable",
+                !RuleEdit.editable(always, RuleEdit.OP) && !RuleEdit.editable(always, RuleEdit.RHS),
+                "op/value reported editable"));
+        checks.add(new Check("a verb with no argument has no editable value cell",
+                !RuleEdit.editable(base, RuleEdit.ARG)
+                        && RuleEdit.editable(base.withVerb(Verb.SHOW), RuleEdit.ARG),
+                "ON=" + RuleEdit.editable(base, RuleEdit.ARG)
+                        + " SHOW=" + RuleEdit.editable(base.withVerb(Verb.SHOW), RuleEdit.ARG)));
+        checks.add(new Check("clicking a hidden cell returns the rule untouched",
+                RuleEdit.apply(always, RuleEdit.RHS, RuleEdit.Click.LEFT, sources, targets, values)
+                        .equals(always), "the rule changed"));
+
+        // --- an empty vocabulary must not throw or corrupt the rule ---
+        checks.add(new Check("cycling with nothing to cycle to leaves the value alone",
+                "A1".equals(RuleEdit.apply(base, RuleEdit.TARGET, RuleEdit.Click.LEFT,
+                        sources, List.of(), values).target()),
+                "target changed with an empty list"));
+
+        // --- every field, every click, must survive ---
+        boolean survived = true;
+        String broke = "";
+        for (int field = 0; field <= 8 && survived; field++) {
+            for (RuleEdit.Click c : List.of(RuleEdit.Click.LEFT, RuleEdit.Click.RIGHT,
+                    RuleEdit.Click.SHIFT, RuleEdit.Click.SHIFT_RT, RuleEdit.Click.ALTERNATE)) {
+                try {
+                    Rule out = RuleEdit.apply(base, field, c, sources, targets, values);
+                    if (out == null) { survived = false; broke = "field " + field + " returned null"; break; }
+                } catch (Exception e) {
+                    survived = false;
+                    broke = "field " + field + " threw " + e;
+                    break;
+                }
+            }
+        }
+        checks.add(new Check("no field and click combination throws or nulls the rule", survived, broke));
     }
 
     // ------------------------------------------------------- E. the vocabulary
