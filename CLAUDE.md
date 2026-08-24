@@ -27,7 +27,7 @@ each runs on its own dedicated server, so plot grids, worlds and join flows can'
 build.gradle       shared config: Paper dep, toolchain, UTF-8, the -Pmc dual-target switch
 settings.gradle    includes :chemcraft and :robotics
 chemcraft/         ChemCraft - this document describes this module
-robotics/          the robotics workshop plugin (skeleton: no source or plugin.yml yet)
+robotics/          RoboCraft - the robotics workshop plugin (see robotics/CLAUDE.md)
 docs/              shared design/architecture docs
 ```
 

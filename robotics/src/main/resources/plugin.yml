@@ -1,0 +1,14 @@
+name: RoboCraft
+version: 0.1.0
+main: com.agurim.robocraft.RoboCraftPlugin
+api-version: '${apiVersion}'
+description: Teaches robotics - sense, decide, act - by building mechanisms and running missions.
+commands:
+  robocraft:
+    description: RoboCraft commands
+    usage: /robocraft guide | kit | tp | board | missions | mission <id> | run | stop | charge | give <part> [n] | unlock <part> | reset | buildboard | reload
+    aliases: [rc]
+permissions:
+  robocraft.admin:
+    description: Admin/debug RoboCraft commands (give, unlock, reset, buildboard, reload)
+    default: op

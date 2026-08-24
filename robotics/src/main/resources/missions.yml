@@ -1,0 +1,114 @@
+# The mission ladder. Each mission is a goal, a scripted scenario, and pass/fail checks.
+#
+# A mission runs on the TEST BENCH: `env` injects simulated sensor readings instead of changing
+# the shared world (see docs/DESIGN.md 4.4). Forcing real night would black out the whole class,
+# setPlayerTime is client-side only so block light would not move anyway, and a real day/night
+# cycle is ten minutes against the bench's fifteen seconds. It is also how real embedded code is
+# tested: inject inputs, assert outputs.
+#
+# step fields:
+#   say     - narrated to the student so the simulated conditions are visible
+#   env     - simulated sensor values by SENSOR TYPE (light, distance, player, heat, color, ...)
+#   wait    - ticks to let the program run before the next step
+#   expect  - assertions by ACTUATOR TYPE (on/off), memory slot (a number), or `running`
+#   because - shown when this check fails. Never a score, always the reason.
+
+night_light:
+  order: 1
+  name: "נורת לילה"
+  brief: "הדליקו את הנורה כשחשוך, וכבו אותה כשאור."
+  teaches: "חיישן, סף, פלט"
+  needs: [controller, battery, light_sensor, lamp]
+  reward: [buzzer, distance_sensor]
+  steps:
+    - { say: "יום. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
+    - { expect: { lamp: off }, because: "ביום הנורה צריכה להיות כבויה" }
+    - { say: "לילה. עוצמת אור 2.", env: { light: 2 }, wait: 30 }
+    - { expect: { lamp: on }, because: "בחושך הנורה צריכה להידלק" }
+    - { say: "שוב יום. עוצמת אור 13.", env: { light: 13 }, wait: 30 }
+    - { expect: { lamp: off }, because: "כשהאור חוזר הנורה צריכה להיכבות. פלט זוכר את מצבו - צריך כלל שמכבה אותו" }
+
+alarm:
+  order: 2
+  name: "אזעקה"
+  brief: "כשמשהו מתקרב - הפעילו זמזם וגם נורה."
+  teaches: "חיישן שני, שתי פעולות מתנאי אחד"
+  needs: [controller, battery, distance_sensor, buzzer, lamp]
+  reward: [presence_sensor, gate]
+  steps:
+    - { say: "רחוק. מרחק 16.", env: { distance: 16 }, wait: 30 }
+    - { expect: { buzzer: off }, because: "כשאין אף אחד קרוב האזעקה שקטה" }
+    - { say: "מתקרב! מרחק 3.", env: { distance: 3 }, wait: 30 }
+    - { expect: { buzzer: on }, because: "במרחק קטן הזמזם צריך לפעול" }
+    - { expect: { lamp: on }, because: "גם הנורה צריכה להידלק - שני כללים על אותו תנאי" }
+    - { say: "התרחק. מרחק 15.", env: { distance: 15 }, wait: 30 }
+    - { expect: { buzzer: off }, because: "כשהוא מתרחק האזעקה נכבית" }
+
+auto_door:
+  order: 3
+  name: "דלת אוטומטית"
+  brief: "השער נפתח כשמישהו מתקרב, ונסגר כשהוא הולך."
+  teaches: "מפעיל מכני, נעילת מצב"
+  needs: [controller, battery, presence_sensor, gate]
+  reward: [display]
+  steps:
+    - { say: "אין אף אחד.", env: { player: 0 }, wait: 30 }
+    - { expect: { gate: off }, because: "בלי אף אחד בסביבה השער סגור" }
+    - { say: "מישהו הגיע.", env: { player: 1 }, wait: 30 }
+    - { expect: { gate: on }, because: "כשמזוהה נוכחות השער צריך להיפתח" }
+    - { say: "הוא הלך.", env: { player: 0 }, wait: 30 }
+    - { expect: { gate: off }, because: "השער צריך להיסגר אחריו" }
+
+counter:
+  order: 4
+  name: "מונה"
+  brief: "ספרו כמה פעמים נפתח השער. השתמשו בזיכרון M1."
+  teaches: "ADD, זיהוי מעבר, סדר הכללים"
+  needs: [controller, battery, presence_sensor, display]
+  reward: [heat_sensor]
+  hint: "כדי לספור מעברים צריך לזכור מה היה בסיבוב הקודם: M2 SET S1 - אבל רק אחרי הכלל שמשווה"
+  steps:
+    - { say: "מאפסים.", env: { player: 0 }, wait: 20 }
+    - { say: "כניסה ראשונה.", env: { player: 1 }, wait: 20 }
+    - { say: "יצא.", env: { player: 0 }, wait: 20 }
+    - { say: "כניסה שנייה.", env: { player: 1 }, wait: 20 }
+    - { say: "יצא.", env: { player: 0 }, wait: 20 }
+    - { expect: { M1: 2 }, because: "שתי כניסות - M1 צריך להיות 2. אם יצא מספר גדול, אתם סופרים כל סיבוב במקום כל מעבר" }
+
+thermostat:
+  order: 5
+  name: "תרמוסטט"
+  brief: "החזיקו את החום בתחום. שימו לב: סף אחד גורם לנורה לרצד."
+  teaches: "משוב, היסטרזיס - שני ספים"
+  needs: [controller, battery, heat_sensor, lamp]
+  reward: [solar_panel, rain_sensor]
+  hint: "עם סף אחד המערכת מתנדנדת. נסו סף להדלקה וסף אחר - גבוה יותר - לכיבוי"
+  steps:
+    - { say: "קר. חום 20.", env: { heat: 20 }, wait: 30 }
+    - { expect: { lamp: on }, because: "כשקר המחמם צריך לעבוד" }
+    - { say: "מתחמם. חום 45 - באמצע.", env: { heat: 45 }, wait: 30 }
+    - { expect: { lamp: on }, because: "באמצע התחום המחמם ממשיך - הוא כבר דולק ולא הגיע לסף הכיבוי" }
+    - { say: "חם. חום 70.", env: { heat: 70 }, wait: 30 }
+    - { expect: { lamp: off }, because: "מעל סף הכיבוי המחמם נכבה" }
+    - { say: "מתקרר. שוב 45 - באמצע.", env: { heat: 45 }, wait: 30 }
+    - { expect: { lamp: off }, because: "באמצע התחום המחמם נשאר כבוי. אם נדלק - יש לכם סף אחד, ולכן ריצוד" }
+
+efficiency:
+  order: 6
+  name: "חיסכון"
+  brief: "אותה נורת לילה - אבל עם רבע סוללה. אל תיתנו לרובוט להיכבות."
+  teaches: "תקציב אנרגיה, מחזור עבודה"
+  needs: [controller, battery, light_sensor, lamp]
+  reward: [marker, color_sensor, redstone_sensor]
+  hint: "כל מפעיל דולק שורף חשמל בכל סיבוב. מה באמת חייב להיות דלוק, ומתי?"
+  # Tuned against robotics/docs/BENCH-CHECK: a duty-cycled robot finishes with room to spare
+  # even with a spare sensor attached, while an always-on lamp runs flat around two thirds in.
+  start-energy: 150
+  steps:
+    - { say: "יום.", env: { light: 14 }, wait: 60 }
+    - { expect: { lamp: off }, because: "ביום כבוי" }
+    - { say: "לילה.", env: { light: 2 }, wait: 60 }
+    - { expect: { lamp: on }, because: "בלילה דלוק" }
+    - { say: "יום.", env: { light: 14 }, wait: 60 }
+    - { expect: { lamp: off }, because: "ביום כבוי" }
+    - { expect: { running: true }, because: "הסוללה נגמרה באמצע. מפעיל שדולק כשאין בו צורך שורף את התקציב" }

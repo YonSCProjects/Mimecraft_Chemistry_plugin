@@ -1,4 +1,8 @@
-// The robotics workshop plugin. Skeleton only - package, plugin name and content are still
-// being designed, so there is no source or plugin.yml yet and this module builds an empty jar.
+// RoboCraft - the robotics workshop plugin. See robotics/CLAUDE.md and robotics/docs/DESIGN.md.
 // Shared build config (Paper dep, toolchain, UTF-8, dual-target) lives in the root build.gradle.
 version = '0.1.0'
+
+// Match the plugin name rather than the module directory, as chemcraft does.
+base {
+    archivesName = 'RoboCraft'
+}

@@ -3,7 +3,7 @@
 // loaded together, so plot grids / worlds / join flows can't collide.
 //
 //   :chemcraft  ChemCraft - the chemistry teaching plugin
-//   :robotics   the robotics workshop plugin (skeleton; package + plugin name still TBD)
+//   :robotics   RoboCraft - the robotics workshop plugin
 
 // Lets Gradle auto-download the JDK toolchain (root build.gradle) when it isn't installed locally.
 // 1.0.0+ is required: 0.8.0 crashes on Gradle 9 (JvmVendorSpec.IBM_SEMERU was removed).

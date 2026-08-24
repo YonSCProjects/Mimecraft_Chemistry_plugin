@@ -1,0 +1,92 @@
+world: world
+
+plot:
+  size: 96
+  gap: 8
+  origin-x: 0
+  origin-z: 0
+  ground-y: 64
+  per-row: 8
+
+# The Component Board: a per-plot ghost->lit wall, one tile per part (see parts.yml).
+# Same idea as ChemCraft's periodic-table wall - it answers "what can I build with?" and
+# "what am I working towards?" in one glance.
+board:
+  offset-x: 8
+  offset-y: 65
+  offset-z: 4
+  tile-spacing: 2
+  per-row: 6
+
+# The workbench row built next to each plot's board so a student can start with no op setup.
+kiosk:
+  offset-x: 8
+  offset-y: 1
+  offset-z: 1
+  spacing: 3
+
+# The sense -> decide -> act loop.
+# tick-interval is in server ticks: 10 = twice a second. Slower is easier to watch and cheaper;
+# faster feels more responsive. 10 is the sweet spot for a classroom.
+# attach-radius: how far from the controller a part may sit and still join that robot.
+robot:
+  tick-interval: 10
+  attach-radius: 4
+  max-parts: 16
+  # Robots stop when their owner is offline; nothing should tick for an empty plot.
+  require-owner-online: true
+
+program:
+  # Five rules fit one GUI page and force economical thinking. Raising this past 5 needs a
+  # paged GUI - ProgramMenu lays out one rule per row in a 6-row chest.
+  max-rules: 5
+  memory-slots: 4
+
+# Energy. Every active actuator costs; sensors cost a little; idle costs almost nothing.
+# This is what makes "your robot works but dies in 40 seconds" a real design problem, and
+# duty-cycling (sleep between checks) the real fix.
+power:
+  enabled: true
+  base-drain: 1          # per tick, just for being switched on
+  sensor-drain: 1        # per attached sensor per tick
+  solar-gain: 2          # per solar panel per tick, scaled by light level
+  # Charger block on the plot kiosk refills any robot within this radius. Charging is manual on
+  # purpose: an energy budget you can top up without thinking is not a budget.
+  # Must be a block that never changes state on its own - waxed copper, never plain.
+  charger-block: WAXED_CHISELED_COPPER
+  charger-radius: 6
+  charger-rate: 60
+
+missions:
+  enabled: true
+  # The test bench injects simulated sensor inputs rather than changing the shared world.
+  # See docs/DESIGN.md 4.4 - forcing real night would black out the whole class, setPlayerTime
+  # is client-side only so block light would not move anyway, and a real day/night cycle is
+  # ten minutes against the bench's fifteen seconds.
+  bench-narrate: true
+  # Never a score, always the failing check, unlimited retries.
+  show-failed-check: true
+
+# A per-player bossbar carrying the current mission and the robot's battery.
+status-bar:
+  enabled: true
+
+# What happens when a student touches someone else's plot. The attempt ALWAYS fails; this only
+# shapes how failing feels. Deliberately undramatic - see ChemCraft's plot shield.
+plot-shield:
+  enabled: true
+  particles: true
+  escalate-after: 4
+  window-seconds: 30
+
+# Parts handed out the first time a player joins (and via /rc kit). Keys are parts.yml ids.
+starter-kit:
+  enabled: true
+  parts:
+    controller: 1
+    battery: 1
+    light_sensor: 1
+    lamp: 1
+
+parts:
+  base-model-data: 9000

@@ -1,0 +1,155 @@
+# Every buildable part. Order here is the order of tiles on the Component Board.
+#
+# kind:     controller | battery | solar | sensor | actuator
+# block:    the vanilla Material placed in the world (Tier-1 custom block: real block +
+#           TextDisplay label + identity in PartStore). A plugin cannot register new block IDs.
+# unlocked: true = available from the start; false = unlocked by a mission reward.
+# drain:    energy per tick while ACTIVE (actuators) or attached (sensors).
+#
+# NEVER use a block that changes state on its own. Parts are matched by exact Material, so a
+# plain COPPER_BLOCK would oxidize (fast, in 26.2's copper age) and silently stop being a part
+# with no error message. This bit ChemCraft's panning station in playtesting - always waxed.
+
+controller:
+  name: "בקר"
+  kind: controller
+  block: LODESTONE
+  unlocked: true
+  hint: "המוח. לחיצה ימנית פותחת את התוכנית"
+
+battery:
+  name: "סוללה"
+  kind: battery
+  block: WAXED_COPPER_BLOCK
+  capacity: 4800
+  unlocked: true
+  hint: "האנרגיה נגמרת. רובוט בלי חשמל נעצר"
+
+solar_panel:
+  name: "לוח סולארי"
+  kind: solar
+  block: BLUE_GLAZED_TERRACOTTA
+  unlocked: false
+  hint: "טוען את הסוללה לפי עוצמת האור"
+
+# ---------------- Sensors: the world -> a number ----------------
+
+light_sensor:
+  name: "חיישן אור"
+  kind: sensor
+  sensor: light
+  block: DAYLIGHT_DETECTOR
+  range: "0-15"
+  drain: 1
+  unlocked: true
+  hint: "עוצמת האור במקום החיישן"
+
+distance_sensor:
+  name: "חיישן מרחק"
+  kind: sensor
+  sensor: distance
+  block: OBSERVER
+  reach: 16
+  range: "0-16"
+  drain: 1
+  unlocked: false
+  hint: "מרחק לבלוק הראשון בכיוון שאליו הוא מכוון"
+
+presence_sensor:
+  name: "חיישן נוכחות"
+  kind: sensor
+  sensor: player
+  block: SCULK_SENSOR
+  radius: 5
+  range: "0/1"
+  drain: 1
+  unlocked: false
+  hint: "1 אם יש שחקן בקרבת מקום"
+
+heat_sensor:
+  name: "חיישן חום"
+  kind: sensor
+  sensor: heat
+  block: RED_NETHER_BRICKS
+  radius: 4
+  range: "0-100"
+  drain: 1
+  unlocked: false
+  hint: "חום מאש ולבה, קור מקרח ושלג"
+
+color_sensor:
+  name: "חיישן צבע"
+  kind: sensor
+  sensor: color
+  block: TARGET
+  range: "0-15"
+  drain: 1
+  unlocked: false
+  hint: "הצבע של הבלוק שמתחתיו"
+
+rain_sensor:
+  name: "חיישן גשם"
+  kind: sensor
+  sensor: rain
+  block: AMETHYST_BLOCK
+  range: "0/1"
+  drain: 1
+  unlocked: false
+  hint: "1 כשיורד גשם"
+
+redstone_sensor:
+  name: "חיישן אבן אדומה"
+  kind: sensor
+  sensor: redstone
+  block: POLISHED_BLACKSTONE
+  range: "0-15"
+  drain: 1
+  unlocked: false
+  hint: "גשר מהאבן האדומה אל התוכנית"
+
+# ---------------- Actuators: a decision -> the world ----------------
+
+lamp:
+  name: "נורה"
+  kind: actuator
+  actuator: lamp
+  block: REDSTONE_LAMP
+  drain: 6
+  unlocked: true
+  hint: "נדלקת ונכבית. זוכרת את מצבה עד שתגידו אחרת"
+
+buzzer:
+  name: "זמזם"
+  kind: actuator
+  actuator: buzzer
+  block: NOTE_BLOCK
+  drain: 4
+  unlocked: false
+  hint: "מצפצף כשהוא נדלק"
+
+gate:
+  name: "שער"
+  kind: actuator
+  actuator: gate
+  block: IRON_TRAPDOOR
+  drain: 10
+  unlocked: false
+  hint: "נפתח ונסגר - מפעיל מכני"
+
+display:
+  name: "צג"
+  kind: actuator
+  actuator: display
+  block: TINTED_GLASS
+  drain: 1
+  unlocked: false
+  hint: "מציג מספר או קריאה של חיישן - הכלי לניפוי באגים"
+
+marker:
+  name: "משואה"
+  kind: actuator
+  actuator: marker
+  block: SEA_LANTERN
+  drain: 8
+  unlocked: false
+  hint: "פולט חלקיקים כשהוא דולק"
