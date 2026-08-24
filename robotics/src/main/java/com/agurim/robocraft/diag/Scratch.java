@@ -49,6 +49,9 @@ final class Scratch {
 
     void robot(String key) { robots.add(key); }
 
+    /** Register a location for cleanup that something else placed into the store. */
+    void track(Location loc) { placed.add(loc.clone()); }
+
     void restore(RoboCraftPlugin plugin) {
         for (Location loc : placed) {
             Placed p = plugin.placements().get(loc);

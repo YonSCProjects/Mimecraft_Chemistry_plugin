@@ -1,6 +1,7 @@
 package com.agurim.robocraft.diag;
 
 import com.agurim.robocraft.RoboCraftPlugin;
+import com.agurim.robocraft.part.Attachment;
 import com.agurim.robocraft.part.Part;
 import com.agurim.robocraft.part.PartLabels;
 import com.agurim.robocraft.part.PartStore;
@@ -20,6 +21,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Lightable;
 import org.bukkit.block.data.Openable;
@@ -63,7 +65,8 @@ public final class SelfTest {
             sensors(plugin, origin.clone().add(0, 0, 6), scratch, checks);
             portsAndStore(plugin, origin.clone().add(0, 0, 9), scratch, checks);
             bench(plugin, sender, origin.clone().add(0, 0, 12), scratch, checks);
-            gui(plugin, origin.clone().add(0, 0, 15), scratch, checks);
+            attachment(plugin, origin.clone().add(0, 0, 15), scratch, checks);
+            gui(plugin, origin.clone().add(0, 0, 19), scratch, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
         } catch (Exception e) {
@@ -428,6 +431,80 @@ public final class SelfTest {
             plugin.engine().tick(robot);
         }
         plugin.missions().abort(key);
+    }
+
+    // --------------------------------------------------------- D4. attachment
+
+    /**
+     * Building and un-building a robot: the code every student's build depends on, and the code
+     * a test can otherwise never reach, because the listener around it needs a real player holding
+     * a real item. Hence {@link Attachment} existing separately at all.
+     */
+    private static void attachment(RoboCraftPlugin plugin, Location origin, Scratch scratch, List<Check> checks) {
+        Part controller = kind(plugin, "controller");
+        Part light      = sensor(plugin, "light");
+        Part lamp       = actuator(plugin, "lamp");
+        if (controller == null || light == null || lamp == null) return;
+
+        Location ctrl = origin.clone();
+        Location sens = origin.clone().add(2, 0, 0);
+        Location act  = origin.clone().add(0, 0, 2);
+        Location far  = origin.clone().add(12, 0, 0);
+
+        // --- a controller owns a robot rather than joining one ---
+        scratch.set(ctrl, controller.block());
+        scratch.track(ctrl);
+        Attachment.Result made = Attachment.place(plugin, ctrl, controller, BlockFace.NORTH);
+        String key = made.controllerKey();
+        scratch.robot(key);
+        checks.add(new Check("placing a controller creates a robot, not an attachment",
+                made.outcome() == Attachment.Outcome.IS_CONTROLLER, String.valueOf(made.outcome())));
+
+        // --- a part in range joins it and is given a port ---
+        scratch.set(sens, light.block());
+        scratch.track(sens);
+        Attachment.Result s = Attachment.place(plugin, sens, light, BlockFace.NORTH);
+        checks.add(new Check("a sensor in range attaches and is named S1",
+                s.attached() && "S1".equals(s.port()) && key.equals(s.controllerKey()),
+                s.outcome() + " port=" + s.port()));
+
+        scratch.set(act, lamp.block());
+        scratch.track(act);
+        Attachment.Result a = Attachment.place(plugin, act, lamp, BlockFace.NORTH);
+        checks.add(new Check("an actuator gets its own numbering, A1 not S2",
+                a.attached() && "A1".equals(a.port()), a.outcome() + " port=" + a.port()));
+
+        // --- out of range is still placed, just inert ---
+        scratch.set(far, light.block());
+        scratch.track(far);
+        Attachment.Result orphan = Attachment.place(plugin, far, light, BlockFace.NORTH);
+        checks.add(new Check("a part out of range is recorded but left unattached",
+                orphan.outcome() == Attachment.Outcome.NO_CONTROLLER
+                        && plugin.placements().get(far) != null,
+                String.valueOf(orphan.outcome())));
+
+        // --- breaking the controller orphans the build instead of deleting it ---
+        java.util.Set<String> touched = Attachment.remove(plugin, ctrl, controller);
+        Placed sensAfter = plugin.placements().get(sens);
+        checks.add(new Check("breaking a controller leaves its parts standing, just detached",
+                sensAfter != null && !sensAfter.attached(),
+                sensAfter == null ? "the part vanished" : "robot='" + sensAfter.robot() + "'"));
+        checks.add(new Check("the orphaned parts are reported so their labels can be redrawn",
+                touched.size() == 2, touched.size() + " reported (want 2)"));
+        checks.add(new Check("the robot itself is forgotten when its controller goes",
+                plugin.robots().get(key) == null, "robot still present"));
+
+        // --- and a new controller adopts whatever is standing around it ---
+        scratch.set(ctrl, controller.block());
+        Attachment.Result again = Attachment.place(plugin, ctrl, controller, BlockFace.NORTH);
+        scratch.robot(again.controllerKey());
+        java.util.Set<String> adopted = Attachment.adoptOrphans(plugin, again.controllerKey(), ctrl);
+        checks.add(new Check("a new controller adopts the parts around it, but not the far one",
+                adopted.size() == 2, adopted.size() + " adopted (want 2)"));
+        Placed readopted = plugin.placements().get(sens);
+        checks.add(new Check("an adopted part is given a port again",
+                readopted != null && readopted.attached() && !readopted.port().isEmpty(),
+                readopted == null ? "missing" : "port='" + readopted.port() + "'"));
     }
 
     // ------------------------------------------------------------ D3. the GUI
