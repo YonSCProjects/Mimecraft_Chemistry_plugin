@@ -29,6 +29,12 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        // selftest is the one thing the console may run: it is what you want BEFORE a lesson,
+        // on a server nobody has joined yet.
+        if (args.length > 0 && args[0].equalsIgnoreCase("selftest")) {
+            selfTest(sender);
+            return true;
+        }
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Players only.");
             return true;
@@ -152,6 +158,36 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         return (best != null) ? best : mine.get(0);
     }
 
+    // ------------------------------------------------------------- diagnostic
+
+    /**
+     * Build a real robot, drive a known input through it, check a real block moved, put it back.
+     *
+     * <p>A player runs it next to themselves; the console runs it well away from spawn, so it can
+     * be driven by a startup script before anyone joins.
+     */
+    private void selfTest(CommandSender sender) {
+        if (sender instanceof Player player && !player.hasPermission("robocraft.admin")) {
+            denied(player);
+            return;
+        }
+        Location origin;
+        if (sender instanceof Player player) {
+            origin = player.getLocation().getBlock().getLocation().add(2, 0, 0);
+        } else {
+            org.bukkit.World world = plugin.plots().world();
+            Location spawn = world.getSpawnLocation();
+            int x = spawn.getBlockX() + 64;
+            int z = spawn.getBlockZ() + 64;
+            origin = new Location(world, x, world.getHighestBlockYAt(x, z) + 1, z);
+        }
+        sender.sendMessage(Component.text("selftest @ " + origin.getWorld().getName() + " "
+                + origin.getBlockX() + "," + origin.getBlockY() + "," + origin.getBlockZ(),
+                NamedTextColor.GRAY));
+        com.agurim.robocraft.diag.SelfTest.report(sender,
+                com.agurim.robocraft.diag.SelfTest.run(plugin, sender, origin));
+    }
+
     // ---------------------------------------------------------------- admin
 
     private void give(Player player, String[] args) {
@@ -208,7 +244,8 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
-                                    "run", "stop", "charge", "give", "unlock", "reset", "reload")) {
+                                    "run", "stop", "charge", "give", "unlock", "reset", "reload",
+                                    "selftest")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("mission")) {

@@ -62,12 +62,22 @@ public class RobotEngine {
         plugin.missions().tickStalled();
     }
 
-    /** One pass of the loop for one robot. */
+    /** One pass of the loop for one robot, reading whatever the bench is simulating (if anything). */
     public void tick(Robot robot) {
+        tick(robot, plugin.missions().envFor(robot.key()));
+    }
+
+    /**
+     * One pass of the loop with an explicit environment override.
+     *
+     * <p>{@code env} maps a sensor TYPE to a simulated reading and wins over the world. The bench
+     * uses it to run missions; {@code /rc selftest} uses it to drive a known input through a real
+     * robot and check that a real block moved at the other end.
+     */
+    public void tick(Robot robot, Map<String, Integer> env) {
         Map<String, Placed> parts = plugin.placements().partsOf(robot.key());
 
         // ---- SENSE ----
-        Map<String, Integer> env = plugin.missions().envFor(robot.key());
         robot.inputs().clear();
         for (Map.Entry<String, Placed> e : parts.entrySet()) {
             Part part = plugin.parts().get(e.getValue().partId());
