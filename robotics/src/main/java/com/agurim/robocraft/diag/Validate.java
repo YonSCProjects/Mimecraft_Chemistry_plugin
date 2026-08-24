@@ -34,6 +34,7 @@ public final class Validate {
         blocks(plugin, problems);
         board(plugin, problems);
         starterKit(plugin, problems);
+        placements(plugin, problems);
 
         for (String problem : problems) plugin.getLogger().warning("config check: " + problem);
         if (problems.isEmpty()) {
@@ -141,6 +142,34 @@ public final class Validate {
                         + " - one of them will overwrite the other.");
                 break;
             }
+        }
+    }
+
+    /**
+     * Renaming or deleting a part in parts.yml silently breaks every build that already used it.
+     * Nothing throws: the store still holds the placement, the registry no longer resolves it, so
+     * the engine skips it, the label never updates again, and a controller simply stops being a
+     * controller. From inside the game the robot just quietly stops working.
+     */
+    private static void placements(RoboCraftPlugin plugin, List<String> problems) {
+        java.util.Map<String, Integer> unknown = new HashMap<>();
+        for (String key : plugin.placements().allKeys()) {
+            String id = plugin.placements().byKey(key).partId();
+            if (!plugin.parts().has(id)) unknown.merge(id, 1, Integer::sum);
+        }
+        unknown.forEach((id, count) -> problems.add(count + " placed block" + (count == 1 ? "" : "s")
+                + " reference part '" + id + "', which parts.yml no longer defines - those builds "
+                + "have quietly stopped working. Restore the id, or clear them out."));
+
+        int orphanRobots = 0;
+        for (String key : plugin.robots().all().keySet()) {
+            if (plugin.placements().byKey(key) == null) orphanRobots++;
+        }
+        if (orphanRobots > 0) {
+            problems.add(orphanRobots + " saved robot" + (orphanRobots == 1 ? " in" : "s in")
+                    + " robots.yml " + (orphanRobots == 1 ? "has" : "have")
+                    + " no controller block any more - harmless, but "
+                    + (orphanRobots == 1 ? "its program is" : "their programs are") + " unreachable.");
         }
     }
 

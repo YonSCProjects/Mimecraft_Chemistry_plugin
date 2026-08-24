@@ -71,6 +71,11 @@ public class PartStore {
         save();
     }
 
+    /** Every placement's location key - used by startup validation to spot stale part ids. */
+    public java.util.Set<String> allKeys() {
+        return new java.util.LinkedHashSet<>(placed.keySet());
+    }
+
     /** Every part attached to this controller, keyed by location. */
     public Map<String, Placed> partsOf(String robotKey) {
         Map<String, Placed> out = new LinkedHashMap<>();
