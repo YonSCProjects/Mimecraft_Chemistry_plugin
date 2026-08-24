@@ -36,8 +36,8 @@ the server cleanly so `onDisable` is exercised too, and leave the log for inspec
 
 ```
 powershell -ExecutionPolicy Bypass -File robotics/tools/smoke-test.ps1 `
-    -ServerDir C:\path	o	estserver `
-    -JavaExe   "C:\Program Files\Eclipse Adoptium\jdk-21...in\java.exe"
+    -ServerDir C:\path\to\testserver `
+    -JavaExe   "C:\Program Files\Eclipse Adoptium\jdk-21...\bin\java.exe"
 ```
 
 Two things it knows that cost a run each to learn: Windows PowerShell writes a UTF-8 BOM on the
