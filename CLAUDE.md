@@ -70,10 +70,17 @@ cheap.
 > 2026-06-04. It compiles clean - the *only* error was a Java generics bug in `ReactionService`
 > (`getOrDefault` with a typed default on a wildcard `Map<?,?>`); the **Paper API surface needed no
 > changes**. On the live server the plugin enables with no exceptions, generates its config + content
-> YAML, and the join flow + command registration work (`/chemcraft` from console correctly replies
-> "Players only."). Data-level checks also pass (reactions balanced, no dangling YAML refs). Still
-> unconfirmed end-to-end in-game: the full gameplay loop (2x2x2 cube -> material, reactor menu,
-> wall discover, bond cycling).
+> YAML, and the join flow + command registration work (`/chemcraft` from console correctly declines
+> with "לשחקנים בלבד."). Data-level checks also pass (reactions balanced, no dangling YAML refs).
+>
+> **Also verified on Paper 26.2 build 116 / Java 25 on 2026-08-24** - the primary dev target, which
+> until now had only ever been *built* for, never run. Enables clean (25 elements, 11 molecules,
+> 5 reactions, 10 regions), writes all ten YAML files, declines console commands correctly, and
+> disables cleanly. Zero exceptions, no warnings. Driven by `robotics/tools/smoke-test.ps1`, which
+> works for either plugin.
+>
+> Still unconfirmed end-to-end in-game: the full gameplay loop (2x2x2 cube -> material, reactor
+> menu, wall discover, bond cycling).
 
 ## Run / smoke-test
 1. Jar -> `plugins/`, start a 1.21.x server. It writes its config + content YAML into
