@@ -29,10 +29,19 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // selftest is the one thing the console may run: it is what you want BEFORE a lesson,
-        // on a server nobody has joined yet.
+        // Two things the console may run. selftest is what you want BEFORE a lesson, on a server
+        // nobody has joined yet; progress is what you want DURING one, and the console is where
+        // its fixed-width columns actually line up.
         if (args.length > 0 && args[0].equalsIgnoreCase("selftest")) {
             selfTest(sender);
+            return true;
+        }
+        if (args.length > 0 && args[0].equalsIgnoreCase("progress")) {
+            if (sender instanceof Player player && !player.hasPermission("robocraft.admin")) {
+                denied(player);
+            } else {
+                com.agurim.robocraft.ui.ProgressReport.send(plugin, sender);
+            }
             return true;
         }
         if (!(sender instanceof Player player)) {
@@ -245,7 +254,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
                                     "run", "stop", "charge", "give", "unlock", "reset", "reload",
-                                    "selftest")) {
+                                    "selftest", "progress")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("mission")) {

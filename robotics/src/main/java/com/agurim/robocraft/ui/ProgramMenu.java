@@ -44,11 +44,33 @@ public class ProgramMenu implements InventoryHolder {
 
     public String robotKey() { return robotKey; }
 
-    public Inventory open(RoboCraftPlugin plugin, Player player) {
-        Robot robot = plugin.robots().get(robotKey);
+    /** Create the window and paint it, without showing it to anyone. Lets the self-test render
+     *  the rule table headless - otherwise the GUI would be the one subsystem never executed. */
+    public Inventory build(RoboCraftPlugin plugin) {
         this.inventory = Bukkit.createInventory(this, 54,
                 Component.text("תוכנית הרובוט", NamedTextColor.DARK_AQUA));
+        render(plugin);
+        return inventory;
+    }
 
+    public Inventory open(RoboCraftPlugin plugin, Player player) {
+        build(plugin);
+        player.openInventory(inventory);
+        return inventory;
+    }
+
+    /**
+     * Redraw into the inventory that is already open.
+     *
+     * <p>Every click edits the program and needs the table redrawn. Calling openInventory again
+     * from inside an InventoryClickEvent is the obvious way to do that and it is wrong: reopening
+     * a window while the client is still processing a click in it desyncs the two, and the symptom
+     * is ghost items and clicks that land on the wrong cell. Repainting the existing inventory has
+     * neither problem.
+     */
+    public void render(RoboCraftPlugin plugin) {
+        if (inventory == null) return;
+        Robot robot = plugin.robots().get(robotKey);
         int max = plugin.getConfig().getInt("program.max-rules", 5);
         List<Rule> rules = (robot == null) ? List.of() : robot.program().rules();
 
@@ -57,9 +79,6 @@ public class ProgramMenu implements InventoryHolder {
             else renderEmptyRow(i);
         }
         renderControls(plugin, robot);
-
-        player.openInventory(inventory);
-        return inventory;
     }
 
     // ------------------------------------------------------------------ rows

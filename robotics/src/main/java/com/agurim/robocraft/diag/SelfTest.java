@@ -63,6 +63,7 @@ public final class SelfTest {
             sensors(plugin, origin.clone().add(0, 0, 6), scratch, checks);
             portsAndStore(plugin, origin.clone().add(0, 0, 9), scratch, checks);
             bench(plugin, sender, origin.clone().add(0, 0, 12), scratch, checks);
+            gui(plugin, origin.clone().add(0, 0, 15), scratch, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
         } catch (Exception e) {
@@ -415,6 +416,69 @@ public final class SelfTest {
             plugin.engine().tick(robot);
         }
         plugin.missions().abort(key);
+    }
+
+    // ------------------------------------------------------------ D3. the GUI
+
+    /**
+     * Paints the rule table headless and checks the cells landed where the click handler expects.
+     *
+     * <p>{@link com.agurim.robocraft.listener.MenuListener} decodes a click purely from its slot
+     * number - row for the rule, column for the field. If the painter and the decoder ever disagree
+     * about that layout, every click silently edits the wrong thing, which is close to the worst
+     * possible bug in a tool whose entire point is that clicking is unambiguous.
+     */
+    private static void gui(RoboCraftPlugin plugin, Location origin, Scratch scratch, List<Check> checks) {
+        Part controller = kind(plugin, "controller");
+        Part lamp       = actuator(plugin, "lamp");
+        if (controller == null || lamp == null) return;
+
+        Location ctrl = origin.clone();
+        String key = PartStore.key(ctrl);
+        scratch.part(plugin, ctrl, controller, "", "");
+        scratch.part(plugin, origin.clone().add(1, 0, 0), lamp, key, "A1");
+        scratch.robot(key);
+
+        Robot robot = plugin.robots().getOrCreate(key, null);
+        Program program = new Program();
+        program.add(new Rule("S1", Op.LT, Operand.of(7), "A1", Verb.ON, Operand.of(0)));
+        program.add(new Rule(Rule.ALWAYS, Op.LT, Operand.of(0), "A1", Verb.OFF, Operand.of(0)));
+        robot.program(program);
+
+        org.bukkit.inventory.Inventory inv = new ProgramMenu(key).build(plugin);
+        checks.add(new Check("the rule table paints a full 54-slot window",
+                inv != null && inv.getSize() == 54, inv == null ? "null" : inv.getSize() + " slots"));
+        if (inv == null) return;
+
+        checks.add(new Check("row 1 column 0 marks rule 1",
+                inv.getItem(0) != null && inv.getItem(0).getType() == Material.PAPER,
+                String.valueOf(inv.getItem(0) == null ? null : inv.getItem(0).getType())));
+        checks.add(new Check("row 1 columns 2 and 3 carry the comparison a WHEN rule needs",
+                inv.getItem(2) != null && inv.getItem(2).getType() == Material.COMPARATOR
+                        && inv.getItem(3) != null && inv.getItem(3).getType() != Material.BLACK_STAINED_GLASS_PANE,
+                "op=" + type(inv, 2) + " value=" + type(inv, 3)));
+        checks.add(new Check("row 2 is an ALWAYS rule, so its comparison cells are blanked",
+                type(inv, 11) == Material.BLACK_STAINED_GLASS_PANE
+                        && type(inv, 12) == Material.BLACK_STAINED_GLASS_PANE,
+                "slots 11,12 = " + type(inv, 11) + "," + type(inv, 12)));
+        checks.add(new Check("every rule row ends with its delete cell",
+                type(inv, 8) == Material.BARRIER && type(inv, 17) == Material.BARRIER,
+                type(inv, 8) + ", " + type(inv, 17)));
+        checks.add(new Check("unused rows are blank, so a click there edits nothing",
+                type(inv, 27) == Material.BLACK_STAINED_GLASS_PANE, String.valueOf(type(inv, 27))));
+        checks.add(new Check("the control row sits where the handler looks for it",
+                type(inv, ProgramMenu.SLOT_ADD) == Material.EMERALD
+                        && type(inv, ProgramMenu.SLOT_STOP) == Material.RED_CONCRETE
+                        && type(inv, ProgramMenu.SLOT_HELP) == Material.BOOK,
+                "add=" + type(inv, ProgramMenu.SLOT_ADD) + " stop=" + type(inv, ProgramMenu.SLOT_STOP)));
+
+        // A rule row must be nine slots wide, or row N's cells bleed into row N+1's.
+        checks.add(new Check("a rule occupies exactly one nine-slot row",
+                type(inv, 9) == Material.PAPER, "slot 9 = " + type(inv, 9)));
+    }
+
+    private static Material type(org.bukkit.inventory.Inventory inv, int slot) {
+        return (inv.getItem(slot) == null) ? Material.AIR : inv.getItem(slot).getType();
     }
 
     // ------------------------------------------------------- E. the vocabulary

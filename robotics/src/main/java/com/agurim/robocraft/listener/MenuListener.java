@@ -84,7 +84,8 @@ public class MenuListener implements Listener {
 
         plugin.robots().save();
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.6f);
-        menu.open(plugin, player);
+        menu.render(plugin);
+        player.updateInventory();
     }
 
     // ---------------------------------------------------------------- cells
@@ -175,6 +176,7 @@ public class MenuListener implements Listener {
             }
             default -> { return; }
         }
-        menu.open(plugin, player);
+        menu.render(plugin);
+        player.updateInventory();
     }
 }

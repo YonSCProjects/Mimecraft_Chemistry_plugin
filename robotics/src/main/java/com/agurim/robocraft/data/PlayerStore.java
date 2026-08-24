@@ -45,6 +45,16 @@ public class PlayerStore {
         return next;
     }
 
+    /** Every student this plugin has ever seen - the roster the teacher overview is built from. */
+    public java.util.List<UUID> allPlayers() {
+        java.util.List<UUID> out = new java.util.ArrayList<>();
+        for (String key : yml.getKeys(false)) {
+            if (key.startsWith("_")) continue;
+            try { out.add(UUID.fromString(key)); } catch (IllegalArgumentException ignored) { }
+        }
+        return out;
+    }
+
     public UUID uuidByPlot(int plot) {
         for (String key : yml.getKeys(false)) {
             if (key.startsWith("_")) continue;
