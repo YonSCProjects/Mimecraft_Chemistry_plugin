@@ -50,6 +50,11 @@ public class RobotEngine {
                     && (robot.owner() == null || plugin.getServer().getPlayer(robot.owner()) == null)) {
                 continue;
             }
+            // Reading a block in an unloaded chunk loads that chunk synchronously. A student who
+            // walks away from a running robot would otherwise drag its chunks back in twice a
+            // second, forever - thirty of those is a stuttering server and nobody would guess why.
+            Location controller = PartStore.fromKey(key);
+            if (controller == null || !controller.isChunkLoaded()) continue;
             try {
                 tick(robot);
             } catch (Exception e) {
@@ -78,14 +83,22 @@ public class RobotEngine {
         Map<String, Placed> parts = plugin.placements().partsOf(robot.key());
 
         // ---- SENSE ----
-        robot.inputs().clear();
+        // Built fresh so a detached part's port disappears, but a part whose chunk happens to be
+        // unloaded holds its previous reading rather than reading as 0 - a sensor that silently
+        // drops to zero would switch outputs on for no visible reason.
+        Map<String, Integer> readings = new java.util.LinkedHashMap<>();
         for (Map.Entry<String, Placed> e : parts.entrySet()) {
             Part part = plugin.parts().get(e.getValue().partId());
             if (part == null || !part.isSensor()) continue;
             Location loc = PartStore.fromKey(e.getKey());
             if (loc == null) continue;
-            robot.inputs().put(e.getValue().port(), SensorReader.read(loc, e.getValue(), part, env));
+            String port = e.getValue().port();
+            readings.put(port, loc.isChunkLoaded()
+                    ? SensorReader.read(loc, e.getValue(), part, env)
+                    : robot.inputs().getOrDefault(port, 0));
         }
+        robot.inputs().clear();
+        robot.inputs().putAll(readings);
 
         // ---- DECIDE ----
         Evaluator.Result decision = Evaluator.run(
@@ -103,7 +116,7 @@ public class RobotEngine {
             int desired = commands.containsKey(port) ? commands.get(port) : prev;
             if (desired != prev || ActuatorDriver.continuous(part)) {
                 Location loc = PartStore.fromKey(e.getKey());
-                if (loc != null) ActuatorDriver.apply(loc, part, desired, prev);
+                if (loc != null && loc.isChunkLoaded()) ActuatorDriver.apply(loc, part, desired, prev);
             }
             robot.outputs().put(port, desired);
         }
@@ -144,7 +157,7 @@ public class RobotEngine {
                 if (robot.outputs().getOrDefault(e.getValue().port(), 0) != 0) drain += part.drain();
             } else if (part.isSolar()) {
                 Location loc = PartStore.fromKey(e.getKey());
-                if (loc != null) {
+                if (loc != null && loc.isChunkLoaded()) {
                     int light = loc.clone().add(0, 1, 0).getBlock().getLightLevel();
                     gain += plugin.getConfig().getInt("power.solar-gain", 2) * light / 15;
                 }
