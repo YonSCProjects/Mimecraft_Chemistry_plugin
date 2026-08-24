@@ -45,7 +45,8 @@ public final class Guide {
         line(player, "5. פלט זוכר את מצבו! נורה שנדלקה לא תיכבה לבד - צריך כלל שמכבה אותה.", NamedTextColor.GOLD);
         line(player, "6. התוויות מעל הרכיבים מראות מה כל חיישן קורא עכשיו - שם מנפים באגים.", NamedTextColor.YELLOW);
         line(player, "7. /rc missions - רשימת המשימות. הרצה בודקת את הרובוט ואומרת מה לא עבד.", NamedTextColor.YELLOW);
-        line(player, "פקודות: /rc guide | /rc kit | /rc tp | /rc missions | /rc charge", NamedTextColor.DARK_AQUA);
+        line(player, "8. תקועים? /rc trace מראה מה כל חיישן קורא ואיזה כלל קבע כל פלט.", NamedTextColor.GOLD);
+        line(player, "פקודות: /rc guide | /rc kit | /rc tp | /rc missions | /rc trace | /rc charge", NamedTextColor.DARK_AQUA);
         sendProgress(plugin, player);
     }
 
