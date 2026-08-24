@@ -8,6 +8,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Sound;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
@@ -26,14 +27,22 @@ import java.util.UUID;
  * would read the wrong value; and a real day/night cycle is ten minutes against fifteen seconds
  * here. It is also how embedded code is really tested - inject inputs, assert outputs.
  *
- * <p>Failure never produces a score. It names the check that failed and why, and you may retry
- * as often as you like.
+ * <p>Failure never produces a score. It names the check that failed and why, and you may retry as
+ * often as you like.
+ *
+ * <p>A run is driven by any {@link CommandSender}, not just a player, so the console can run one -
+ * useful for a demo on the projector, and it is what lets {@code /rc selftest} verify the bench
+ * end to end. Progress is only recorded when there is a real student behind it.
  */
 public class MissionService {
+
+    /** How a finished run ended - kept so a caller can inspect the result after the fact. */
+    public enum Outcome { PASS, FAIL }
 
     private final RoboCraftPlugin plugin;
     private final MissionRegistry registry;
     private final Map<String, Run> runs = new LinkedHashMap<>();
+    private final Map<String, Outcome> lastOutcome = new LinkedHashMap<>();
 
     public MissionService(RoboCraftPlugin plugin) {
         this.plugin = plugin;
@@ -44,12 +53,17 @@ public class MissionService {
 
     private static final class Run {
         final Mission mission;
-        final UUID player;
+        final CommandSender sender;
+        final UUID owner;                 // null when nobody's progress should change
         final Map<String, Integer> env = new LinkedHashMap<>();
         int index;
         int waitLeft;
 
-        Run(Mission mission, UUID player) { this.mission = mission; this.player = player; }
+        Run(Mission mission, CommandSender sender, UUID owner) {
+            this.mission = mission;
+            this.sender = sender;
+            this.owner = owner;
+        }
     }
 
     /** Simulated readings for this robot, or null when it is not on the bench. */
@@ -58,10 +72,16 @@ public class MissionService {
         return (run == null) ? null : run.env;
     }
 
-    public boolean isRunning(String robotKey) { return runs.containsKey(robotKey); }
+    public boolean isRunning(String robotKey)      { return runs.containsKey(robotKey); }
+    public Outcome lastOutcome(String robotKey)    { return lastOutcome.get(robotKey); }
+    public void abort(String robotKey)             { runs.remove(robotKey); }
+
+    public String start(Player player, Robot robot, Mission mission) {
+        return start(player, player.getUniqueId(), robot, mission);
+    }
 
     /** Start a mission. Returns a Hebrew reason it cannot start, or null on success. */
-    public String start(Player player, Robot robot, Mission mission) {
+    public String start(CommandSender sender, UUID owner, Robot robot, Mission mission) {
         String missing = missingParts(robot, mission);
         if (missing != null) return missing;
         if (robot.program().isEmpty()) return "אין כללים בתוכנית. לחצו על הבקר וכתבו כלל.";
@@ -71,26 +91,29 @@ public class MissionService {
         robot.outputs().clear();
         robot.start(plugin.engine().now());
 
-        Run run = new Run(mission, player.getUniqueId());
-        runs.put(robot.key(), run);
+        runs.put(robot.key(), new Run(mission, sender, owner));
+        lastOutcome.remove(robot.key());
 
-        player.showTitle(Title.title(
-                Component.text(mission.name(), NamedTextColor.AQUA),
-                Component.text("הרצת ניסוי", NamedTextColor.GRAY),
-                Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(2), Duration.ofMillis(500))));
-        player.sendMessage(Component.text("▶ " + mission.name() + " - " + mission.brief(), NamedTextColor.AQUA));
+        if (sender instanceof Player player) {
+            player.showTitle(Title.title(
+                    Component.text(mission.name(), NamedTextColor.AQUA),
+                    Component.text("הרצת ניסוי", NamedTextColor.GRAY),
+                    Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(2), Duration.ofMillis(500))));
+        }
+        sender.sendMessage(Component.text("▶ " + mission.name() + " - " + mission.brief(), NamedTextColor.AQUA));
         return null;
     }
-
-    public void abort(String robotKey) { runs.remove(robotKey); }
 
     /** Advance the scenario. Called by the engine once per robot tick. */
     public void advance(Robot robot) {
         Run run = runs.get(robot.key());
         if (run == null) return;
 
-        Player player = plugin.getServer().getPlayer(run.player);
-        if (player == null) { runs.remove(robot.key()); return; }
+        // A student who logs out mid-run should not leave a bench ticking; the console cannot leave.
+        if (run.sender instanceof Player player && !player.isOnline()) {
+            runs.remove(robot.key());
+            return;
+        }
 
         int interval = Math.max(1, plugin.getConfig().getInt("robot.tick-interval", 10));
         if (run.waitLeft > 0) { run.waitLeft -= interval; return; }
@@ -98,17 +121,19 @@ public class MissionService {
         // Several zero-wait steps in a row are normal (env then expect); the bound is a guard
         // against a hand-edited missions.yml with no waits at all.
         for (int guard = 0; guard < 32; guard++) {
-            if (run.index >= run.mission.steps().size()) { pass(run, robot, player); return; }
+            if (run.index >= run.mission.steps().size()) { pass(run, robot); return; }
 
             Mission.Step step = run.mission.steps().get(run.index);
             if (!step.say().isEmpty() && plugin.getConfig().getBoolean("missions.bench-narrate", true)) {
-                player.sendActionBar(Component.text(step.say(), NamedTextColor.YELLOW));
-                player.sendMessage(Component.text("· " + step.say(), NamedTextColor.GRAY));
+                if (run.sender instanceof Player player) {
+                    player.sendActionBar(Component.text(step.say(), NamedTextColor.YELLOW));
+                }
+                run.sender.sendMessage(Component.text("· " + step.say(), NamedTextColor.GRAY));
             }
             if (step.hasEnv()) run.env.putAll(step.env());
             if (step.hasExpect()) {
                 String failure = check(robot, step);
-                if (failure != null) { fail(run, robot, player, step, failure); return; }
+                if (failure != null) { fail(run, robot, step, failure); return; }
             }
             run.index++;
             if (step.waitTicks() > 0) { run.waitLeft = step.waitTicks(); return; }
@@ -158,21 +183,20 @@ public class MissionService {
         String label = actuatorName(type);
         if (ports.isEmpty()) return "אין " + label + " מחובר לרובוט";
 
-        Integer expected = switch (want.toLowerCase()) {
-            case "on", "true"  -> 1;
+        int expected = switch (want.toLowerCase()) {
+            case "on", "true"   -> 1;
             case "off", "false" -> 0;
             default -> parseInt(want, Integer.MIN_VALUE);
         };
         if (expected == Integer.MIN_VALUE) return null;
 
+        boolean numeric = "display".equals(type);
         for (String port : ports) {
             int actual = robot.outputs().getOrDefault(port, 0);
-            boolean ok = (expected <= 1 && expected >= 0 && !"display".equals(type))
-                    ? ((actual != 0 ? 1 : 0) == expected)
-                    : (actual == expected);
+            boolean ok = numeric ? (actual == expected) : ((actual != 0 ? 1 : 0) == expected);
             if (!ok) {
-                String shown = "display".equals(type) ? String.valueOf(actual) : (actual != 0 ? "ON" : "OFF");
-                String wanted = "display".equals(type) ? String.valueOf(expected) : (expected != 0 ? "ON" : "OFF");
+                String shown  = numeric ? String.valueOf(actual)   : (actual != 0 ? "ON" : "OFF");
+                String wanted = numeric ? String.valueOf(expected) : (expected != 0 ? "ON" : "OFF");
                 return label + " (" + port + ") = " + shown + " במקום " + wanted;
             }
         }
@@ -193,57 +217,72 @@ public class MissionService {
         return type;
     }
 
-    // ---------------------------------------------------------------- outcomes
+    // -------------------------------------------------------------- outcomes
 
-    private void pass(Run run, Robot robot, Player player) {
+    private void pass(Run run, Robot robot) {
         runs.remove(robot.key());
-        plugin.store().completeMission(player.getUniqueId(), run.mission.id());
+        lastOutcome.put(robot.key(), Outcome.PASS);
 
         List<String> unlocked = new ArrayList<>();
-        for (String partId : run.mission.reward()) {
-            if (plugin.parts().has(partId) && plugin.store().unlock(player.getUniqueId(), partId)) {
-                unlocked.add(plugin.parts().get(partId).name());
+        if (run.owner != null) {
+            plugin.store().completeMission(run.owner, run.mission.id());
+            for (String partId : run.mission.reward()) {
+                if (plugin.parts().has(partId) && plugin.store().unlock(run.owner, partId)) {
+                    unlocked.add(plugin.parts().get(partId).name());
+                }
             }
         }
 
-        player.showTitle(Title.title(
-                Component.text("הצלחה!", NamedTextColor.GREEN),
-                Component.text(run.mission.name(), NamedTextColor.WHITE),
-                Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(2), Duration.ofMillis(600))));
-        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.4f);
-        player.sendMessage(Component.text("✔ " + run.mission.name() + " עבר את כל הבדיקות", NamedTextColor.GREEN));
+        if (run.sender instanceof Player player) {
+            player.showTitle(Title.title(
+                    Component.text("הצלחה!", NamedTextColor.GREEN),
+                    Component.text(run.mission.name(), NamedTextColor.WHITE),
+                    Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(2), Duration.ofMillis(600))));
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.4f);
+        }
+        run.sender.sendMessage(Component.text("✔ " + run.mission.name() + " עבר את כל הבדיקות",
+                NamedTextColor.GREEN));
+
         if (!unlocked.isEmpty()) {
-            player.sendMessage(Component.text("נפתח: " + String.join(", ", unlocked), NamedTextColor.GOLD));
-            plugin.board().build(plugin.store().getOrAssignPlotIndex(player.getUniqueId()), player.getUniqueId());
+            run.sender.sendMessage(Component.text("נפתח: " + String.join(", ", unlocked), NamedTextColor.GOLD));
+            plugin.board().build(plugin.store().getOrAssignPlotIndex(run.owner), run.owner);
         }
-        Mission next = registry.nextFor(plugin.store().completedMissions(player.getUniqueId()));
-        if (next != null) {
-            player.sendMessage(Component.text("הבאה בתור: " + next.name() + " - /rc mission " + next.id(),
-                    NamedTextColor.AQUA));
+        if (run.owner != null) {
+            Mission next = registry.nextFor(plugin.store().completedMissions(run.owner));
+            if (next != null) {
+                run.sender.sendMessage(Component.text(
+                        "הבאה בתור: " + next.name() + " - /rc mission " + next.id(), NamedTextColor.AQUA));
+            }
+            if (run.sender instanceof Player player) plugin.statusBar().update(player);
         }
-        plugin.statusBar().update(player);
     }
 
-    private void fail(Run run, Robot robot, Player player, Mission.Step step, String detail) {
+    private void fail(Run run, Robot robot, Mission.Step step, String detail) {
         runs.remove(robot.key());
-        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.7f);
-        player.sendMessage(Component.text("✖ הבדיקה לא עברה: " + detail, NamedTextColor.RED));
+        lastOutcome.put(robot.key(), Outcome.FAIL);
+
+        if (run.sender instanceof Player player) {
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.7f);
+        }
+        run.sender.sendMessage(Component.text("✖ הבדיקה לא עברה: " + detail, NamedTextColor.RED));
         if (plugin.getConfig().getBoolean("missions.show-failed-check", true) && !step.because().isEmpty()) {
-            player.sendMessage(Component.text("   " + step.because(), NamedTextColor.YELLOW));
+            run.sender.sendMessage(Component.text("   " + step.because(), NamedTextColor.YELLOW));
         }
         if (!run.mission.hint().isEmpty()) {
-            player.sendMessage(Component.text("   רמז: " + run.mission.hint(), NamedTextColor.GRAY));
+            run.sender.sendMessage(Component.text("   רמז: " + run.mission.hint(), NamedTextColor.GRAY));
         }
-        player.sendMessage(Component.text("נסו שוב: /rc mission " + run.mission.id(), NamedTextColor.DARK_AQUA));
+        run.sender.sendMessage(Component.text("נסו שוב: /rc mission " + run.mission.id(),
+                NamedTextColor.DARK_AQUA));
     }
 
-    // ---------------------------------------------------------------- helpers
+    // --------------------------------------------------------------- helpers
 
     private String missingParts(Robot robot, Mission mission) {
         List<String> have = new ArrayList<>();
         for (Placed p : plugin.placements().partsOf(robot.key()).values()) have.add(p.partId());
-        have.add(plugin.parts().all().stream().filter(Part::isController).findFirst()
-                .map(Part::id).orElse("controller"));
+        // The controller is the robot itself, so it never appears among its own attached parts.
+        Placed self = plugin.placements().byKey(robot.key());
+        if (self != null) have.add(self.partId());
 
         List<String> missing = new ArrayList<>();
         for (String need : mission.needs()) {
@@ -256,12 +295,7 @@ public class MissionService {
     }
 
     private int batteryCapacity(Robot robot) {
-        int cap = 0;
-        for (Placed p : plugin.placements().partsOf(robot.key()).values()) {
-            Part part = plugin.parts().get(p.partId());
-            if (part != null && part.isBattery()) cap += part.capacity();
-        }
-        return cap;
+        return plugin.batteryCapacity(robot.key());
     }
 
     private static int parseInt(String s, int fallback) {

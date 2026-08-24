@@ -4,6 +4,8 @@ import com.agurim.robocraft.RoboCraftPlugin;
 import com.agurim.robocraft.part.Part;
 import com.agurim.robocraft.part.PartLabels;
 import com.agurim.robocraft.part.PartStore;
+import com.agurim.robocraft.mission.Mission;
+import com.agurim.robocraft.mission.MissionService;
 import com.agurim.robocraft.part.Placed;
 import com.agurim.robocraft.program.Op;
 import com.agurim.robocraft.program.Operand;
@@ -60,6 +62,7 @@ public final class SelfTest {
             actuators(plugin, origin.clone().add(0, 0, 3), scratch, checks);
             sensors(plugin, origin.clone().add(0, 0, 6), scratch, checks);
             portsAndStore(plugin, origin.clone().add(0, 0, 9), scratch, checks);
+            bench(plugin, sender, origin.clone().add(0, 0, 12), scratch, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
         } catch (Exception e) {
@@ -332,6 +335,86 @@ public final class SelfTest {
                 "key " + PartStore.key(ctrl)));
         checks.add(new Check("a malformed key is rejected rather than throwing",
                 PartStore.fromKey("nonsense") == null, "expected null"));
+    }
+
+    // ------------------------------------------------------- D2. the bench
+
+    /**
+     * Runs a real mission end to end, then runs the obvious wrong answer and checks it FAILS.
+     *
+     * <p>The second half matters as much as the first. A bench that passes everything teaches
+     * nothing, and a mission whose naive solution slips through is a mission with no lesson in it.
+     *
+     * <p>Driven synchronously by ticking the engine directly, so a scenario that takes fifteen
+     * seconds of wall clock in play finishes here in milliseconds. Progress is passed as a null
+     * owner, so a self-test can never award a student a mission they did not do.
+     */
+    private static void bench(RoboCraftPlugin plugin, CommandSender sender, Location origin,
+                              Scratch scratch, List<Check> checks) {
+        Mission mission = plugin.missions().registry().byId("night_light");
+        if (mission == null) {
+            checks.add(new Check("missions.yml still defines night_light", false, "not found"));
+            return;
+        }
+
+        Part controller = kind(plugin, "controller");
+        Part battery    = kind(plugin, "battery");
+        Part light      = sensor(plugin, "light");
+        Part lamp       = actuator(plugin, "lamp");
+        if (controller == null || battery == null || light == null || lamp == null) return;
+
+        Location ctrl = origin.clone();
+        String key = PartStore.key(ctrl);
+        scratch.part(plugin, ctrl, controller, "", "");
+        scratch.part(plugin, origin.clone().add(1, 0, 0), battery, key, "");
+        scratch.robot(key);
+
+        Robot robot = plugin.robots().getOrCreate(key, null);
+
+        // A robot missing the parts the mission calls for must be refused, with a reason.
+        robot.program(nightLight());
+        String refused = plugin.missions().start(sender, null, robot, mission);
+        checks.add(new Check("bench refuses a robot that is missing parts, and says which",
+                refused != null && refused.contains("חסר"), String.valueOf(refused)));
+
+        scratch.clear(origin.clone().add(2, 1, 0));
+        scratch.clear(origin.clone().add(3, 1, 0));
+        scratch.part(plugin, origin.clone().add(2, 0, 0), light, key, "S1");
+        scratch.part(plugin, origin.clone().add(3, 0, 0), lamp, key, "A1");
+
+        // The correct two-rule program must pass.
+        robot.program(nightLight());
+        String why = plugin.missions().start(sender, null, robot, mission);
+        checks.add(new Check("bench accepts a correctly built robot", why == null, String.valueOf(why)));
+        if (why == null) {
+            drive(plugin, robot, key);
+            checks.add(new Check("a correct night-light program passes the bench",
+                    plugin.missions().lastOutcome(key) == MissionService.Outcome.PASS,
+                    "outcome " + plugin.missions().lastOutcome(key)));
+        }
+
+        // The naive one-rule program must fail: it never turns the lamp off again.
+        Program naive = new Program();
+        naive.add(new Rule("S1", Op.LT, Operand.of(7), "A1", Verb.ON, Operand.of(0)));
+        robot.program(naive);
+        if (plugin.missions().start(sender, null, robot, mission) == null) {
+            drive(plugin, robot, key);
+            checks.add(new Check("the naive one-rule program is caught by the bench",
+                    plugin.missions().lastOutcome(key) == MissionService.Outcome.FAIL,
+                    "outcome " + plugin.missions().lastOutcome(key)));
+        }
+
+        checks.add(new Check("a self-test run never records progress",
+                plugin.store().completedMissions(java.util.UUID.nameUUIDFromBytes("selftest".getBytes()))
+                        .isEmpty(), "expected no missions recorded"));
+    }
+
+    /** Tick the engine until the bench finishes, with a bound so a stuck run cannot hang the server. */
+    private static void drive(RoboCraftPlugin plugin, Robot robot, String key) {
+        for (int i = 0; i < 200 && plugin.missions().isRunning(key); i++) {
+            plugin.engine().tick(robot);
+        }
+        plugin.missions().abort(key);
     }
 
     // ------------------------------------------------------- E. the vocabulary
