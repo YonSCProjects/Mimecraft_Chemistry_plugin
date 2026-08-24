@@ -100,10 +100,9 @@ public class MenuListener implements Listener {
                             NamedTextColor.YELLOW));
                     return;
                 }
-                List<String> targets = ProgramMenu.targets(plugin, menu.robotKey());
-                Rule blank = Rule.blank();
-                if (!targets.isEmpty()) blank = blank.withTarget(targets.get(0));
-                robot.program().add(blank);
+                robot.program().add(RuleEdit.starter(
+                        ProgramMenu.sources(plugin, menu.robotKey()),
+                        ProgramMenu.targets(plugin, menu.robotKey())));
                 plugin.robots().save();
             }
             case ProgramMenu.SLOT_RUN -> {

@@ -33,6 +33,33 @@ public final class RuleEdit {
     }
 
     /**
+     * The rule a student gets when they add a row.
+     *
+     * <p>Not a blank. A blank ({@code ALWAYS THEN A1 ON}) is a thing they have to assemble from
+     * nothing before it does anything recognisable, and the first rule is exactly where that costs
+     * most. This hands them a complete, readable rule built from their own first sensor and first
+     * actuator - so the row already reads like the sentence they are trying to write, and the work
+     * is changing a number rather than constructing a form.
+     *
+     * <p>It deliberately stops at one rule. The second rule - the one that switches the output back
+     * off - is the whole lesson of the first mission, and handing that over would be handing over
+     * the answer.
+     */
+    public static Rule starter(List<String> sources, List<String> targets) {
+        String sensor = firstWith(sources, 'S');
+        String target = firstWith(targets, 'A');
+        if (target == null) target = targets.isEmpty() ? "" : targets.get(0);
+        if (sensor == null) return Rule.blank().withTarget(target);
+        return new Rule(sensor, Op.LT, Operand.of(7), target, Verb.ON, Operand.of(0));
+    }
+
+    private static String firstWith(List<String> options, char prefix) {
+        if (options == null) return null;
+        for (String s : options) if (!s.isEmpty() && s.charAt(0) == prefix) return s;
+        return null;
+    }
+
+    /**
      * Is this cell one the student can actually see and change?
      *
      * <p>An ALWAYS rule hides its comparison; a verb with no argument hides its value. Those slots

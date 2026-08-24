@@ -673,6 +673,18 @@ public final class SelfTest {
             }
         }
         checks.add(new Check("no field and click combination throws or nulls the rule", survived, broke));
+
+        // The first rule a student adds should already read like the sentence they are writing.
+        Rule starter = RuleEdit.starter(sources, targets);
+        checks.add(new Check("a new rule starts as a complete example on the student's own ports",
+                "S1".equals(starter.source()) && "A1".equals(starter.target())
+                        && !starter.always() && starter.verb() == Verb.ON,
+                starter.text()));
+        checks.add(new Check("with no sensor attached it falls back to something still valid",
+                RuleEdit.starter(List.of(Rule.ALWAYS, "M1"), targets).always(),
+                RuleEdit.starter(List.of(Rule.ALWAYS, "M1"), targets).text()));
+        checks.add(new Check("with nothing attached at all it does not throw",
+                RuleEdit.starter(List.of(), List.of()) != null, "returned null"));
     }
 
     // ------------------------------------------------------- E. the vocabulary
