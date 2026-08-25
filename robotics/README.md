@@ -82,7 +82,8 @@ the world back exactly as it was.
   exceptions, 85/85 self-test checks — and the click model's layout and semantics are both verified.
   Whether the rule table is *learnable* is not something a test can answer.
 - **Two design decisions are not settled.** Why this exists rather than a redstone map, and whether
-  robots should move. Both are argued, with the counter-case, in `docs/DESIGN.md`.
+  robots should move. Both are argued, with the counter-case, in `docs/DESIGN.md`. A third is now
+  settled: Minecraft Education would have been the stronger alternative, but it has no Hebrew.
 - **Robot memory is not persisted.** A restart zeroes `M1..M4` — deliberately, because real
   controllers lose their RAM when the power goes.
 - **All player-facing text is Hebrew and was not written by a native speaker.** It should be

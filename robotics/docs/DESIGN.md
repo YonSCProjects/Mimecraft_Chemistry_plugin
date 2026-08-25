@@ -65,6 +65,29 @@ feed a redstone contraption into a RoboCraft program. The bridge is a feature, n
 > **OPEN #1.** Yon has not signed off on this framing. It is load-bearing - everything in section 4
 > follows from it. If he disagrees, most of this document changes.
 
+### 2.1 The alternative that isn't: Minecraft Education
+
+The strongest argument against building this at all was never redstone. It was **Minecraft
+Education Edition**, whose Code Builder already gives you a programmable Agent driven by MakeCode
+blocks or Python - a more mature version of the "program a robot" half than this will ever be.
+
+**Settled 2026-08-25: it has no Hebrew.** Yon checked. For a Hebrew-speaking classroom it is not
+an option, so the comparison never arises.
+
+Two consequences, and they are not the same size:
+
+- **It does not help the redstone argument.** Redstone is entirely language-free - a Hebrew-speaking
+  twelve-year-old can learn it from a silent video. §2 still stands or falls on wiring versus
+  program, exactly as before.
+- **It does argue against a text-based authoring surface.** The click-only rule table was justified
+  partly by "no typing means no English barrier", which read as a nice-to-have. With the only
+  off-the-shelf alternative ruled out on precisely that ground, it stops being a nice-to-have:
+  signs, books or a text syntax would reintroduce the barrier that just eliminated the competition.
+  This is the argument against fork C.
+
+It also means there is no off-the-shelf Hebrew-language option for teaching this at all, which
+gives the project a reason to exist beyond one classroom.
+
 ---
 
 ## 3. Decision: stationary mechanisms first, rovers later
@@ -233,5 +256,6 @@ Copied, not shared - see the root `CLAUDE.md` for why there is no `core` module 
 3. **Rule count.** Five rules fit one GUI page and force economical thinking. Too few?
 4. **Is the bench too much like a test?** (§4.4 carries the current mitigation.)
 5. **Naming.** `RoboCraft`, package `com.agurim.robocraft`. Cheap to change now, annoying later.
+   *(§2.1 is settled and no longer open: Minecraft Education has no Hebrew.)*
 6. **Co-op.** ChemCraft learned that collective gates break absence resilience. The safe shape here
    is a shared *exhibition hall* of working mechanisms - a showcase, not a shared goal.
