@@ -216,22 +216,68 @@ lit as you unlock them; click a lit tile to draw that part. It answers "what can
 
 ---
 
-## 5. Mission ladder (first arc, all stationary)
+## 5. Mission ladder - warm-ups, then the work redstone cannot do
 
-| # | Mission | Teaches | Unlocks |
+**Decision (2026-08-25, fork B): the ladder splits in two.** Yon has no redstone experience, so the
+comparison was settled with worked examples instead of a race - and doing that exposed the real
+shape of it. Missions 1-3 of the original ladder are all things redstone does *as well or better*:
+a night light is an inverted daylight sensor next to a lamp (two blocks), an alarm is a tripwire,
+and a pressure-plate door is a beginner's first build. Only from mission 4 does redstone start to
+lose.
+
+So those three become **optional warm-ups**. They are not deleted, because a student who has never
+programmed still needs an easy first success with the tools - and they are honest about what they
+are. They grant no parts and gate nothing.
+
+### Warm-ups (optional)
+
+| Mission | Teaches | In redstone |
+|---|---|---|
+| **נורת לילה** night light | sensor, threshold, and that outputs latch | 2 blocks - easier |
+| **אזעקה** alarm | a second sensor, two actions from one condition | tripwire - easier |
+| **דלת אוטומטית** automatic door | mechanical actuators | plate + piston - easier |
+
+### The ladder (required)
+
+| # | Mission | Teaches | Why redstone struggles |
 |---|---|---|---|
-| 1 | **נורת לילה** - lamp on when dark | sensor -> threshold -> output | buzzer |
-| 2 | **אזעקה** - buzzer and lamp when something is close | a second sensor; two actions | distance sensor |
-| 3 | **דלת אוטומטית** - gate opens when a player is near | actuators that move; latching | memory |
-| 4 | **מונה** - count the openings | `ADD`, edge detection | display |
-| 5 | **תרמוסטט** - hold heat in a band | **feedback + hysteresis** | solar panel |
-| 6 | **חיסכון** - pass mission 1 on half the battery | energy budget, duty cycling | - |
+| 1 | **אור דמדומים** twilight lamp | a band between two thresholds; **later-rules-win as a tool** | two comparator threshold circuits plus combining logic |
+| 2 | **דלת שנשארת פתוחה** the door that stays open | memory holding a **deadline**, not a flag; `TIME` | needs a monostable circuit |
+| 3 | **מונה** counter | `ADD`, edge detection, rule order | hopper counter or a flip-flop chain |
+| 4 | **תרמוסטט** thermostat | **feedback and hysteresis** | latch + two comparators - and there is no temperature to sense at all |
+| 5 | **חיסכון** efficiency | energy budget, duty cycling | the concept does not exist |
 
-Mission 5 is the intellectual peak: with one threshold the output chatters, and the only fix is two
-thresholds plus a memory bit. A genuinely deep idea, reachable by a 12-year-old who has just watched
-their own lamp flicker.
+Rung 1 is where "later rules win" stops being a gotcha and becomes the answer:
 
----
+```
+1  WHEN  S1  >=  10   THEN  A1  OFF     day: off
+2  WHEN  S1  <   10   THEN  A1  ON      dim: on
+3  WHEN  S1  <    4   THEN  A1  OFF     full dark: off again, overriding rule 2
+```
+
+Rung 2 is the warm-up door done properly - the reflex version shuts the instant you step away;
+this one holds a deadline in memory:
+
+```
+1  WHEN  S1    =  1    THEN  M1  SET TIME
+2  WHEN  S1    =  1    THEN  M1  ADD  3
+3  WHEN  TIME  <  M1   THEN  A1  ON
+4  WHEN  TIME  >= M1   THEN  A1  OFF
+```
+
+Rung 4 remains the intellectual peak: the bench asks for the heater's state at 45 degrees *twice*
+and expects different answers, which a single threshold cannot produce.
+
+### The parts follow the same line
+
+Seven parts are available from the start - exactly what the warm-ups need. The eight the ladder
+unlocks are exactly the ones **redstone has no equivalent for**: distance, heat, colour, rain, a
+redstone bridge, a display, a solar panel, a marker. Nothing had to be said about it; the
+progression is the argument.
+
+**A warm-up must never be the only source of a part**, or skipping one strands the student.
+`MissionRegistry.validate` enforces that on every enable, and its check was verified by seeding the
+fault deliberately.
 
 ## 6. What we inherit from ChemCraft
 

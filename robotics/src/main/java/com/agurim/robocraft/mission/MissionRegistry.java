@@ -28,6 +28,7 @@ public class MissionRegistry {
             loaded.add(new Mission(
                     id,
                     s.getInt("order", 999),
+                    s.getBoolean("optional", false),
                     s.getString("name", id),
                     s.getString("brief", ""),
                     s.getString("teaches", ""),
@@ -68,10 +69,27 @@ public class MissionRegistry {
     public java.util.Collection<Mission> all() { return missions.values(); }
     public int size()                       { return missions.size(); }
 
-    /** The first mission this player has not completed - what /rc missions points at. */
+    /**
+     * The first REQUIRED mission this player has not completed - what the status bar points at.
+     * Warm-ups are skipped: they are practice, and a student who ignores them is not behind.
+     */
     public Mission nextFor(java.util.Set<String> done) {
-        for (Mission m : missions.values()) if (!done.contains(m.id())) return m;
+        for (Mission m : missions.values()) {
+            if (!m.optional() && !done.contains(m.id())) return m;
+        }
         return null;
+    }
+
+    public List<Mission> required() { return missions.values().stream().filter(m -> !m.optional()).toList(); }
+    public List<Mission> warmUps()  { return missions.values().stream().filter(Mission::optional).toList(); }
+
+    /** Progress is counted over the required ladder only, so warm-ups never make anyone look behind. */
+    public int requiredCount() { return required().size(); }
+
+    public int requiredDone(java.util.Set<String> done) {
+        int n = 0;
+        for (Mission m : required()) if (done.contains(m.id())) n++;
+        return n;
     }
 
     /**
@@ -104,7 +122,15 @@ public class MissionRegistry {
                             + "' rewards unknown part '" + reward + "'");
                 }
             }
-            available.addAll(m.reward());
+            // Only a REQUIRED mission's rewards count towards what is reachable. Warm-ups are
+            // skippable, so anything gated behind one would strand every student who skipped it -
+            // and that student would see a part they cannot obtain with no hint that the content
+            // is at fault. This check is what keeps the warm-ups genuinely optional.
+            if (!m.optional()) available.addAll(m.reward());
+            else if (!m.reward().isEmpty()) {
+                plugin.getLogger().warning("missions.yml: warm-up '" + m.id() + "' grants "
+                        + m.reward() + " - a skippable mission must not be the only source of a part.");
+            }
         }
 
         for (com.agurim.robocraft.part.Part p : plugin.parts().all()) {

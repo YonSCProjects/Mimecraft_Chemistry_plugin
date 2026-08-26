@@ -34,7 +34,9 @@ public final class ProgressReport {
 
     public static void send(RoboCraftPlugin plugin, CommandSender sender) {
         List<UUID> roster = plugin.store().allPlayers();
-        List<Mission> missions = new ArrayList<>(plugin.missions().registry().all());
+        // The required ladder is the thing to track. Warm-ups are practice and would only make
+        // the histogram look like progress a student did not need to make.
+        List<Mission> missions = new ArrayList<>(plugin.missions().registry().required());
 
         if (roster.isEmpty()) {
             sender.sendMessage(Component.text("עוד לא נכנס אף תלמיד.", NamedTextColor.GRAY));
@@ -86,7 +88,7 @@ public final class ProgressReport {
             sender.sendMessage(Component.text(pad(r.name, 14), NamedTextColor.WHITE)
                     .append(Component.text(r.completed + "/" + missions.size() + "  ", progressColor(r.completed, missions.size())))
                     .append(Component.text(String.format("רכיבים %-3d", r.parts), NamedTextColor.GRAY))
-                    .append(Component.text(pad(r.next, 16), NamedTextColor.YELLOW))
+                    .append(Component.text(pad(r.next, 22), NamedTextColor.YELLOW))
                     .append(Component.text(r.robot, r.robotColor)));
         }
     }
@@ -110,7 +112,7 @@ public final class ProgressReport {
             colour = (r.halt() != null) ? NamedTextColor.RED : NamedTextColor.GRAY;
         }
 
-        return new Row(plugin.store().getName(id), completed.size(),
+        return new Row(plugin.store().getName(id), plugin.missions().registry().requiredDone(completed),
                 plugin.store().unlocked(id).size(),
                 (next == null) ? "סיים הכול" : next.name(), robot, colour);
     }

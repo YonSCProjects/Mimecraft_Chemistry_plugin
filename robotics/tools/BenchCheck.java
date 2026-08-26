@@ -57,6 +57,9 @@ public class BenchCheck {
     static Rule whenRef(String src, Op op, String rhs, String target, Verb verb, int arg) {
         return new Rule(src, op, Operand.ref(rhs), target, verb, Operand.of(arg));
     }
+    static Rule whenRefArg(String src, Op op, int rhs, String target, Verb verb, String argRef) {
+        return new Rule(src, op, Operand.of(rhs), target, verb, Operand.ref(argRef));
+    }
     static Rule always(String target, Verb verb, String argRef) {
         return new Rule(Rule.ALWAYS, Op.LT, Operand.of(0), target, verb, Operand.ref(argRef));
     }
@@ -93,6 +96,8 @@ public class BenchCheck {
         nightLight();
         alarm();
         autoDoor();
+        twilight();
+        timedDoor();
         counter();
         thermostat();
         efficiency();
@@ -147,6 +152,56 @@ public class BenchCheck {
         step(s, "S1", 0, 6, 0);  expect("auto_door", "nobody -> gate shut", s.out("A1"), 0);
         step(s, "S1", 1, 6, 6);  expect("auto_door", "someone -> gate open", s.out("A1"), 1);
         step(s, "S1", 0, 6, 12); expect("auto_door", "gone -> gate shut", s.out("A1"), 0);
+    }
+
+    // R1 twilight: a band between two thresholds, where the ORDER of the rules is the answer
+    static void twilight() {
+        System.out.println("R1. twilight");
+        Program good = prog(
+                when("S1", Op.GE, 10, "A1", Verb.OFF),   // day: off
+                when("S1", Op.LT, 10, "A1", Verb.ON),    // dim: on
+                when("S1", Op.LT,  4, "A1", Verb.OFF));  // full dark: off again, overriding above
+        Sim s = new Sim(good, 2400, 1, 2);
+        step(s, "S1", 14, 6, 0);  expect("twilight", "full day -> off", s.out("A1"), 0);
+        step(s, "S1",  7, 6, 6);  expect("twilight", "dusk -> on", s.out("A1"), 1);
+        step(s, "S1",  1, 6, 12); expect("twilight", "full dark -> off again", s.out("A1"), 0);
+        step(s, "S1",  5, 6, 18); expect("twilight", "back into the band -> on", s.out("A1"), 1);
+        step(s, "S1", 12, 6, 24); expect("twilight", "morning -> off", s.out("A1"), 0);
+        System.out.printf("   (uses %d of 5 rules)%n", good.size());
+
+        // The night-light answer: one threshold, so it cannot switch off again at the bottom.
+        Program naive = prog(
+                when("S1", Op.LT, 10, "A1", Verb.ON),
+                when("S1", Op.GE, 10, "A1", Verb.OFF));
+        Sim n = new Sim(naive, 2400, 1, 2);
+        step(n, "S1", 14, 6, 0);
+        step(n, "S1",  1, 6, 6);
+        expectFails("a single threshold stays lit in full dark", n.out("A1") != 0);
+    }
+
+    // R2 timed door: memory holding a DEADLINE, not a flag
+    static void timedDoor() {
+        System.out.println("R2. timed_door");
+        Program good = prog(
+                whenRefArg("S1", Op.EQ, 1, "M1", Verb.SET, "TIME"),  // remember when last seen
+                whenArg("S1", Op.EQ, 1, "M1", Verb.ADD, 3),          // ...plus the timeout
+                whenRef("TIME", Op.LT, "M1", "A1", Verb.ON,  0),
+                whenRef("TIME", Op.GE, "M1", "A1", Verb.OFF, 0));
+        Sim s = new Sim(good, 2400, 1, 4);
+        step(s, "S1", 0, 4, 0);   expect("timed_door", "nobody -> shut", s.out("A1"), 0);
+        step(s, "S1", 1, 4, 4);   expect("timed_door", "arrival -> open", s.out("A1"), 1);
+        step(s, "S1", 0, 2, 8);   expect("timed_door", "one second after leaving -> STILL open", s.out("A1"), 1);
+        step(s, "S1", 0, 4, 10);  expect("timed_door", "past the deadline -> shut on its own", s.out("A1"), 0);
+        System.out.printf("   (uses %d of 5 rules)%n", good.size());
+
+        // The warm-up door: closes the instant they step away, which is the thing being improved on.
+        Program reflex = prog(
+                when("S1", Op.EQ, 1, "A1", Verb.ON),
+                when("S1", Op.EQ, 0, "A1", Verb.OFF));
+        Sim r = new Sim(reflex, 2400, 1, 4);
+        step(r, "S1", 1, 4, 0);
+        step(r, "S1", 0, 2, 4);
+        expectFails("the reflex door shuts the moment they leave", r.out("A1") == 0);
     }
 
     // 4. counter: edge detection needs memory AND the right rule order

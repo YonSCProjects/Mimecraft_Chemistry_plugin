@@ -33,19 +33,28 @@ now, and **which rule actually decided each output**.
 
 ## The mission ladder
 
+Three **optional warm-ups** first — a night light, an alarm, an automatic door. These are things
+redstone already does well, and they say so; they exist so a student who has never programmed gets
+an easy first success with the tools. They grant no parts and gate nothing.
+
+Then the ladder proper, which starts where redstone stops being adequate:
+
 | # | Mission | Teaches |
 |---|---|---|
-| 1 | נורת לילה — night light | sensor → threshold → output, and that outputs latch |
-| 2 | אזעקה — alarm | a second sensor; two actions from one condition |
-| 3 | דלת אוטומטית — automatic door | actuators that move |
-| 4 | מונה — counter | memory, edge detection, and that rule order matters |
-| 5 | תרמוסטט — thermostat | **feedback and hysteresis** — one threshold makes it chatter |
-| 6 | חיסכון — efficiency | an energy budget; duty-cycling |
+| 1 | אור דמדומים — twilight lamp | a band between two thresholds; **later rules win, as a tool** |
+| 2 | דלת שנשארת פתוחה — the door that stays open | memory holding a deadline, not a flag |
+| 3 | מונה — counter | edge detection, and that rule order matters |
+| 4 | תרמוסטט — thermostat | **feedback and hysteresis** |
+| 5 | חיסכון — efficiency | an energy budget; duty-cycling |
 
-Mission 5 is the peak. The bench asks for the heater's state at the *same* temperature twice and
+Mission 4 is the peak. The bench asks for the heater's state at the *same* temperature twice and
 expects different answers — which a single threshold cannot produce. The only way through is two
 thresholds. A genuinely deep idea, reachable by a twelve-year-old who has just watched their own
 lamp flicker.
+
+Seven parts are available from the start. **The eight you earn are exactly the ones redstone has no
+equivalent for** — distance, heat, colour and rain sensors, a display, a solar panel, a marker, and
+a redstone bridge for students who want to feed a contraption in.
 
 ## Commands
 

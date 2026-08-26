@@ -27,8 +27,9 @@ public class StatusBar {
         if (!plugin.getConfig().getBoolean("status-bar.enabled", true)) return;
 
         UUID id = player.getUniqueId();
-        int done = plugin.store().completedMissions(id).size();
-        int total = Math.max(1, plugin.missions().registry().size());
+        // Required ladder only: a student who skipped the warm-ups is not behind.
+        int done = plugin.missions().registry().requiredDone(plugin.store().completedMissions(id));
+        int total = Math.max(1, plugin.missions().registry().requiredCount());
         Mission next = plugin.missions().registry().nextFor(plugin.store().completedMissions(id));
 
         String text = (next == null)

@@ -16,7 +16,7 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 > **Status: runs clean on both targets.** Verified on Paper 1.21.8 build 60 (Java 21) and Paper
 > 26.2 build 116 (Java 25): enables, writes its content YAML, registers commands, saves its runtime
 > files on disable, zero exceptions, and **`/rc selftest` passes 85/85 on both**. The mission ladder
-> is separately checked offline (`tools/BenchCheck.java`, 22 checks).
+> is separately checked offline (`tools/BenchCheck.java`, 33 checks).
 >
 > **Still unverified: anything that needs a real player at a keyboard** - `JoinListener`,
 > `PlotProtection`, `StatusBar`, and the event plumbing in the two block listeners. The *logic*
@@ -50,7 +50,10 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
 - `sense/SensorReader` - world (or simulated bench input) -> an int.
 - `act/ActuatorDriver` - a decision -> a block change.
 - `mission/` - `Mission`, `MissionRegistry` (`missions.yml` + ladder validation),
-  `MissionService` (the **test bench**).
+  `MissionService` (the **test bench**). The ladder is split: three `optional: true` warm-ups
+  covering what redstone already does well, then five required rungs where it does not. Progress
+  is counted over the required ladder only, and `validate` rejects a warm-up that is the sole
+  source of a part - skipping one must strand nobody. See docs/DESIGN.md 5.
 - `plot/` - `PlotManager` (copied from ChemCraft), `WorkshopKiosk` (the charging pad).
 - `data/PlayerStore` - per-UUID progress (`players.yml`): plot, unlocked parts, completed missions.
 - `ui/` - `ProgramMenu` (the rule-table GUI), `ComponentBoard` (the ghost->lit parts wall),

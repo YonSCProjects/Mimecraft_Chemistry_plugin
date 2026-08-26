@@ -51,8 +51,9 @@ public final class Guide {
     }
 
     public static void sendProgress(RoboCraftPlugin plugin, Player player) {
-        int done = plugin.store().completedMissions(player.getUniqueId()).size();
-        int total = plugin.missions().registry().size();
+        int done = plugin.missions().registry()
+                .requiredDone(plugin.store().completedMissions(player.getUniqueId()));
+        int total = plugin.missions().registry().requiredCount();
         int parts = plugin.store().unlocked(player.getUniqueId()).size();
         player.sendMessage(Component.text(
                 "משימות: " + done + " / " + total + "  ·  רכיבים: " + parts + " / " + plugin.parts().size(),

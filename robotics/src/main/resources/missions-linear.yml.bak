@@ -1,41 +1,25 @@
-# The mission ladder.
+# The mission ladder. Each mission is a goal, a scripted scenario, and pass/fail checks.
 #
-# Split in two (see docs/DESIGN.md 5). The three WARM-UPS are `optional: true`: they cover the
-# things redstone already does well - a night light, a tripwire alarm, a pressure-plate door - and
-# exist so a student who has never programmed gets an easy first success with the tools. They are
-# honest about being redstone-equivalent, they grant no parts, and they gate nothing.
-#
-# The REQUIRED ladder starts where redstone stops being adequate: analog bands, memory holding a
-# deadline, edge detection, feedback, and an energy budget. Every part it unlocks is one redstone
-# does not have - distance, heat, colour, rain, a display, a solar panel. The progression is the
-# argument.
-#
-# A warm-up must never be the only source of a part, or skipping it strands the student.
-# MissionRegistry.validate enforces that on every enable.
-#
-# A mission runs on the TEST BENCH: `env` injects simulated sensor readings instead of changing the
-# shared world. Forcing real night would black out the whole class, setPlayerTime is client-side
-# only so block light would not move anyway, and a real day/night cycle is ten minutes against the
-# bench's fifteen seconds. It is also how real embedded code is tested: inject inputs, assert
-# outputs.
+# A mission runs on the TEST BENCH: `env` injects simulated sensor readings instead of changing
+# the shared world (see docs/DESIGN.md 4.4). Forcing real night would black out the whole class,
+# setPlayerTime is client-side only so block light would not move anyway, and a real day/night
+# cycle is ten minutes against the bench's fifteen seconds. It is also how real embedded code is
+# tested: inject inputs, assert outputs.
 #
 # step fields:
 #   say     - narrated to the student so the simulated conditions are visible
 #   env     - simulated sensor values by SENSOR TYPE (light, distance, player, heat, color, ...)
-#   wait    - ticks to let the program run before the next step. 20 ticks = 1 second of TIME.
+#   wait    - ticks to let the program run before the next step
 #   expect  - assertions by ACTUATOR TYPE (on/off), memory slot (a number), or `running`
 #   because - shown when this check fails. Never a score, always the reason.
 
-# ============================ WARM-UPS (optional) ============================
-
 night_light:
   order: 1
-  optional: true
   name: "נורת לילה"
   brief: "הדליקו את הנורה כשחשוך, וכבו אותה כשאור."
-  teaches: "חיישן, סף, פלט - ושפלט זוכר את מצבו"
+  teaches: "חיישן, סף, פלט"
   needs: [controller, battery, light_sensor, lamp]
-  reward: []
+  reward: [buzzer, distance_sensor]
   steps:
     - { say: "יום. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום הנורה צריכה להיות כבויה" }
@@ -46,29 +30,27 @@ night_light:
 
 alarm:
   order: 2
-  optional: true
   name: "אזעקה"
-  brief: "כשמישהו מתקרב - הפעילו זמזם וגם נורה."
+  brief: "כשמשהו מתקרב - הפעילו זמזם וגם נורה."
   teaches: "חיישן שני, שתי פעולות מתנאי אחד"
-  needs: [controller, battery, presence_sensor, buzzer, lamp]
-  reward: []
+  needs: [controller, battery, distance_sensor, buzzer, lamp]
+  reward: [presence_sensor, gate]
   steps:
-    - { say: "אין אף אחד.", env: { player: 0 }, wait: 30 }
+    - { say: "רחוק. מרחק 16.", env: { distance: 16 }, wait: 30 }
     - { expect: { buzzer: off }, because: "כשאין אף אחד קרוב האזעקה שקטה" }
-    - { say: "מישהו הגיע!", env: { player: 1 }, wait: 30 }
-    - { expect: { buzzer: on }, because: "כשמזוהה נוכחות הזמזם צריך לפעול" }
+    - { say: "מתקרב! מרחק 3.", env: { distance: 3 }, wait: 30 }
+    - { expect: { buzzer: on }, because: "במרחק קטן הזמזם צריך לפעול" }
     - { expect: { lamp: on }, because: "גם הנורה צריכה להידלק - שני כללים על אותו תנאי" }
-    - { say: "הוא הלך.", env: { player: 0 }, wait: 30 }
+    - { say: "התרחק. מרחק 15.", env: { distance: 15 }, wait: 30 }
     - { expect: { buzzer: off }, because: "כשהוא מתרחק האזעקה נכבית" }
 
 auto_door:
   order: 3
-  optional: true
   name: "דלת אוטומטית"
-  brief: "השער נפתח כשמישהו נמצא בסביבה, ונסגר כשהוא הולך."
-  teaches: "מפעיל מכני"
+  brief: "השער נפתח כשמישהו מתקרב, ונסגר כשהוא הולך."
+  teaches: "מפעיל מכני, נעילת מצב"
   needs: [controller, battery, presence_sensor, gate]
-  reward: []
+  reward: [display]
   steps:
     - { say: "אין אף אחד.", env: { player: 0 }, wait: 30 }
     - { expect: { gate: off }, because: "בלי אף אחד בסביבה השער סגור" }
@@ -77,50 +59,10 @@ auto_door:
     - { say: "הוא הלך.", env: { player: 0 }, wait: 30 }
     - { expect: { gate: off }, because: "השער צריך להיסגר אחריו" }
 
-# ============================ THE LADDER (required) ============================
-
-twilight:
-  order: 10
-  name: "אור דמדומים"
-  brief: "הדליקו את הנורה רק בין אור לחושך - לא ביום, ולא בחושך מוחלט."
-  teaches: "תחום בין שני ספים; כלל מאוחר גובר - הפעם ככלי, לא כמלכודת"
-  needs: [controller, battery, light_sensor, lamp]
-  reward: [display]
-  hint: "שלושה כללים על אותו פלט, והסדר הוא התשובה: כבו ביום, הדליקו כשמחשיך, ואז כבו שוב בחושך מוחלט"
-  steps:
-    - { say: "יום מלא. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
-    - { expect: { lamp: off }, because: "ביום הנורה כבויה" }
-    - { say: "דמדומים. עוצמת אור 7.", env: { light: 7 }, wait: 30 }
-    - { expect: { lamp: on }, because: "בתחום הדמדומים הנורה דולקת" }
-    - { say: "חושך מוחלט. עוצמת אור 1.", env: { light: 1 }, wait: 30 }
-    - { expect: { lamp: off }, because: "בחושך מוחלט היא כבויה שוב - צריך כלל שלישי שגובר על השני" }
-    - { say: "שוב דמדומים. עוצמת אור 5.", env: { light: 5 }, wait: 30 }
-    - { expect: { lamp: on }, because: "כשחוזרים לתחום היא נדלקת שוב" }
-    - { say: "ובוקר.", env: { light: 12 }, wait: 30 }
-    - { expect: { lamp: off }, because: "ביום כבויה" }
-
-timed_door:
-  order: 11
-  name: "דלת שנשארת פתוחה"
-  brief: "השער נפתח כשמישהו מגיע - ונשאר פתוח עוד 3 שניות אחרי שהלך."
-  teaches: "זיכרון ששומר מועד ולא רק דגל; TIME"
-  needs: [controller, battery, presence_sensor, gate]
-  reward: [distance_sensor]
-  hint: "M1 SET TIME ואז M1 ADD 3. הזיכרון מחזיק מתי מותר להיסגר - לא אם מישהו נמצא"
-  steps:
-    - { say: "אין אף אחד.", env: { player: 0 }, wait: 40 }
-    - { expect: { gate: off }, because: "בלי אף אחד השער סגור" }
-    - { say: "מישהו הגיע.", env: { player: 1 }, wait: 30 }
-    - { expect: { gate: on }, because: "כשמזוהה נוכחות השער נפתח" }
-    - { say: "הוא הלך - עברה שנייה.", env: { player: 0 }, wait: 20 }
-    - { expect: { gate: on }, because: "שנייה אחרי שהלך השער עדיין פתוח. זה כל העניין - הזיכרון מחזיק מועד" }
-    - { say: "עברו עוד ארבע שניות.", wait: 90 }
-    - { expect: { gate: off }, because: "אחרי 3 שניות השער נסגר לבד. אם נשאר פתוח - הזיכרון לא נקבע למועד" }
-
 counter:
-  order: 12
+  order: 4
   name: "מונה"
-  brief: "ספרו כמה פעמים מישהו נכנס. השתמשו בזיכרון M1."
+  brief: "ספרו כמה פעמים נפתח השער. השתמשו בזיכרון M1."
   teaches: "ADD, זיהוי מעבר, סדר הכללים"
   needs: [controller, battery, presence_sensor, display]
   reward: [heat_sensor]
@@ -134,7 +76,7 @@ counter:
     - { expect: { M1: 2 }, because: "שתי כניסות - M1 צריך להיות 2. אם יצא מספר גדול, אתם סופרים כל סיבוב במקום כל מעבר" }
 
 thermostat:
-  order: 13
+  order: 5
   name: "תרמוסטט"
   brief: "החזיקו את החום בתחום. שימו לב: סף אחד גורם לנורה לרצד."
   teaches: "משוב, היסטרזיס - שני ספים"
@@ -152,14 +94,14 @@ thermostat:
     - { expect: { lamp: off }, because: "באמצע התחום המחמם נשאר כבוי. אם נדלק - יש לכם סף אחד, ולכן ריצוד" }
 
 efficiency:
-  order: 14
+  order: 6
   name: "חיסכון"
   brief: "אותה נורת לילה - אבל עם רבע סוללה. אל תיתנו לרובוט להיכבות."
   teaches: "תקציב אנרגיה, מחזור עבודה"
   needs: [controller, battery, light_sensor, lamp]
   reward: [marker, color_sensor, redstone_sensor]
   hint: "כל מפעיל דולק שורף חשמל בכל סיבוב. מה באמת חייב להיות דלוק, ומתי?"
-  # Tuned against robotics/tools/BenchCheck.java: a duty-cycled robot finishes with room to spare
+  # Tuned against robotics/docs/BENCH-CHECK: a duty-cycled robot finishes with room to spare
   # even with a spare sensor attached, while an always-on lamp runs flat around two thirds in.
   start-energy: 150
   steps:

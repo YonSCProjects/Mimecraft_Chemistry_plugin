@@ -6,6 +6,11 @@
 # unlocked: true = available from the start; false = unlocked by a mission reward.
 # drain:    energy per tick while ACTIVE (actuators) or attached (sensors).
 #
+# unlocked: the seven default parts are exactly what the optional warm-ups need - the mechanisms
+# redstone already does well. The eight that must be earned are the ones redstone has no equivalent
+# for: distance, heat, colour, rain, a redstone bridge, a display, a solar panel and a marker.
+# The progression is the argument (docs/DESIGN.md 5).
+#
 # NEVER use a block that changes state on its own. Parts are matched by exact Material, so a
 # plain COPPER_BLOCK would oxidize (fast, in 26.2's copper age) and silently stop being a part
 # with no error message. This bit ChemCraft's panning station in playtesting - always waxed.
@@ -63,7 +68,7 @@ presence_sensor:
   radius: 5
   range: "0/1"
   drain: 1
-  unlocked: false
+  unlocked: true
   hint: "1 אם יש שחקן בקרבת מקום"
 
 heat_sensor:
@@ -124,7 +129,7 @@ buzzer:
   actuator: buzzer
   block: NOTE_BLOCK
   drain: 4
-  unlocked: false
+  unlocked: true
   hint: "מצפצף כשהוא נדלק"
 
 gate:
@@ -133,7 +138,7 @@ gate:
   actuator: gate
   block: IRON_TRAPDOOR
   drain: 10
-  unlocked: false
+  unlocked: true
   hint: "נפתח ונסגר - מפעיל מכני"
 
 display:

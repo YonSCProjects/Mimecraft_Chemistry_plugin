@@ -75,17 +75,28 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
 
     // ------------------------------------------------------------- students
 
+    /** The required ladder first, warm-ups after - and the warm-ups say plainly that they are optional. */
     private void listMissions(Player player) {
         player.sendMessage(Component.text("==== משימות ====", NamedTextColor.AQUA));
-        for (Mission m : plugin.missions().registry().all()) {
-            boolean done = plugin.store().isMissionDone(player.getUniqueId(), m.id());
+        for (Mission m : plugin.missions().registry().required()) line(player, m);
+
+        List<Mission> warmUps = plugin.missions().registry().warmUps();
+        if (!warmUps.isEmpty()) {
+            player.sendMessage(Component.text("---- חימום (לא חובה) ----", NamedTextColor.DARK_AQUA));
             player.sendMessage(Component.text(
-                    (done ? "✔ " : "· ") + m.name() + " - " + m.brief(),
-                    done ? NamedTextColor.GREEN : NamedTextColor.WHITE));
-            if (!done) {
-                player.sendMessage(Component.text("   מלמד: " + m.teaches() + "   |   /rc mission " + m.id(),
-                        NamedTextColor.GRAY));
-            }
+                    "דברים שאפשר לבנות גם באבן אדומה. הם כאן כדי להתרגל לכלים.", NamedTextColor.GRAY));
+            for (Mission m : warmUps) line(player, m);
+        }
+    }
+
+    private void line(Player player, Mission m) {
+        boolean done = plugin.store().isMissionDone(player.getUniqueId(), m.id());
+        player.sendMessage(Component.text(
+                (done ? "✔ " : "· ") + m.name() + " - " + m.brief(),
+                done ? NamedTextColor.GREEN : NamedTextColor.WHITE));
+        if (!done) {
+            player.sendMessage(Component.text("   מלמד: " + m.teaches() + "   |   /rc mission " + m.id(),
+                    NamedTextColor.GRAY));
         }
     }
 
