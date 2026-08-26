@@ -46,3 +46,16 @@ burns it on a deliberate blank line first. And both output pipes must be drained
 or a full pipe deadlocks the server mid-boot.
 
 Used against Paper 1.21.8 build 60 (Java 21) and Paper 26.2 build 116 (Java 25).
+
+## missions-linear.yml
+
+The ladder as it was before the fork-B split: six required missions in one sequence, with the night
+light first. Kept in case the split turns out to be wrong in front of a class.
+
+To go back, copy it over `src/main/resources/missions.yml` and rebuild. It has no `optional:` flags,
+so every mission becomes required again and the warm-up handling simply never triggers. You would
+also want to re-lock `buzzer`, `presence_sensor` and `gate` in `parts.yml`, since the linear ladder
+hands those out as rewards.
+
+It lives here rather than in `resources/` on purpose - anything in the source set gets bundled into
+the jar, and a spare copy of the content is not something to ship.
