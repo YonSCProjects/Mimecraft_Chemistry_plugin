@@ -100,6 +100,11 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
   is not checked is whether it is *learnable*, and no test can tell us that.
 - `SensorReader` implements `mob` and `random`, but no part in `parts.yml` uses them - dead
   branches until a part is added, kept because both are cheap and obviously useful.
+- **`/rc selftest` cannot be driven over RCON.** It builds a twenty-robot fleet and outruns RCON's
+  packet timeout, and worse, a command's output goes back to the *sender* - so over RCON the result
+  vanishes with the timed-out connection instead of reaching the log. Run it from the server console
+  (stdin), which is what `tools/smoke-test.ps1` does. `/rc questions` and `/rc whisper` are both
+  fast and work over RCON fine - which matters, because whisper is how an external agent replies.
 - **The label refresh is the hot path.** It runs for every part of every running robot twice a
   second. It short-circuits on a cheap signature and caches the display entity by UUID; a naive
   version cost 35 ms of a 50 ms tick with twenty robots. If you change what a label shows, change

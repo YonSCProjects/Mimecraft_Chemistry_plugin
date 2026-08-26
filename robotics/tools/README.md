@@ -59,3 +59,19 @@ hands those out as rewards.
 
 It lives here rather than in `resources/` on purpose - anything in the source set gets bundled into
 the jar, and a spare copy of the content is not something to ship.
+
+## Driving the assistant loop from a Claude Code session
+
+The plugin is only the capture-and-delivery half (DESIGN.md 4.7). To be the agent from a session
+on the same machine:
+
+1. Run a server with `enable-rcon=true` and `rcon.port=25575`, and set `rcon.password` to whatever
+   the session's Minecraft MCP bridge is configured with — mismatched passwords fail as a bare
+   "Authentication failed" with nothing to say which side is wrong.
+2. Read pending questions with `robocraft questions` over RCON, or tail
+   `plugins/RoboCraft/questions.jsonl` directly — the file carries far more context than the
+   command's summary, including the student's rule table and live readings.
+3. Reply with `robocraft whisper <player> [chat|actionbar|title] <text>`.
+
+On a superflat world the top solid block is y=-61, so `plot.ground-y: -61` and `board.offset-y: -60`.
+The defaults assume y=64 and would leave the board floating in the air.
