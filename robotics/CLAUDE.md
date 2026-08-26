@@ -15,7 +15,7 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 
 > **Status: runs clean on both targets.** Verified on Paper 1.21.8 build 60 (Java 21) and Paper
 > 26.2 build 116 (Java 25): enables, writes its content YAML, registers commands, saves its runtime
-> files on disable, zero exceptions, and **`/rc selftest` passes 85/85 on both**. The mission ladder
+> files on disable, zero exceptions, and **`/rc selftest` passes 93/93 on both**. The mission ladder
 > is separately checked offline (`tools/BenchCheck.java`, 33 checks).
 >
 > **Still unverified: anything that needs a real player at a keyboard** - `JoinListener`,
@@ -58,6 +58,10 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
 - `data/PlayerStore` - per-UUID progress (`players.yml`): plot, unlocked parts, completed missions.
 - `ui/` - `ProgramMenu` (the rule-table GUI), `ComponentBoard` (the ghost->lit parts wall),
   `Guide`, `StatusBar`, `ProgressReport` (the teacher view).
+- `assistant/AskService` + `ui/Whisper` - the assistant layer. **The plugin never talks to an AI:**
+  it captures a question plus the state needed to answer it (the student's rule table, live
+  readings, last rule fired, last failed bench check) into `questions.jsonl`, and an external agent
+  replies via `/rc whisper`. See docs/DESIGN.md 4.7.
 - `diag/` - `SelfTest` + `Scratch`: builds real robots out of real blocks, drives known inputs
   through them, checks real blocks moved, and restores the world exactly. **This is the test
   suite**, and it is also the answer to "does this work on this server?" before a lesson.
@@ -67,7 +71,7 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
 ### Data files
 Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if absent**:
 `config.yml`, `parts.yml`, `missions.yml`. Runtime state: `players.yml`, `placements.yml`,
-`robots.yml`.
+`robots.yml`, and `questions.jsonl` (append-only, one JSON object per line).
 
 ### Key flows
 - **Attach:** `BlockPlaceEvent` -> `PlotProtection` (NORMAL) -> `PartBlockListener` (HIGH,
@@ -114,7 +118,8 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 
 ## Commands
 `/rc guide | kit | tp | board | missions | mission <id> | run | stop | charge` for students;
-`give | unlock | reset | reload | selftest | progress` for admins. **`selftest` and `progress` also
+`ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions | whisper`
+for admins. **`whisper` is the assistant's delivery channel and must work from the console.** **`selftest` and `progress` also
 run from the console** - the first is what you want before a lesson, the second during one.
 
 ## Roadmap

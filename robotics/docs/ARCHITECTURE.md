@@ -96,6 +96,18 @@ thirty), `marker` spawns particles and is the only `continuous` type, `display` 
   **type**, memory slots by name, or `running`. A null owner records no progress, which is what lets
   the self-test drive a real mission without awarding it.
 
+## assistant/AskService
+`ask(player, question)` appends one JSON object per line to `questions.jsonl` (UTF-8). The plugin
+never calls an AI - see DESIGN.md 4.7. `robotContext(robot)` is deliberately free of `Player` so
+the self-test can exercise it: it carries the program as text, live readings, ports, memory,
+outputs and the last rule that fired, and it is the half that silently goes stale when the program
+model changes. `q()` is minimal JSON string quoting - enough for Hebrew, quotes and newlines.
+`recent(n)` reads the tail back for `/rc questions`.
+
+## ui/Whisper
+Plugin-side private delivery: `chat`, `actionbar`, `title`, plus `send(channel, ...)` and `find()`
+by exact online name. Exists because 26.2's console `tell`/`tellraw`/`msg` deliver nothing at all.
+
 ## plot/
 - `PlotManager`: the plot grid. Copied from ChemCraft; the only change was the plugin type.
 - `WorkshopKiosk`: the charging pad and its label.
@@ -136,6 +148,10 @@ placements.yml   world;x;y;z:  {part, facing, robot, port}
 robots.yml       world;x;y;z:  {owner, energy, rules: ["S1|LT|C7|A1|ON|C0", ...]}
 players.yml      <uuid>: {plot, board-built, unlocked[], missions[], kit-claimed, name}
                  _meta.next-plot
+questions.jsonl  append-only, one JSON object per line, UTF-8:
+                 {ts, player, uuid, question, x, y, z, where, missions_done, parts_unlocked,
+                  current_mission*, last_bench_failure?, robot, energy, parts, readings,
+                  memory, program, rules_used, last_rule_fired?, outputs}
 ```
 Bundled content (`config.yml`, `parts.yml`, `missions.yml`) is copied on first run **only if
 absent**, so shipping new defaults to a live server means editing or deleting the server's copy.

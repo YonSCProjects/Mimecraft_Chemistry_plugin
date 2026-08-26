@@ -44,6 +44,20 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        // whisper is the delivery channel for the external assistant agent, so it must work from
+        // the console: on 26.2 tell/tellraw/msg execute silently over RCON and deliver nothing.
+        if (args.length >= 3 && args[0].equalsIgnoreCase("whisper")) {
+            sender.sendMessage(whisper(args) ? "sent" : "player not online: " + args[1]);
+            return true;
+        }
+        if (args.length > 0 && args[0].equalsIgnoreCase("questions")) {
+            if (sender instanceof Player player && !player.hasPermission("robocraft.admin")) {
+                denied(player);
+            } else {
+                questions(sender, args);
+            }
+            return true;
+        }
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Players only.");
             return true;
@@ -62,12 +76,13 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "stop"     -> stopRobot(player);
             case "charge"   -> chargeRobot(player);
             case "trace"    -> traceRobot(player);
+            case "ask"      -> askQuestion(player, args);
             case "give"     -> give(player, args);
             case "unlock"   -> unlock(player, args);
             case "reset"    -> reset(player);
             case "reload"   -> reload(player);
             default         -> player.sendMessage(Component.text(
-                                    "/rc guide | kit | tp | board | missions | mission <id> | run | stop | trace | charge",
+                                    "/rc guide | kit | tp | board | missions | mission <id> | run | stop | trace | charge | ask <שאלה>",
                                     NamedTextColor.GRAY));
         }
         return true;
@@ -186,6 +201,68 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         return (best != null) ? best : mine.get(0);
     }
 
+    // ------------------------------------------------------------- assistant
+
+    /**
+     * Capture a question with the state needed to answer it. The plugin never answers - see
+     * AskService for why the agent lives outside it.
+     */
+    private void askQuestion(Player player, String[] args) {
+        if (args.length < 2) {
+            player.sendMessage(Component.text(
+                    "שימוש: /rc ask <שאלה>   -   למשל: /rc ask למה הנורה לא נדלקת?", NamedTextColor.RED));
+            return;
+        }
+        long wait = plugin.ask().cooldownRemaining(player.getUniqueId());
+        if (wait > 0) {
+            player.sendMessage(Component.text("רגע אחד - אפשר לשאול שוב בעוד " + wait + " שניות.",
+                    NamedTextColor.GRAY));
+            return;
+        }
+        String question = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+        if (plugin.ask().ask(player, question)) {
+            player.sendMessage(Component.text("השאלה נשלחה ל"
+                    + plugin.getConfig().getString("assistant.name", "עוזר/ת סדנה")
+                    + ". התשובה תגיע לצ'אט.", NamedTextColor.LIGHT_PURPLE));
+        } else {
+            player.sendMessage(Component.text("לא הצלחתי לשמור את השאלה. קראו למורה.", NamedTextColor.RED));
+        }
+    }
+
+    /**
+     * /rc whisper &lt;player&gt; [chat|actionbar|title] &lt;text...&gt;
+     *
+     * <p>The channel argument is optional; anything unrecognised is treated as the start of the
+     * message, so an agent can just say what it means without knowing the channel names.
+     */
+    private boolean whisper(String[] args) {
+        Player target = com.agurim.robocraft.ui.Whisper.find(args[1]);
+        if (target == null) return false;
+
+        String maybeChannel = args[2].toLowerCase();
+        boolean named = maybeChannel.equals("chat") || maybeChannel.equals("actionbar")
+                || maybeChannel.equals("title");
+        String channel = named ? maybeChannel : "chat";
+        int from = named ? 3 : 2;
+        if (from >= args.length) return false;
+
+        String text = String.join(" ", java.util.Arrays.copyOfRange(args, from, args.length));
+        return com.agurim.robocraft.ui.Whisper.send(plugin, target, channel, text);
+    }
+
+    /** What the class is stuck on - a teaching record even when no assistant is running. */
+    private void questions(CommandSender sender, String[] args) {
+        int n = (args.length >= 2) ? parseInt(args[1], 10) : 10;
+        List<String> lines = plugin.ask().recent(n);
+        if (lines.isEmpty()) {
+            sender.sendMessage(Component.text("עוד לא נשאלו שאלות.", NamedTextColor.GRAY));
+            return;
+        }
+        sender.sendMessage(Component.text("==== " + lines.size() + " שאלות אחרונות ====",
+                NamedTextColor.AQUA));
+        for (String line : lines) sender.sendMessage(Component.text(line, NamedTextColor.GRAY));
+    }
+
     // ------------------------------------------------------------- diagnostic
 
     /**
@@ -272,8 +349,9 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
-                                    "run", "stop", "trace", "charge", "give", "unlock", "reset",
-                                    "reload", "selftest", "progress")) {
+                                    "run", "stop", "trace", "charge", "ask", "give", "unlock",
+                                    "reset", "reload", "selftest", "progress", "questions",
+                                    "whisper")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("mission")) {

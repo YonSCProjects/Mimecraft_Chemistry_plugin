@@ -1,5 +1,6 @@
 package com.agurim.robocraft;
 
+import com.agurim.robocraft.assistant.AskService;
 import com.agurim.robocraft.command.RoboCraftCommand;
 import com.agurim.robocraft.data.PlayerStore;
 import com.agurim.robocraft.listener.InteractListener;
@@ -41,6 +42,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     private ComponentBoard board;
     private WorkshopKiosk kiosk;
     private StatusBar statusBar;
+    private AskService ask;
 
     private NamespacedKey partKey;
     private NamespacedKey tileKey;
@@ -64,6 +66,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
         this.board      = new ComponentBoard(this);
         this.kiosk      = new WorkshopKiosk(this);
         this.statusBar  = new StatusBar(this);
+        this.ask        = new AskService(this);
 
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
         getServer().getPluginManager().registerEvents(new PlotProtection(this), this);
@@ -112,6 +115,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     public ComponentBoard board()    { return board; }
     public WorkshopKiosk kiosk()     { return kiosk; }
     public StatusBar statusBar()     { return statusBar; }
+    public AskService ask()          { return ask; }
 
     public NamespacedKey partKey()   { return partKey; }
     public NamespacedKey tileKey()   { return tileKey; }

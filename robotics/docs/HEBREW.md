@@ -10,7 +10,7 @@ Latin tokens inside a string - `S1`, `A1`, `ON`, `WHEN`, `/rc trace` - are delib
 must stay Latin: a rule row has to read identically in any client.
 
 
-248 strings.
+285 strings.
 
 
 ## Onboarding and the guide
@@ -25,17 +25,18 @@ must stay Latin: a rule row has to read identically in any client.
 | `Guide` | 6. התוויות מעל הרכיבים מראות מה כל חיישן קורא עכשיו - שם מנפים באגים. |
 | `Guide` | 7. /rc missions - רשימת המשימות. הרצה בודקת את הרובוט ואומרת מה לא עבד. |
 | `Guide` | 8. תקועים? /rc trace מראה מה כל חיישן קורא ואיזה כלל קבע כל פלט. |
+| `Guide` | 9. עדיין תקועים? שאלו: /rc ask <שאלה> - התשובה תגיע אליכם בצ'אט. |
 | `Guide` | ==== RoboCraft - איך משחקים ==== |
 | `Guide` | WHEN S1 < 7 THEN A1 ON  =  כשהאור קטן מ-7, הדליקו את A1. |
 | `Guide` | ·  רכיבים: |
 | `Guide` | ברוכים הבאים ל-RoboCraft! זו הסדנה שלכם, והקיר שלפניכם הוא מלאי הרכיבים. |
 | `Guide` | הבאה בתור: |
-| `Guide` | המשימה הראשונה: /rc missions | המדריך המלא: /rc guide |
+| `Guide` | המשימה הראשונה: /rc missions | המדריך: /rc guide | שאלה: /rc ask |
 | `Guide` | הניחו בקר, סוללה, חיישן ומפעיל קרוב זה לזה - ואז לחצו על הבקר וכתבו כלל. |
 | `Guide` | חשים, מחליטים, פועלים |
 | `Guide` | כל מנגנון רובוטי הוא לולאה: חיישן נותן מספר, התוכנית מחליטה, המפעיל פועל. |
 | `Guide` | משימות: |
-| `Guide` | פקודות: /rc guide | /rc kit | /rc tp | /rc missions | /rc trace | /rc charge |
+| `Guide` | פקודות: /rc guide | /rc kit | /rc tp | /rc missions | /rc trace | /rc ask | /rc charge |
 | `StarterKit` | קיבלתם ערכת פתיחה - בקר, סוללה, חיישן ומפעיל. |
 | `WorkshopKiosk` | \nלחיצה ימנית טוענת רובוטים בסביבה |
 | `WorkshopKiosk` | עמדת טעינה |
@@ -96,30 +97,45 @@ must stay Latin: a rule row has to read identically in any client.
 | Where | Text |
 |---|---|
 | `missions` | ADD, זיהוי מעבר, סדר הכללים |
+| `missions` | M1 SET TIME ואז M1 ADD 3. הזיכרון מחזיק מתי מותר להיסגר - לא אם מישהו נמצא |
+| `missions` | אור דמדומים |
 | `missions` | אותה נורת לילה - אבל עם רבע סוללה. אל תיתנו לרובוט להיכבות. |
 | `missions` | אזעקה |
+| `missions` | אחרי 3 שניות השער נסגר לבד. אם נשאר פתוח - הזיכרון לא נקבע למועד |
 | `missions` | אין אף אחד. |
 | `missions` | באמצע התחום המחמם ממשיך - הוא כבר דולק ולא הגיע לסף הכיבוי |
 | `missions` | באמצע התחום המחמם נשאר כבוי. אם נדלק - יש לכם סף אחד, ולכן ריצוד |
 | `missions` | בחושך הנורה צריכה להידלק |
+| `missions` | בחושך מוחלט היא כבויה שוב - צריך כלל שלישי שגובר על השני |
+| `missions` | ביום הנורה כבויה |
 | `missions` | ביום הנורה צריכה להיות כבויה |
 | `missions` | ביום כבוי |
+| `missions` | ביום כבויה |
 | `missions` | בלי אף אחד בסביבה השער סגור |
+| `missions` | בלי אף אחד השער סגור |
 | `missions` | בלילה דלוק |
-| `missions` | במרחק קטן הזמזם צריך לפעול |
+| `missions` | בתחום הדמדומים הנורה דולקת |
 | `missions` | גם הנורה צריכה להידלק - שני כללים על אותו תנאי |
 | `missions` | דלת אוטומטית |
+| `missions` | דלת שנשארת פתוחה |
+| `missions` | דמדומים. עוצמת אור 7. |
 | `missions` | הדליקו את הנורה כשחשוך, וכבו אותה כשאור. |
+| `missions` | הדליקו את הנורה רק בין אור לחושך - לא ביום, ולא בחושך מוחלט. |
+| `missions` | הוא הלך - עברה שנייה. |
 | `missions` | הוא הלך. |
 | `missions` | החזיקו את החום בתחום. שימו לב: סף אחד גורם לנורה לרצד. |
 | `missions` | הסוללה נגמרה באמצע. מפעיל שדולק כשאין בו צורך שורף את התקציב |
-| `missions` | השער נפתח כשמישהו מתקרב, ונסגר כשהוא הולך. |
+| `missions` | השער נפתח כשמישהו מגיע - ונשאר פתוח עוד 3 שניות אחרי שהלך. |
+| `missions` | השער נפתח כשמישהו נמצא בסביבה, ונסגר כשהוא הולך. |
 | `missions` | השער צריך להיסגר אחריו |
-| `missions` | התרחק. מרחק 15. |
+| `missions` | ובוקר. |
+| `missions` | זיכרון ששומר מועד ולא רק דגל; TIME |
+| `missions` | חושך מוחלט. עוצמת אור 1. |
 | `missions` | חיישן שני, שתי פעולות מתנאי אחד |
-| `missions` | חיישן, סף, פלט |
+| `missions` | חיישן, סף, פלט - ושפלט זוכר את מצבו |
 | `missions` | חיסכון |
 | `missions` | חם. חום 70. |
+| `missions` | יום מלא. עוצמת אור 14. |
 | `missions` | יום. |
 | `missions` | יום. עוצמת אור 14. |
 | `missions` | יצא. |
@@ -130,27 +146,34 @@ must stay Latin: a rule row has to read identically in any client.
 | `missions` | כשאין אף אחד קרוב האזעקה שקטה |
 | `missions` | כשהאור חוזר הנורה צריכה להיכבות. פלט זוכר את מצבו - צריך כלל שמכבה אותו |
 | `missions` | כשהוא מתרחק האזעקה נכבית |
+| `missions` | כשחוזרים לתחום היא נדלקת שוב |
+| `missions` | כשמזוהה נוכחות הזמזם צריך לפעול |
+| `missions` | כשמזוהה נוכחות השער נפתח |
 | `missions` | כשמזוהה נוכחות השער צריך להיפתח |
-| `missions` | כשמשהו מתקרב - הפעילו זמזם וגם נורה. |
+| `missions` | כשמישהו מתקרב - הפעילו זמזם וגם נורה. |
 | `missions` | כשקר המחמם צריך לעבוד |
 | `missions` | לילה. |
 | `missions` | לילה. עוצמת אור 2. |
 | `missions` | מאפסים. |
 | `missions` | מונה |
+| `missions` | מישהו הגיע! |
 | `missions` | מישהו הגיע. |
 | `missions` | מעל סף הכיבוי המחמם נכבה |
-| `missions` | מפעיל מכני, נעילת מצב |
+| `missions` | מפעיל מכני |
 | `missions` | משוב, היסטרזיס - שני ספים |
 | `missions` | מתחמם. חום 45 - באמצע. |
-| `missions` | מתקרב! מרחק 3. |
 | `missions` | מתקרר. שוב 45 - באמצע. |
 | `missions` | נורת לילה |
-| `missions` | ספרו כמה פעמים נפתח השער. השתמשו בזיכרון M1. |
+| `missions` | ספרו כמה פעמים מישהו נכנס. השתמשו בזיכרון M1. |
+| `missions` | עברו עוד ארבע שניות. |
 | `missions` | עם סף אחד המערכת מתנדנדת. נסו סף להדלקה וסף אחר - גבוה יותר - לכיבוי |
 | `missions` | קר. חום 20. |
-| `missions` | רחוק. מרחק 16. |
+| `missions` | שוב דמדומים. עוצמת אור 5. |
 | `missions` | שוב יום. עוצמת אור 13. |
+| `missions` | שלושה כללים על אותו פלט, והסדר הוא התשובה: כבו ביום, הדליקו כשמחשיך, ואז כבו שוב בחושך מוחלט |
+| `missions` | שנייה אחרי שהלך השער עדיין פתוח. זה כל העניין - הזיכרון מחזיק מועד |
 | `missions` | שתי כניסות - M1 צריך להיות 2. אם יצא מספר גדול, אתם סופרים כל סיבוב במקום כל מעבר |
+| `missions` | תחום בין שני ספים; כלל מאוחר גובר - הפעם ככלי, לא כמלכודת |
 | `missions` | תקציב אנרגיה, מחזור עבודה |
 | `missions` | תרמוסטט |
 | `MissionService` | אין |
@@ -272,10 +295,19 @@ must stay Latin: a rule row has to read identically in any client.
 | `ProgressReport` | רכיבים %-3d |
 | `ProgressReport` | תלמידים: |
 
+## The assistant
+
+| Where | Text |
+|---|---|
+| `Whisper` | עוזר/ת סדנה |
+
 ## Commands and protection
 
 | Where | Text |
 |---|---|
+| `RoboCraftCommand` | ---- חימום (לא חובה) ---- |
+| `RoboCraftCommand` | . התשובה תגיע לצ'אט. |
+| `RoboCraftCommand` | /rc guide | kit | tp | board | missions | mission <id> | run | stop | trace | charge | ask <שאלה> |
 | `RoboCraftCommand` | /rc mission <id> - הרשימה: /rc missions |
 | `RoboCraftCommand` | ==== משימות ==== |
 | `RoboCraftCommand` | config.yml נטען מחדש. תוכן (parts/missions) דורש הפעלה מחדש. |
@@ -286,12 +318,27 @@ must stay Latin: a rule row has to read identically in any client.
 | `RoboCraftCommand` | אין סוללה מחוברת לרובוט. |
 | `RoboCraftCommand` | אין רכיב כזה. |
 | `RoboCraftCommand` | אין רכיב כזה: |
+| `RoboCraftCommand` | דברים שאפשר לבנות גם באבן אדומה. הם כאן כדי להתרגל לכלים. |
 | `RoboCraftCommand` | ההתקדמות אופסה. |
 | `RoboCraftCommand` | הסוללה מלאה: |
 | `RoboCraftCommand` | הרובוט נעצר. |
 | `RoboCraftCommand` | הרובוט פועל. |
+| `RoboCraftCommand` | השאלה נשלחה ל |
+| `RoboCraftCommand` | לא הצלחתי לשמור את השאלה. קראו למורה. |
 | `RoboCraftCommand` | לוח הרכיבים נבנה מחדש. |
 | `RoboCraftCommand` | מלמד: |
+| `RoboCraftCommand` | עוד לא נשאלו שאלות. |
+| `RoboCraftCommand` | עוזר/ת סדנה |
 | `RoboCraftCommand` | עצור |
+| `RoboCraftCommand` | רגע אחד - אפשר לשאול שוב בעוד |
+| `RoboCraftCommand` | שאלות אחרונות ==== |
+| `RoboCraftCommand` | שימוש: /rc ask <שאלה>   -   למשל: /rc ask למה הנורה לא נדלקת? |
+| `RoboCraftCommand` | שניות. |
 | `PlotProtection` | זה חלק מהסדנה - אי אפשר לפרק אותו. |
 | `PlotProtection` | זו הסדנה של מישהו אחר. /rc tp מחזיר אתכם לשלכם. |
+
+## Other
+
+| Where | Text |
+|---|---|
+| `config.yml` | עוזר/ת סדנה |

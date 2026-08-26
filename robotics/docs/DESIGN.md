@@ -214,6 +214,37 @@ lit as you unlock them; click a lit tile to draw that part. It answers "what can
                             +--- names the check that failed -----+
 ```
 
+### 4.7 The assistant: the plugin captures, it does not answer
+
+Every student gets an assistant they can ask, in Hebrew, from inside the game: `/rc ask למה הנורה
+לא נדלקת?`
+
+**The plugin never talks to an AI.** It owns two things - capture and delivery - and nothing else.
+`/rc ask` appends the question, with the state needed to answer it, to `questions.jsonl`. An
+external agent tails that file and replies with `/rc whisper <player> [channel] <text>`.
+
+Three reasons that split is right, and they are all practical:
+
+- **No keys, no cost, no model choice inside the plugin.** The assistant can be swapped, upgraded
+  or switched off without a rebuild, and a server with no agent running loses nothing but answers.
+- **Delivery has to be plugin-side anyway.** On 26.2 the console `tell`, `tellraw` and `msg`
+  execute silently over RCON and deliver nothing - no error, no log line. Only `say`, which
+  broadcasts to the whole class, and `title`/`actionbar` work. A private answer needs `/rc whisper`.
+- **The questions are a teaching record on their own.** `/rc questions` shows what the class is
+  stuck on even when nobody is answering. That is formative assessment for free.
+
+**What makes it worth doing here is the context.** A chemistry question can be answered from
+position and inventory. A robotics question is almost always *"why did it do that?"*, which is
+unanswerable in the abstract - so the capture includes the student's **actual rule table**, what
+each sensor is reading at that moment, which rule fired last, where the outputs ended up, and the
+bench check they most recently failed. That is the difference between "check your threshold" and
+*"rule 2 only fires at S1 >= 7, and S1 is reading 4 right now."*
+
+> **OPEN #5.** Should the agent answer, or ask back? The plugin deliberately does not decide - the
+> prompt belongs to whoever runs the agent. For a workshop whose whole point is that the student
+> finds the bug by reading values, a Socratic hint is probably right, but that is Yon's call and it
+> can change without touching code.
+
 ---
 
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do

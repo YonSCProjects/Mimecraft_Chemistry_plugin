@@ -31,7 +31,7 @@ public final class Guide {
     public static void firstJoin(RoboCraftPlugin plugin, Player player) {
         line(player, "ברוכים הבאים ל-RoboCraft! זו הסדנה שלכם, והקיר שלפניכם הוא מלאי הרכיבים.", NamedTextColor.GREEN);
         line(player, "הניחו בקר, סוללה, חיישן ומפעיל קרוב זה לזה - ואז לחצו על הבקר וכתבו כלל.", NamedTextColor.YELLOW);
-        line(player, "המשימה הראשונה: /rc missions | המדריך המלא: /rc guide", NamedTextColor.DARK_AQUA);
+        line(player, "המשימה הראשונה: /rc missions | המדריך: /rc guide | שאלה: /rc ask", NamedTextColor.DARK_AQUA);
     }
 
     public static void send(RoboCraftPlugin plugin, Player player) {
@@ -46,7 +46,8 @@ public final class Guide {
         line(player, "6. התוויות מעל הרכיבים מראות מה כל חיישן קורא עכשיו - שם מנפים באגים.", NamedTextColor.YELLOW);
         line(player, "7. /rc missions - רשימת המשימות. הרצה בודקת את הרובוט ואומרת מה לא עבד.", NamedTextColor.YELLOW);
         line(player, "8. תקועים? /rc trace מראה מה כל חיישן קורא ואיזה כלל קבע כל פלט.", NamedTextColor.GOLD);
-        line(player, "פקודות: /rc guide | /rc kit | /rc tp | /rc missions | /rc trace | /rc charge", NamedTextColor.DARK_AQUA);
+        line(player, "9. עדיין תקועים? שאלו: /rc ask <שאלה> - התשובה תגיע אליכם בצ'אט.", NamedTextColor.LIGHT_PURPLE);
+        line(player, "פקודות: /rc guide | /rc kit | /rc tp | /rc missions | /rc trace | /rc ask | /rc charge", NamedTextColor.DARK_AQUA);
         sendProgress(plugin, player);
     }
 

@@ -56,13 +56,35 @@ Seven parts are available from the start. **The eight you earn are exactly the o
 equivalent for** — distance, heat, colour and rain sensors, a display, a solar panel, a marker, and
 a redstone bridge for students who want to feed a contraption in.
 
+## The assistant
+
+Students can ask, in Hebrew, from inside the game:
+
+```
+/rc ask למה הנורה לא נדלקת?
+```
+
+**The plugin never talks to an AI.** It captures the question together with the state needed to
+answer it — the student's actual rule table, what each sensor is reading at that moment, which rule
+fired last, and the bench check they most recently failed — and appends it to `questions.jsonl`. An
+external agent tails that file and replies with `/rc whisper <player> [chat|actionbar|title] <text>`,
+which is a plugin command because on 26.2 the console `tell`/`tellraw`/`msg` deliver nothing at all.
+
+So the agent is external, swappable and optional: no keys or model choice inside the plugin, and a
+server running no agent simply gets no answers. `/rc questions` shows what the class is stuck on —
+which is useful as formative assessment even when nobody is answering.
+
+Whether the agent should answer or ask back is set in the agent's prompt, not here. For a workshop
+whose point is that students find bugs by reading values, a Socratic nudge is probably right.
+
 ## Commands
 
 **Students** — `/rc guide`, `kit`, `tp`, `board`, `missions`, `mission <id>`, `run`, `stop`,
-`trace`, `charge`.
+`trace`, `charge`, `ask <question>`.
 
-**Teachers** (op) — `/rc progress` for the class view, `/rc selftest` to check a server before a
-lesson, plus `give`, `unlock`, `reset`, `reload`.
+**Teachers** (op) — `/rc progress` for the class view, `/rc questions` for what the class is stuck
+on, `/rc selftest` to check a server before a lesson, plus `give`, `unlock`, `reset`, `reload`.
+`/rc whisper` is the assistant's delivery channel.
 
 `progress` and `selftest` also run from the **server console**, which is where the class view's
 columns line up and where you want the check to run before anyone has joined.
@@ -88,15 +110,15 @@ the world back exactly as it was.
 ## Honest caveats
 
 - **No human has ever played it.** It runs clean on real Paper servers — both targets, zero
-  exceptions, 85/85 self-test checks — and the click model's layout and semantics are both verified.
+  exceptions, 93/93 self-test checks — and the click model's layout and semantics are both verified.
   Whether the rule table is *learnable* is not something a test can answer.
 - **Two design decisions are not settled.** Why this exists rather than a redstone map, and whether
   robots should move. Both are argued, with the counter-case, in `docs/DESIGN.md`. A third is now
   settled: Minecraft Education would have been the stronger alternative, but it has no Hebrew.
 - **Robot memory is not persisted.** A restart zeroes `M1..M4` — deliberately, because real
   controllers lose their RAM when the power goes.
-- **All player-facing text is Hebrew and was not written by a native speaker.** It should be
-  proofread before it meets a class.
+- **All player-facing text is Hebrew and was not written by a native speaker.** `docs/HEBREW.md`
+  lists every string for proofreading before it meets a class.
 - No rovers, no co-op.
 
 ## Where to read more

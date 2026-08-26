@@ -67,6 +67,22 @@ missions:
   # Never a score, always the failing check, unlimited retries.
   show-failed-check: true
 
+# The in-game assistant voice.
+#
+# The plugin never talks to an AI. Students ask with `/rc ask <question>`; the plugin CAPTURES the
+# question together with the state needed to answer it - the student's actual rule table, what each
+# sensor is reading, which rule fired last, and the bench check they most recently failed - into
+# questions.jsonl. An external agent tails that file and replies with `/rc whisper`, which is
+# needed because on 26.2 the console tell/tellraw/msg deliver nothing at all.
+#
+# So the answering agent is external, swappable and optional: no keys or model choice in the
+# plugin, and the questions stand on their own as a teaching record even with no assistant running.
+# `/rc questions` shows what the class is stuck on.
+assistant:
+  name: "עוזר/ת סדנה"
+  sound: true
+  cooldown-seconds: 15
+
 # A per-player bossbar carrying the current mission and the robot's battery.
 status-bar:
   enabled: true

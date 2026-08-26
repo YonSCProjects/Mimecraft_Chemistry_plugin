@@ -43,6 +43,7 @@ public class MissionService {
     private final MissionRegistry registry;
     private final Map<String, Run> runs = new LinkedHashMap<>();
     private final Map<String, Outcome> lastOutcome = new LinkedHashMap<>();
+    private final Map<UUID, String> lastFailure = new LinkedHashMap<>();
 
     public MissionService(RoboCraftPlugin plugin) {
         this.plugin = plugin;
@@ -73,6 +74,15 @@ public class MissionService {
     }
 
     public boolean isRunning(String robotKey)      { return runs.containsKey(robotKey); }
+
+    /**
+     * The last bench check this student failed, if any - "which check, and why".
+     *
+     * <p>Kept for the assistant: "why isn't it working?" is nearly always about the run that just
+     * failed, and an answering agent that knows which check went wrong gives a situated hint
+     * instead of a general one.
+     */
+    public String lastFailure(UUID owner)          { return lastFailure.get(owner); }
     public Outcome lastOutcome(String robotKey)    { return lastOutcome.get(robotKey); }
     public void abort(String robotKey)             { runs.remove(robotKey); }
 
@@ -222,6 +232,7 @@ public class MissionService {
     private void pass(Run run, Robot robot) {
         runs.remove(robot.key());
         lastOutcome.put(robot.key(), Outcome.PASS);
+        if (run.owner != null) lastFailure.remove(run.owner);   // solved; stop advertising it
 
         List<String> unlocked = new ArrayList<>();
         if (run.owner != null) {
@@ -280,6 +291,11 @@ public class MissionService {
         }
         run.sender.sendMessage(Component.text("נסו שוב: /rc mission " + run.mission.id(),
                 NamedTextColor.DARK_AQUA));
+
+        if (run.owner != null) {
+            lastFailure.put(run.owner, run.mission.id() + ": " + detail
+                    + (step.because().isEmpty() ? "" : " (" + step.because() + ")"));
+        }
     }
 
     // --------------------------------------------------------------- helpers

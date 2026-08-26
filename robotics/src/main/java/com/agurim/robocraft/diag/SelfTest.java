@@ -69,6 +69,7 @@ public final class SelfTest {
             attachment(plugin, origin.clone().add(0, 0, 15), scratch, checks);
             gui(plugin, origin.clone().add(0, 0, 19), scratch, checks);
             load(plugin, sender, origin.clone().add(0, 0, 24), scratch, checks);
+            assistant(plugin, origin.clone().add(0, 0, 30), scratch, checks);
             editing(plugin, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
@@ -771,6 +772,69 @@ public final class SelfTest {
             worst = Math.max(worst, System.nanoTime() - started);
         }
         return worst / 1_000_000.0;
+    }
+
+    // ------------------------------------------------------- D7. the assistant
+
+    /**
+     * What an answering agent is handed when a student asks a question.
+     *
+     * <p>This is the half that goes stale silently. If the program model changes and the context
+     * builder does not, the assistant keeps answering confidently about a rule table the student
+     * is not looking at - which is worse than having no assistant, because it is wrong with
+     * authority. Nothing else in the plugin would notice.
+     */
+    private static void assistant(RoboCraftPlugin plugin, Location origin, Scratch scratch, List<Check> checks) {
+        Part controller = kind(plugin, "controller");
+        Part battery    = kind(plugin, "battery");
+        Part light      = sensor(plugin, "light");
+        Part lamp       = actuator(plugin, "lamp");
+        if (controller == null || battery == null || light == null || lamp == null) return;
+
+        Location ctrl = origin.clone();
+        String key = PartStore.key(ctrl);
+        for (int dx = 0; dx <= 3; dx++) scratch.clear(origin.clone().add(dx, 1, 0));
+        scratch.part(plugin, ctrl, controller, "", "");
+        scratch.part(plugin, origin.clone().add(1, 0, 0), battery, key, "");
+        scratch.part(plugin, origin.clone().add(2, 0, 0), light, key, "S1");
+        scratch.part(plugin, origin.clone().add(3, 0, 0), lamp, key, "A1");
+        scratch.robot(key);
+
+        Robot robot = plugin.robots().getOrCreate(key, null);
+        robot.energy(plugin.batteryCapacity(key));
+        robot.program(nightLight());
+        robot.start(plugin.engine().now());
+        plugin.engine().tick(robot, Map.of("light", 4));
+
+        Map<String, String> ctx = plugin.ask().robotContext(robot);
+
+        checks.add(new Check("the assistant is handed the student's actual rule table",
+                ctx.getOrDefault("program", "").contains("WHEN S1 < 7 THEN A1 ON"),
+                "program = " + ctx.get("program")));
+        checks.add(new Check("...and what the sensors are reading right now",
+                "S1=4".equals(ctx.get("readings")), "readings = " + ctx.get("readings")));
+        checks.add(new Check("...and which port is which part",
+                ctx.getOrDefault("parts", "").contains("S1=" + light.id())
+                        && ctx.getOrDefault("parts", "").contains("A1=" + lamp.id()),
+                "parts = " + ctx.get("parts")));
+        checks.add(new Check("...and where the outputs ended up",
+                "A1=ON".equals(ctx.get("outputs")), "outputs = " + ctx.get("outputs")));
+        checks.add(new Check("...and which rule decided it",
+                "1".equals(ctx.get("last_rule_fired")), "last_rule_fired = " + ctx.get("last_rule_fired")));
+        checks.add(new Check("...and whether the robot is even running",
+                "running".equals(ctx.get("robot")), "robot = " + ctx.get("robot")));
+
+        Map<String, String> none = plugin.ask().robotContext(null);
+        checks.add(new Check("a student with no robot yields context rather than an exception",
+                "none".equals(none.get("robot")), String.valueOf(none.get("robot"))));
+
+        // questions.jsonl is UTF-8 JSON-per-line; Hebrew and quotes must survive the trip.
+        String quoted = com.agurim.robocraft.assistant.AskService.q("למה \"הנורה\" לא נדלקת?\nשורה");
+        checks.add(new Check("Hebrew, quotes and newlines survive JSON encoding",
+                quoted.startsWith("\"") && quoted.endsWith("\"")
+                        && quoted.contains("\\\"הנורה\\\"") && quoted.contains("\\n")
+                        && !quoted.contains("\n"),
+                quoted));
     }
 
     // ------------------------------------------------------- E. the vocabulary
