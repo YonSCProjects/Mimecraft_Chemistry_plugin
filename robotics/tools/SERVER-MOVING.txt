@@ -13,10 +13,15 @@ now searches for Java instead of hardcoding it. So a plain folder copy is enough
 
 1. BEFORE COPYING
 -----------------
-Stop both servers cleanly - type  stop  in each console window, or run:
+Stop both servers cleanly first. Any of these does it:
 
-    rcon.ps1 -Port 25575 stop        (RoboCraft)
-    rcon.ps1 -Port 25576 stop        (ChemCraft)
+    type  stop  in each server's console window
+    double-click  stop.bat  in each server folder
+    or, from any PowerShell prompt - two SEPARATE commands, full path, because
+    rcon.ps1 is not on PATH:
+
+        C:\26.2_RoboCraft\rcon.ps1 -Port 25575 stop
+        C:\26.2_ChemCraft\rcon.ps1 -Port 25576 stop
 
 Copying a running server can capture a half-written world.
 
