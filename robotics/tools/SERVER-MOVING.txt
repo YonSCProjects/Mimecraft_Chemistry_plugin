@@ -1,0 +1,113 @@
+MOVING THESE SERVERS TO ANOTHER PC
+==================================
+
+Both servers are self-contained folders. Copy them to the SAME paths on the new
+machine and they work:
+
+    C:\26.2_ChemCraft
+    C:\26.2_RoboCraft
+
+Nothing inside them stores an absolute path except the Java lookup, and start.bat
+now searches for Java instead of hardcoding it. So a plain folder copy is enough.
+
+
+1. BEFORE COPYING
+-----------------
+Stop both servers cleanly - type  stop  in each console window, or run:
+
+    rcon.ps1 -Port 25575 stop        (RoboCraft)
+    rcon.ps1 -Port 25576 stop        (ChemCraft)
+
+Copying a running server can capture a half-written world.
+
+
+2. JAVA - THE ONLY THING THAT NEEDS A DECISION
+----------------------------------------------
+Paper 26.2 needs Java 25 and will NOT start on Java 21. start.bat looks for it
+in this order, and uses the first one that really reports version 25:
+
+    1.  <this folder>\jdk\bin\java.exe      bundled per server
+    2.  C:\26.2_jdk25\bin\java.exe          shared by both servers
+    3.  %JAVA_HOME%
+    4.  java.exe on PATH
+    5.  Program Files\Eclipse Adoptium\jdk-25*  (and Java\, Microsoft\)
+    6.  %USERPROFILE%\.gradle\jdks\*25*      a dev machine that built the plugin
+
+Pick whichever suits the new PC:
+
+  * NO ADMIN RIGHTS, OR NO INTERNET (school PCs, usually)
+    Copy a Java 25 JDK folder to  C:\26.2_jdk25\  so that
+    C:\26.2_jdk25\bin\java.exe  exists. Both servers find it. Nothing to install.
+    On this machine the JDK to copy is about 291 MB, at:
+        %USERPROFILE%\.gradle\jdks\eclipse_adoptium-25-amd64-windows.2
+
+  * NORMAL PC
+    Install Adoptium Temurin 25. It lands on PATH and is found automatically.
+
+If none is found, start.bat says so plainly instead of failing with a confusing
+Java error.
+
+
+3. WHAT TO COPY
+---------------
+Simplest: copy the whole folder. About 240 MB (ChemCraft) and 400 MB (RoboCraft).
+
+Smaller (about 75 MB each) if the new PC HAS INTERNET on first boot - Paper will
+re-download what it needs. You can then skip:
+
+    cache\        libraries\        versions\        logs\
+    plugins\.paper-remapped\
+
+Always copy:
+
+    paper.jar     server.properties     eula.txt     start.bat     rcon.ps1
+    world\        plugins\   (the jar AND the config folder inside it)
+
+Student progress lives in plugins\<Plugin>\players.yml plus placements.yml and
+robots.yml. Because both servers run offline-mode, a player's UUID is derived
+from their name - so students keep their plots and progress as long as they log
+in with the same username.
+
+
+4. STUDENTS ON OTHER PCs
+------------------------
+They do not use "localhost" - that means their own machine. They need the host
+PC's address on the local network:
+
+    ChemCraft    192.168.x.x
+    RoboCraft    192.168.x.x:25566
+
+Find it on the host with:   ipconfig    (look for IPv4 Address)
+
+Windows Firewall will ask once, the first time each server starts. Allow Java on
+PRIVATE networks. If you miss the prompt, nobody can connect and the server logs
+nothing unusual - that is the usual cause of "it says it is running but I cannot
+join".
+
+Both servers are online-mode=false, so any username works and no Mojang login is
+checked. That is right for a classroom LAN. Do NOT port-forward these to the
+internet with that setting.
+
+
+5. RCON
+-------
+RoboCraft listens on 25575, ChemCraft on 25576, both bound to all interfaces.
+That is what lets a Claude Code session read /rc questions and reply with
+/rc whisper.
+
+If the new PC will not run that, turn it off in server.properties:
+
+    enable-rcon=false
+
+The password is in server.properties. Change it if the machine is on a shared
+network.
+
+
+6. PORTS, FOR REFERENCE
+-----------------------
+                    game     rcon
+    ChemCraft       25565    25576
+    RoboCraft       25566    25575
+
+The two plugins must never share a world, but they are MEANT to run at the same
+time so a class can be split across them. Separate folders, separate ports.
