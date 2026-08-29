@@ -46,10 +46,19 @@ public class InteractListener implements Listener {
 
         Placed placed = plugin.placements().get(loc);
         if (placed != null) {
-            // Holding a block? They are building, not using. You assemble a robot by right-clicking
-            // the faces of parts you have already placed, so swallowing that click would make the
-            // controller impossible to build around - use an empty hand to open it, as in vanilla.
-            if (isPlacing(player)) return;
+            Part part = plugin.parts().get(placed.partId());
+            boolean isController = part != null && part.isController();
+
+            // A controller behaves like a chest: right-click opens it whatever you are holding,
+            // and you sneak to build against it. Requiring an empty hand instead was a mistake -
+            // a student assembling a robot has parts in hand at exactly the moment the guide tells
+            // them to click the controller, so the program would simply never open for them.
+            //
+            // Every other part stays out of the way of building: a block in hand means build, an
+            // empty hand means "tell me what you are reading".
+            if (player.isSneaking()) return;
+            if (!isController && isPlacing(player)) return;
+
             event.setCancelled(true);
             onPart(player, loc, placed);
             return;

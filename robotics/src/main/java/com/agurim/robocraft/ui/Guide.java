@@ -40,6 +40,7 @@ public final class Guide {
         line(player, "1. הניחו בקר. כל רכיב שתניחו לידו מתחבר אליו ומקבל שם: S1, S2 לחיישנים, A1 למפעילים.", NamedTextColor.YELLOW);
         line(player, "2. חייבת להיות סוללה. בלי אנרגיה הרובוט לא רץ.", NamedTextColor.YELLOW);
         line(player, "3. לחיצה ימנית על הבקר פותחת את התוכנית - שורה אחת לכל כלל.", NamedTextColor.YELLOW);
+        line(player, "   (כדי לבנות צמוד לבקר במקום לפתוח אותו - החזיקו Shift)", NamedTextColor.GRAY);
         line(player, "   WHEN S1 < 7 THEN A1 ON  =  כשהאור קטן מ-7, הדליקו את A1.", NamedTextColor.GRAY);
         line(player, "4. הכללים רצים מלמעלה למטה בכל סיבוב. כלל מאוחר גובר על מוקדם.", NamedTextColor.YELLOW);
         line(player, "5. פלט זוכר את מצבו! נורה שנדלקה לא תיכבה לבד - צריך כלל שמכבה אותה.", NamedTextColor.GOLD);

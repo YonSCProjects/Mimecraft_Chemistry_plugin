@@ -39,6 +39,30 @@ it needs first**; the shared core gets extracted once a second implementation sh
 seam is. Because the coupling is a mechanical `ChemCraftPlugin` -> `JavaPlugin` swap, waiting is
 cheap.
 
+## The two dev servers
+They are never loaded **into the same server** - separate worlds, plot grids and join flows - but
+they are meant to run **at the same time**, so a class can be split across both. Separate folders,
+separate ports, no clash.
+
+| | ChemCraft | RoboCraft |
+|---|---|---|
+| Folder | `C:.2_ChemCraft` | `C:.2_RoboCraft` |
+| Students join | `localhost` | `localhost:25566` |
+| Game port | 25565 (the default) | 25566 |
+| RCON port | 25576 | 25575 |
+| Start | `start.bat` | `start.bat` |
+
+Both are Paper 26.2 on Java 25, offline-mode, superflat, with `plot.ground-y: -61` - a flat world's
+top solid block, not the shipped default of 64, which would leave the wall floating.
+
+**RoboCraft holds RCON 25575 on purpose:** that is the fixed target of the Minecraft MCP bridge in
+a Claude Code session, and RoboCraft is where the assistant loop is being developed. Anything on
+the other port is reached with `robotics/tools/rcon.ps1 -Port 25576 "<command>"`, which works for
+either server and either PowerShell edition.
+
+ChemCraft needs `/cc region build` run once, by an op, on first join - the ten gathering zones are
+not built automatically and the command is player-only, so it cannot be done over RCON.
+
 ## Tech stack & build
 - **Dual target.** `gradle build` -> Paper **1.21.8** / Java 21 (legacy class server).
   `gradle build "-Pmc=26.2"` -> Paper **26.2 stable** / Java 25, jar `ChemCraft-x-mc26.2.jar`.
