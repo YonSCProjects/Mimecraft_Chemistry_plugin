@@ -110,7 +110,10 @@ not built automatically and the command is player-only, so it cannot be done ove
 1. Jar -> `plugins/`, start a 1.21.x server. It writes its config + content YAML into
    `plugins/ChemCraft/`.
 2. In `config.yml` set `world` and `plot.origin-x/z` to a flat empty area with ground at
-   `plot.ground-y`.
+   `plot.ground-y`. In **`server.properties` set `difficulty=peaceful`** (and
+   `spawn-monsters=false`): on anything else students are attacked while they build, and nothing
+   about dying points at a server setting - it reads as a plugin bug. Both dev servers ship
+   peaceful; RoboCraft's startup validator warns if a world is not.
 3. Join -> teleported to your plot. On first join you get a welcome title, a `/cc guide`
    walkthrough, a starter kit of raw materials, and a labeled row of station blocks built next to
    your ghost periodic-table wall (`StationKiosk`) - no op setup needed.

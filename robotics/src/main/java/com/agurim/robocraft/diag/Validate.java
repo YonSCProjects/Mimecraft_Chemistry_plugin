@@ -4,8 +4,10 @@ import com.agurim.robocraft.RoboCraftPlugin;
 import com.agurim.robocraft.act.ActuatorDriver;
 import com.agurim.robocraft.part.Part;
 import com.agurim.robocraft.sense.SensorReader;
+import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ public final class Validate {
         List<String> problems = new ArrayList<>();
 
         world(plugin, problems);
+        difficulty(plugin, problems);
         parts(plugin, problems);
         blocks(plugin, problems);
         board(plugin, problems);
@@ -47,6 +50,26 @@ public final class Validate {
         String name = plugin.getConfig().getString("world", "world");
         if (plugin.getServer().getWorld(name) == null) {
             problems.add("world '" + name + "' does not exist - plots will fall back to the default world.");
+        }
+    }
+
+    /**
+     * A teaching world on anything but PEACEFUL.
+     *
+     * <p>Unlike the rest of these checks this one is loud in game - you die - but it is loud in
+     * the wrong place. A teacher watching students be shot by skeletons while they wire a robot
+     * has no reason to suspect one line of server.properties, and every reason to suspect the
+     * plugin. Found the first time anyone played: mobs made the workshop unusable long before any
+     * mission could be attempted.
+     *
+     * <p>A warning, not a correction. Difficulty belongs to whoever runs the server, not to us.
+     */
+    private static void difficulty(RoboCraftPlugin plugin, List<String> problems) {
+        World world = plugin.plots().world();
+        if (world != null && world.getDifficulty() != Difficulty.PEACEFUL) {
+            problems.add("world '" + world.getName() + "' is on difficulty " + world.getDifficulty()
+                    + " - students get attacked while building. Set  difficulty=peaceful  in"
+                    + " server.properties and restart. This is a server setting, not a plugin one.");
         }
     }
 

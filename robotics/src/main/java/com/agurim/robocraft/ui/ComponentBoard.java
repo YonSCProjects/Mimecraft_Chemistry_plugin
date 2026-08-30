@@ -105,6 +105,17 @@ public class ComponentBoard {
 
     private Location labelAnchor(Location tile) { return tile.clone().add(0.5, 0.5, 1.3); }
 
+    /**
+     * Wrap width for a tile label, in pixels, derived from the tile pitch so the two cannot drift
+     * apart. A text display renders at 40 pixels to the block, so a spacing of 2 gives 80 pixels
+     * of room; the margin keeps neighbouring labels from touching.
+     *
+     * <p>Without this a label ran as wide as it liked - the default is 200 pixels, five blocks -
+     * on a grid pitched at two. Found by playtesting: the first person to stand at a board could
+     * not read it, because every tile was written over by the two beside it.
+     */
+    private int labelWidth() { return Math.max(40, spacing() * 40 - 12); }
+
     private void spawnLabel(Part part, Location tile, boolean unlocked) {
         // Board updates can arrive while the plot chunk is unloaded. getNearbyEntities cannot see
         // unloaded entities, so force the chunk's entities in first - Chunk#getEntities() is the
@@ -114,19 +125,21 @@ public class ComponentBoard {
 
         final String locked = unlocked ? null : unlockedBy(part);
         world().spawn(labelAnchor(tile), TextDisplay.class, td -> {
+            // Name only, plus what unlocks a locked tile. The range and the hint used to be
+            // here too, which made every label far wider than the tile it belonged to - and
+            // they were never needed here: PartItems already puts range, capacity, drain and
+            // hint on the item's own tooltip, where there is room and no neighbour to collide
+            // with. A board answers "what have I got, what am I working towards" at a glance;
+            // the detail belongs on the part itself.
             Component text = Component.text(part.name(), unlocked ? NamedTextColor.WHITE : NamedTextColor.GRAY);
-            if (unlocked) {
-                if (!part.range().isEmpty()) {
-                    text = text.append(Component.text("\n" + part.range(), NamedTextColor.AQUA));
-                }
-                text = text.append(Component.text("\n" + part.hint(), NamedTextColor.GRAY));
-            } else {
+            if (!unlocked) {
                 text = text.append(Component.text("\nנעול", NamedTextColor.DARK_GRAY));
                 if (locked != null) {
                     text = text.append(Component.text("\nמשימה: " + locked, NamedTextColor.YELLOW));
                 }
             }
             td.text(text);
+            td.setLineWidth(labelWidth());
             td.setBillboard(Display.Billboard.CENTER);
             td.setBrightness(new Display.Brightness(unlocked ? 15 : 4, unlocked ? 15 : 4));
             td.setSeeThrough(false);
