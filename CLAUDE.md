@@ -121,7 +121,8 @@ not built automatically and the command is player-only, so it cannot be done ove
    /chemcraft givemol hydrogen_gas 2
    /chemcraft givemol oxygen_gas 1   # react at the FURNACE -> water
    ```
-   Full commands: `/chemcraft guide | kit | tp | give | givemol | discover | reset | buildwall | reload` (`/cc`).
+   Full commands: `/chemcraft guide | kit | tp | region | visit | ask | questions | whisper |
+   report | give | givemol | discover | reset | buildwall | reload` (`/cc`).
 
 ## Architecture at a glance
 `ChemCraftPlugin#onEnable` builds every service and registers the listeners. Everything
@@ -140,7 +141,9 @@ Packages (`chemcraft/src/main/java/com/agurim/chemcraft/`):
 - `table/PeriodicWall` - per-plot ghost->lit periodic table (Display entities).
 - `plot/PlotManager` - grid of per-student plots in one shared world.
 - `data/PlayerStore` - per-UUID progress (`players.yml`): plot index, discovered elements.
-- `ui/` - `StationMenu`, `ReactionMenu` (chest GUIs).
+- `ui/` - `StationMenu`, `ReactionMenu` (chest GUIs), `Whisper` (private delivery).
+- `assistant/AskService` - captures a student's question plus their live state to
+  `questions.jsonl`; **the plugin never answers.** See Parked ideas for what is still open.
 - `listener/` - `JoinListener` (assign plot + build wall), `PlotProtection` (own-plot-only),
   `StationListener` (open station/reactor GUIs + handle clicks), `AtomBlockListener`
   (place/break atoms -> store, label, engines), `MoleculeListener` (sneak-click bond orders).
@@ -202,13 +205,14 @@ Runtime state (written by the plugin): `players.yml`, `atoms.yml`, `bonds.yml`.
   proportionally to what each student contributed (no flat payout - that's a currency printer).
 
 ### Parked ideas
-- **In-game AI lab assistant (עוזר/ת מעבדה)** available to every student: a log-tailing agent
-  answers chat questions per-student, using their real state (position, inventory,
-  `players.yml` progress). **NOT BUILT.** Reads are feasible today over RCON/MCP, but delivery
-  is not: on 26.2 `tell`/`tellraw`/`msg` execute silently over RCON and deliver nothing (only
-  `say` and `title`/`actionbar` work), so private replies need a plugin-side command
-  (e.g. `/cc whisper`) rather than a console command. Open questions: Socratic hints vs.
-  answers, rate limiting, and surfacing the questions to the teacher as formative assessment.
+- **In-game AI lab assistant (עוזר/ת מעבדה).** The *plugin* half is built: `/cc ask` records the
+  question with the state needed to answer it (position, held atom, inventory, progress) to
+  `questions.jsonl`, `/cc questions` reads them back, and `/cc whisper` delivers a private reply -
+  a plugin command, because on 26.2 console `tell`/`tellraw`/`msg` execute silently over RCON and
+  deliver nothing (only `say` and `title`/`actionbar` work). Per-student cooldown included.
+  **What is NOT built is the loop**: nothing polls `questions.jsonl` and answers. Today that is a
+  person driving it over RCON. Still open, and these are pedagogy questions, not code: Socratic
+  hints vs. answers, and surfacing the questions to the teacher as formative assessment.
 - **`/cc progress`** teacher overview (per-student tiles lit / assists / seen count) - there is
   currently no way to see the class without walking plot to plot.
 - **Resource pack** mapping `custom_model_data` (atoms `7000 + atomicNumber`, molecules
