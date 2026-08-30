@@ -16,6 +16,7 @@ import com.agurim.robocraft.program.RuleEdit;
 import com.agurim.robocraft.program.Verb;
 import com.agurim.robocraft.robot.Robot;
 import com.agurim.robocraft.sense.SensorReader;
+import com.agurim.robocraft.ui.Guide;
 import com.agurim.robocraft.ui.ProgramMenu;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -73,6 +74,7 @@ public final class SelfTest {
             editing(plugin, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
+            legibility(plugin, checks);
         } catch (Exception e) {
             checks.add(new Check("self-test ran without throwing", false, e.toString()));
             plugin.getLogger().warning("selftest threw: " + e);
@@ -866,6 +868,54 @@ public final class SelfTest {
         checks.add(new Check("a memory target only ever offers SET/ADD",
                 Verb.SET.next(true).isMemory() && Verb.ADD.next(true).isMemory(),
                 Verb.SET.next(true) + ", " + Verb.ADD.next(true)));
+    }
+
+    // ------------------------------------------------------- E2. legibility
+
+    /**
+     * That the guide actually fits in the chat it is printed to.
+     *
+     * <p>The only check here that came from a person rather than from reasoning. /rc guide sent
+     * seventeen lines into a ten-line chat, so it appeared to start at item 6, and its two longest
+     * lines wrapped and cost a line each on top. Nothing threw, every string was correct, and the
+     * feature was unusable. Arithmetic can hold the line where a Bukkit test cannot: a guide that
+     * does not fit on screen is a guide nobody reads.
+     */
+    private static void legibility(RoboCraftPlugin plugin, List<Check> checks) {
+        List<String> body = Guide.bodyText();
+
+        // Two lines are reserved for the progress footer send() appends.
+        int budget = Guide.CHAT_LINES - 2;
+        checks.add(new Check("the guide body fits the chat window",
+                body.size() <= budget, body.size() + " lines, budget " + budget));
+
+        String widest = "";
+        for (String l : body) if (l.length() > widest.length()) widest = l;
+        checks.add(new Check("no guide line is wide enough to wrap",
+                widest.length() <= Guide.CHAT_WIDTH,
+                widest.length() + " chars: " + widest));
+
+        // A wrapped mission name would cost the same line the footer needs.
+        String longest = "";
+        for (Mission m : plugin.missions().registry().all()) {
+            if (m.name().length() > longest.length()) longest = m.name();
+        }
+        checks.add(new Check("the longest mission name still fits the progress footer",
+                ("הבאה בתור: " + longest).length() <= Guide.CHAT_WIDTH,
+                longest));
+
+        // The numbered steps must read 1..n with nothing missing, or the list looks truncated -
+        // which is exactly how the old one looked when its top had scrolled away.
+        int expected = 1;
+        boolean sequential = true;
+        for (String l : body) {
+            if (!l.isEmpty() && Character.isDigit(l.charAt(0))) {
+                if (!l.startsWith(expected + ". ")) { sequential = false; break; }
+                expected++;
+            }
+        }
+        checks.add(new Check("the guide steps are numbered from 1 with no gaps",
+                sequential && expected > 1, "next expected " + expected));
     }
 
     // ---------------------------------------------------------- F. geometry

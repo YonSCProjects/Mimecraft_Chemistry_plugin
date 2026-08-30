@@ -8,6 +8,8 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The player-facing "how to play". Shown once on first join and any time via {@code /rc guide}.
@@ -16,10 +18,59 @@ import java.time.Duration;
  * wall of text at a spot where none of the mechanics can be performed teaches nothing. The rest of
  * the teaching lives where it is usable - the status bar, the board tiles, and the part labels.
  * (ChemCraft learned this the hard way.)
+ *
+ * <p>That lesson was written here and then not applied to {@link #send}, which sent seventeen
+ * lines. The first player to run {@code /rc guide} saw it begin at item 6, because everything
+ * above had already scrolled away - and the two indented continuation lines, mixing a Hebrew
+ * sentence with a Latin rule, arrived scrambled. Hence {@link #CHAT_LINES} and
+ * {@link #CHAT_WIDTH}, and a self-test that holds this file to them.
  */
 public final class Guide {
 
     private Guide() {}
+
+    /**
+     * What Minecraft's chat will actually show, and the budget every message here is written to.
+     *
+     * <p>Unfocused chat displays ten lines. A line longer than the chat is wide does not get
+     * clipped, it <em>wraps</em> - so one over-long line costs two of the ten and silently pushes
+     * the top of the guide out of view. The real wrap is near 53 characters; 48 leaves room for a
+     * mission name to be substituted in without tipping over.
+     */
+    public static final int CHAT_LINES = 10;
+    public static final int CHAT_WIDTH = 48;
+
+    /** One line of the guide: the text, and the colour it is sent in. */
+    private record Line(String text, NamedTextColor color) {}
+
+    /**
+     * The guide body, as data so the self-test can measure it.
+     *
+     * <p>Eight lines, because {@link #sendProgress} adds two and the budget is ten. Every step is
+     * one line and the numbering starts at 1 and is unbroken: a continuation line indented under
+     * its parent reads as a separate, unnumbered instruction, which is what made the old version
+     * look garbled.
+     *
+     * <p>What is not here is deliberate. Energy, ports and live readings are all shown by the
+     * part labels and the status bar, in front of the student, at the moment they matter. This
+     * text only has to get someone as far as their first rule.
+     */
+    private static final List<Line> BODY = List.of(
+            new Line("==== RoboCraft - איך משחקים ====", NamedTextColor.AQUA),
+            new Line("1. הניחו בקר, ולידו סוללה, חיישן ומפעיל.", NamedTextColor.YELLOW),
+            new Line("2. כל רכיב מקבל שם: חיישן S1, מפעיל A1.", NamedTextColor.YELLOW),
+            new Line("3. לחיצה ימנית = תוכנית. Shift+לחיצה = בנייה.", NamedTextColor.YELLOW),
+            new Line("4. כלל בכל שורה, מלמעלה למטה. המאוחר גובר.", NamedTextColor.YELLOW),
+            new Line("5. פלט זוכר את מצבו - צריך גם כלל שמכבה.", NamedTextColor.GOLD),
+            new Line("6. התוויות מראות מה כל חיישן קורא עכשיו.", NamedTextColor.YELLOW),
+            new Line("פקודות: /rc missions | /rc trace | /rc ask", NamedTextColor.DARK_AQUA));
+
+    /** The guide body as plain text, for the self-test to measure. */
+    public static List<String> bodyText() {
+        List<String> out = new ArrayList<>();
+        for (Line l : BODY) out.add(l.text());
+        return out;
+    }
 
     public static void welcome(Player player) {
         player.showTitle(Title.title(
@@ -35,24 +86,17 @@ public final class Guide {
     }
 
     public static void send(RoboCraftPlugin plugin, Player player) {
-        line(player, "==== RoboCraft - איך משחקים ====", NamedTextColor.AQUA);
-        line(player, "כל מנגנון רובוטי הוא לולאה: חיישן נותן מספר, התוכנית מחליטה, המפעיל פועל.", NamedTextColor.WHITE);
-        line(player, "1. הניחו בקר. כל רכיב שתניחו לידו מתחבר אליו ומקבל שם: S1, S2 לחיישנים, A1 למפעילים.", NamedTextColor.YELLOW);
-        line(player, "2. חייבת להיות סוללה. בלי אנרגיה הרובוט לא רץ.", NamedTextColor.YELLOW);
-        line(player, "3. לחיצה ימנית על הבקר פותחת את התוכנית - שורה אחת לכל כלל.", NamedTextColor.YELLOW);
-        line(player, "   (כדי לבנות צמוד לבקר במקום לפתוח אותו - החזיקו Shift)", NamedTextColor.GRAY);
-        line(player, "   WHEN S1 < 7 THEN A1 ON  =  כשהאור קטן מ-7, הדליקו את A1.", NamedTextColor.GRAY);
-        line(player, "4. הכללים רצים מלמעלה למטה בכל סיבוב. כלל מאוחר גובר על מוקדם.", NamedTextColor.YELLOW);
-        line(player, "5. פלט זוכר את מצבו! נורה שנדלקה לא תיכבה לבד - צריך כלל שמכבה אותה.", NamedTextColor.GOLD);
-        line(player, "6. התוויות מעל הרכיבים מראות מה כל חיישן קורא עכשיו - שם מנפים באגים.", NamedTextColor.YELLOW);
-        line(player, "7. /rc missions - רשימת המשימות. הרצה בודקת את הרובוט ואומרת מה לא עבד.", NamedTextColor.YELLOW);
-        line(player, "8. תקועים? /rc trace מראה מה כל חיישן קורא ואיזה כלל קבע כל פלט.", NamedTextColor.GOLD);
-        line(player, "9. עדיין תקועים? שאלו: /rc ask <שאלה> - התשובה תגיע אליכם בצ'אט.", NamedTextColor.LIGHT_PURPLE);
-        line(player, "פקודות: /rc guide | /rc kit | /rc tp | /rc missions | /rc trace | /rc ask | /rc charge", NamedTextColor.DARK_AQUA);
-        sendProgress(plugin, player);
+        for (Line l : BODY) line(player, l.text(), l.color());
+        // No brief here: briefs run to sixty characters, which wraps and costs a line the guide
+        // has not got. /rc missions is where a brief has room.
+        sendProgress(plugin, player, false);
     }
 
     public static void sendProgress(RoboCraftPlugin plugin, Player player) {
+        sendProgress(plugin, player, true);
+    }
+
+    public static void sendProgress(RoboCraftPlugin plugin, Player player, boolean withBrief) {
         int done = plugin.missions().registry()
                 .requiredDone(plugin.store().completedMissions(player.getUniqueId()));
         int total = plugin.missions().registry().requiredCount();
@@ -63,8 +107,8 @@ public final class Guide {
 
         Mission next = plugin.missions().registry().nextFor(plugin.store().completedMissions(player.getUniqueId()));
         if (next != null) {
-            player.sendMessage(Component.text("הבאה בתור: " + next.name() + " - " + next.brief(),
-                    NamedTextColor.YELLOW));
+            String text = withBrief ? next.name() + " - " + next.brief() : next.name();
+            player.sendMessage(Component.text("הבאה בתור: " + text, NamedTextColor.YELLOW));
         }
     }
 
