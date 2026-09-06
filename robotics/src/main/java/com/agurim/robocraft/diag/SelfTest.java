@@ -1031,10 +1031,53 @@ public final class SelfTest {
         }
         checks.add(new Check("no trophy overwrites a Component Board tile", clear, clash));
 
-        checks.add(new Check("an unearned trophy is a ghost, an earned one is not",
-                TrophyShelf.trophyBlock(false, false) == Material.GRAY_STAINED_GLASS
-                        && TrophyShelf.trophyBlock(true, false) != Material.GRAY_STAINED_GLASS,
-                String.valueOf(TrophyShelf.trophyBlock(true, false))));
+        checks.add(new Check("an unearned trophy still looks different from an earned one",
+                TrophyShelf.trophyBlock(false, false) != TrophyShelf.trophyBlock(true, false),
+                TrophyShelf.trophyBlock(false, false) + " vs " + TrophyShelf.trophyBlock(true, false)));
+
+        // The one a person had to find for us. An empty trophy used to be GRAY_STAINED_GLASS,
+        // which is exactly what a locked board tile is - so the shelf did not read as a separate
+        // object at all: "they look like part of the wall". Placement was provably correct the
+        // whole time. Being in the right place and being legible are different properties, and
+        // only this second one was ever in doubt.
+        boolean sharesWallBlock = false;
+        for (Part part : plugin.parts().all()) {
+            if (part.block() == TrophyShelf.trophyBlock(false, false)
+                    || part.block() == TrophyShelf.trophyBlock(true, true)
+                    || part.block() == TrophyShelf.trophyBlock(true, false)) {
+                sharesWallBlock = true;
+                break;
+            }
+        }
+        checks.add(new Check("no trophy block is also a part block, so the shelf is never mistaken for the wall",
+                !sharesWallBlock && TrophyShelf.trophyBlock(false, false) != Material.GRAY_STAINED_GLASS,
+                "ghost is " + TrophyShelf.trophyBlock(false, false)));
+
+        // Beside the board, not on top of it: every trophy must be clear of the board's columns.
+        int boardMaxX = Integer.MIN_VALUE;
+        for (int i = 0; i < plugin.parts().size(); i++) {
+            boardMaxX = Math.max(boardMaxX, plugin.board().tileLocation(plot, i).getBlockX());
+        }
+        int shelfMinX = Integer.MAX_VALUE;
+        for (int i = 0; i < missions.size(); i++) {
+            shelfMinX = Math.min(shelfMinX, plugin.trophies().slotLocation(plot, i).getBlockX());
+        }
+        checks.add(new Check("the shelf stands clear to the side of the board, not over it",
+                shelfMinX > boardMaxX, "board ends at x=" + boardMaxX + ", shelf starts at x=" + shelfMinX));
+
+        // Above eye level is where the first one went unseen. Keep it level with the board.
+        int boardBottom = plugin.board().tileLocation(plot, plugin.parts().size() - 1).getBlockY();
+        int shelfTop = Integer.MIN_VALUE;
+        for (int i = 0; i < missions.size(); i++) {
+            shelfTop = Math.max(shelfTop, plugin.trophies().slotLocation(plot, i).getBlockY());
+        }
+        int boardTop = Integer.MIN_VALUE;
+        for (int i = 0; i < plugin.parts().size(); i++) {
+            boardTop = Math.max(boardTop, plugin.board().tileLocation(plot, i).getBlockY());
+        }
+        checks.add(new Check("the shelf is within the board's own height, not floating above it",
+                shelfTop <= boardTop && shelfTop >= boardBottom,
+                "shelf top y=" + shelfTop + ", board spans " + boardBottom + ".." + boardTop));
 
         checks.add(new Check("a warm-up trophy is visibly different from a ladder trophy",
                 TrophyShelf.trophyBlock(true, true) != TrophyShelf.trophyBlock(true, false),

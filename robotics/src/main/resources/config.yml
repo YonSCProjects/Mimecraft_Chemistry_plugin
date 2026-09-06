@@ -106,18 +106,25 @@ celebrate:
   # that costs no part, no gear and no gate.
   broadcast: true
 
-# A row of trophies above the Component Board - one slot per mission, grey glass until earned,
+# A grid of trophies BESIDE the Component Board - one slot per mission, dark glass until earned,
 # then iron for a warm-up and gold for a rung of the required ladder. Permanent, visible to
 # visitors, and grants nothing whatsoever.
 #
-# Its height is derived from the board's, NOT set here: a bundled default is only copied to a
-# server that has no config.yml yet, so an absolute Y would be wrong on every server already
-# running (the class servers use board.offset-y: -60 against a shipped default of 65).
+# It started above the board and that was wrong twice over: the first person to stand on a plot
+# never saw it, because it was above eye level - and once told where to look, said it "looks like
+# part of the wall", because an empty slot was the same grey glass as a locked board tile. Now it
+# sits at the board's own height, a clear gap to its right, in a block the wall never uses.
+#
+# Its position is derived from the board's layout, NOT set absolutely: a bundled default is only
+# copied to a server that has no config.yml yet, so a fixed X or Y would be wrong on every server
+# already running (the class servers use board.offset-y: -60 against a shipped default of 65).
 trophies:
   enabled: true
   spacing: 2
-  # Blocks of clear air between the top row of the board and the shelf.
-  above-board: 2
+  # 8 missions over 4 columns = two rows, both at eye level.
+  per-row: 4
+  # Blocks of empty wall between the board's right-hand edge and the first trophy.
+  gap: 3
 
 # What happens when a student touches someone else's plot. The attempt ALWAYS fails; this only
 # shapes how failing feels. Deliberately undramatic - see ChemCraft's plot shield.

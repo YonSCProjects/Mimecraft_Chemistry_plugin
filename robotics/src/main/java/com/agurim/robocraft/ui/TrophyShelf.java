@@ -43,45 +43,59 @@ public class TrophyShelf {
     private boolean enabled() { return plugin.getConfig().getBoolean("trophies.enabled", true); }
 
     private int spacing() { return Math.max(1, plugin.getConfig().getInt("trophies.spacing", 2)); }
+    private int perRow()  { return Math.max(1, plugin.getConfig().getInt("trophies.per-row", 4)); }
 
     private List<Mission> missions() { return new ArrayList<>(plugin.missions().registry().all()); }
 
     /**
-     * The shelf's height, derived from the board rather than configured outright.
+     * Where the shelf sits: beside the board, at the same height, not above it.
      *
-     * <p>An absolute {@code trophies.offset-y} would be wrong on every server that already has a
-     * {@code config.yml}, because a bundled default is only copied when the file is absent - the
-     * class servers run {@code board.offset-y: -60} against a shipped default of 65. Deriving the
-     * height means the shelf lands just above the board wherever that wall happens to be.
+     * <p>The first draft put it two blocks above the board's top row, and the first person to
+     * stand in front of a plot did not see it at all - then, told where to look, said it "looks
+     * like part of the wall". Two separate mistakes. It was above eye level, so it was never in
+     * shot; and an unearned trophy was the same grey stained glass as a locked board tile, so even
+     * once found it read as a fourth row of the parts wall rather than a different object.
+     *
+     * <p>Everything here is derived from the board's own layout rather than configured absolutely,
+     * because a bundled default is only copied to a server that has no {@code config.yml} yet -
+     * the class servers run {@code board.offset-y: -60} against a shipped default of 65. Deriving
+     * it means the shelf lands correctly beside whatever wall a server actually has.
      */
-    private int shelfY() {
-        int boardY = plugin.getConfig().getInt("board.offset-y", 65);
-        int boardSpacing = Math.max(1, plugin.getConfig().getInt("board.tile-spacing", 2));
-        int boardPerRow = Math.max(1, plugin.getConfig().getInt("board.per-row", 6));
-        int boardRows = Math.max(1, (int) Math.ceil(plugin.parts().size() / (double) boardPerRow));
-        int boardTop = boardY + (boardRows - 1) * boardSpacing;
-        return boardTop + Math.max(1, plugin.getConfig().getInt("trophies.above-board", 2));
+    private int boardOffsetY()   { return plugin.getConfig().getInt("board.offset-y", 65); }
+    private int boardSpacing()   { return Math.max(1, plugin.getConfig().getInt("board.tile-spacing", 2)); }
+    private int boardPerRow()    { return Math.max(1, plugin.getConfig().getInt("board.per-row", 6)); }
+
+    /** First column of the shelf: clear of the board's right-hand edge, plus a gap of empty wall. */
+    private int startX() {
+        return plugin.getConfig().getInt("board.offset-x", 8)
+                + boardPerRow() * boardSpacing()
+                + Math.max(1, plugin.getConfig().getInt("trophies.gap", 3));
     }
 
-    /** World location of trophy slot i on a plot's shelf. Index 0 is leftmost. */
+    /** World location of trophy slot i. Index 0 is top-left, reading like the board. */
     public Location slotLocation(int plotIndex, int i) {
         Location corner = plugin.plots().plotCorner(plotIndex);
-        int ox = plugin.getConfig().getInt("trophies.offset-x",
-                plugin.getConfig().getInt("board.offset-x", 8));
         int oz = plugin.getConfig().getInt("trophies.offset-z",
                 plugin.getConfig().getInt("board.offset-z", 4));
+        int rows = Math.max(1, (int) Math.ceil(missions().size() / (double) perRow()));
+        int col = i % perRow();
+        int row = i / perRow();
         return new Location(world(),
-                corner.getBlockX() + ox + i * spacing(),
-                shelfY(),
+                corner.getBlockX() + startX() + col * spacing(),
+                // Bottom row level with the board's bottom row, so the whole shelf is at eye height.
+                boardOffsetY() + (rows - 1 - row) * boardSpacing(),
                 corner.getBlockZ() + oz);
     }
 
     /**
-     * The block an earned trophy shows. Warm-ups and the required ladder are visibly different
-     * metals, so the shelf reads as "practice" then "the real thing" without a word of text.
+     * The block a trophy shows.
+     *
+     * <p>An empty slot is deliberately NOT the board's grey stained glass. Sharing that block made
+     * the shelf invisible as a separate object - the whole point of it is to be a different thing
+     * you have earned, so it has to look like one before anything is earned at all.
      */
     public static Material trophyBlock(boolean earned, boolean warmUp) {
-        if (!earned) return Material.GRAY_STAINED_GLASS;
+        if (!earned) return Material.BLACK_STAINED_GLASS;
         return warmUp ? Material.IRON_BLOCK : Material.GOLD_BLOCK;
     }
 
