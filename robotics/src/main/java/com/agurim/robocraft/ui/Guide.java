@@ -97,15 +97,25 @@ public final class Guide {
     }
 
     public static void sendProgress(RoboCraftPlugin plugin, Player player, boolean withBrief) {
-        int done = plugin.missions().registry()
-                .requiredDone(plugin.store().completedMissions(player.getUniqueId()));
-        int total = plugin.missions().registry().requiredCount();
+        var registry = plugin.missions().registry();
+        var completed = plugin.store().completedMissions(player.getUniqueId());
+        int done = registry.requiredDone(completed);
+        int total = registry.requiredCount();
         int parts = plugin.store().unlocked(player.getUniqueId()).size();
+
+        // Warm-ups are only worth a segment while they are what the student is actually doing.
+        // Shown always, "משימות: 0 / 5" is the only number a beginner ever sees, and it reads as
+        // no progress at all when they have in fact just finished something.
+        String warm = "";
+        if (done == 0 && registry.warmUpCount() > 0 && registry.warmUpsDone(completed) > 0) {
+            warm = "  ·  חימום: " + registry.warmUpsDone(completed) + "/" + registry.warmUpCount();
+        }
         player.sendMessage(Component.text(
-                "משימות: " + done + " / " + total + "  ·  רכיבים: " + parts + " / " + plugin.parts().size(),
+                "משימות: " + done + " / " + total + warm
+                        + "  ·  רכיבים: " + parts + " / " + plugin.parts().size(),
                 NamedTextColor.AQUA));
 
-        Mission next = plugin.missions().registry().nextFor(plugin.store().completedMissions(player.getUniqueId()));
+        Mission next = registry.nextSuggested(completed);
         if (next != null) {
             String text = withBrief ? next.name() + " - " + next.brief() : next.name();
             player.sendMessage(Component.text("הבאה בתור: " + text, NamedTextColor.YELLOW));

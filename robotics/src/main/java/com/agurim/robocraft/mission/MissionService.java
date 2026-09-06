@@ -7,9 +7,14 @@ import com.agurim.robocraft.robot.Robot;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
+import org.bukkit.Color;
+import org.bukkit.FireworkEffect;
+import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.meta.FireworkMeta;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -235,7 +240,10 @@ public class MissionService {
         if (run.owner != null) lastFailure.remove(run.owner);   // solved; stop advertising it
 
         List<String> unlocked = new ArrayList<>();
+        boolean firstTime = false;
         if (run.owner != null) {
+            // Read before recording, or every retry looks like a first success.
+            firstTime = !plugin.store().isMissionDone(run.owner, run.mission.id());
             plugin.store().completeMission(run.owner, run.mission.id());
             for (String partId : run.mission.reward()) {
                 if (plugin.parts().has(partId) && plugin.store().unlock(run.owner, partId)) {
@@ -244,11 +252,17 @@ public class MissionService {
             }
         }
 
+        // Say what they GAINED, not the mission name they already know they just ran. For a
+        // warm-up there is nothing to unlock, so the subtitle carries the encouragement instead.
+        String gained = unlocked.isEmpty()
+                ? (run.mission.optional() ? "חימום הושלם" : run.mission.name())
+                : "נפתח: " + String.join(", ", unlocked);
+
         if (run.sender instanceof Player player) {
             player.showTitle(Title.title(
                     Component.text("הצלחה!", NamedTextColor.GREEN),
-                    Component.text(run.mission.name(), NamedTextColor.WHITE),
-                    Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(2), Duration.ofMillis(600))));
+                    Component.text(gained, NamedTextColor.GOLD),
+                    Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(800))));
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.4f);
         }
         run.sender.sendMessage(Component.text("✔ " + run.mission.name() + " עבר את כל הבדיקות",
@@ -256,16 +270,64 @@ public class MissionService {
 
         if (!unlocked.isEmpty()) {
             run.sender.sendMessage(Component.text("נפתח: " + String.join(", ", unlocked), NamedTextColor.GOLD));
-            plugin.board().build(plugin.store().getOrAssignPlotIndex(run.owner), run.owner);
         }
+
+        // Everything below needs a real student behind the run. `/rc selftest` drives the bench
+        // with no owner, and must not light a trophy or announce anything to the class.
         if (run.owner != null) {
-            Mission next = registry.nextFor(plugin.store().completedMissions(run.owner));
+            int plot = plugin.store().getOrAssignPlotIndex(run.owner);
+            if (!unlocked.isEmpty()) plugin.board().build(plot, run.owner);
+            plugin.trophies().award(plot, run.mission);
+            if (firstTime) celebrate(run, plot);
+
+            Mission next = registry.nextSuggested(plugin.store().completedMissions(run.owner));
             if (next != null) {
                 run.sender.sendMessage(Component.text(
                         "הבאה בתור: " + next.name() + " - /rc mission " + next.id(), NamedTextColor.AQUA));
             }
             if (run.sender instanceof Player player) plugin.statusBar().update(player);
         }
+    }
+
+    /**
+     * The moment itself: a firework over the student's own board, and one line to the class.
+     *
+     * <p>First completion only. Re-running a mission you have already passed is encouraged - it is
+     * how you check a change - but it must not re-announce, or the class chat fills with noise and
+     * the announcement stops meaning anything.
+     *
+     * <p>The broadcast is the cheapest motivation in the plugin: public recognition, costing no
+     * part, no gear and no gate. It is also the only place a student's work is visible to the room
+     * without someone walking to their plot.
+     */
+    private void celebrate(Run run, int plot) {
+        if (plugin.getConfig().getBoolean("celebrate.fireworks", true)) {
+            // Above the board, where they are standing and looking - and high enough that the
+            // burst cannot hurt anybody. Fireworks damage on detonation at point-blank range.
+            Location spot = plugin.board().arrivalSpot(plot).add(0, 2, 0);
+            spawnFirework(spot, run.mission.optional());
+        }
+
+        if (plugin.getConfig().getBoolean("celebrate.broadcast", true)) {
+            String who = plugin.store().getName(run.owner);
+            plugin.getServer().broadcast(Component.text(
+                    "★ " + who + " סיים/ה את " + run.mission.name(), NamedTextColor.GOLD));
+        }
+    }
+
+    private void spawnFirework(Location spot, boolean warmUp) {
+        if (spot.getWorld() == null) return;
+        spot.getWorld().spawn(spot, Firework.class, fw -> {
+            FireworkMeta meta = fw.getFireworkMeta();
+            meta.addEffect(FireworkEffect.builder()
+                    .with(warmUp ? FireworkEffect.Type.BALL : FireworkEffect.Type.BALL_LARGE)
+                    .withColor(warmUp ? Color.SILVER : Color.YELLOW)
+                    .withFade(Color.WHITE)
+                    .trail(!warmUp)
+                    .build());
+            meta.setPower(1);
+            fw.setFireworkMeta(meta);
+        });
     }
 
     private void fail(Run run, Robot robot, Mission.Step step, String detail) {

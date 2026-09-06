@@ -37,6 +37,7 @@ public class JoinListener implements Listener {
 
         if (!plugin.store().isBoardBuilt(id)) {
             plugin.board().build(plot, id);
+            plugin.trophies().build(plot, id);
             plugin.kiosk().build(plot);
             plugin.store().setBoardBuilt(id, true);
         }

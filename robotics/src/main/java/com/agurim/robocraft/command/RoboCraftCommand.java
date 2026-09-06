@@ -172,11 +172,19 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         com.agurim.robocraft.ui.Trace.send(plugin, player, robot);
     }
 
+    /**
+     * Rebuild everything the plugin puts on a plot.
+     *
+     * <p>The trophy shelf belongs here too, not only in {@code JoinListener}: the join path builds
+     * it once behind the {@code board-built} flag, so without this a student whose shelf was broken
+     * or lost with a world reset would have no way at all to get it back.
+     */
     private void rebuildBoard(Player player) {
         int plot = plugin.store().getOrAssignPlotIndex(player.getUniqueId());
         plugin.board().build(plot, player.getUniqueId());
+        plugin.trophies().build(plot, player.getUniqueId());
         plugin.kiosk().build(plot);
-        player.sendMessage(Component.text("לוח הרכיבים נבנה מחדש.", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("לוח הרכיבים והמדף נבנו מחדש.", NamedTextColor.GREEN));
     }
 
     /** The player's robot: the only one they own, or the nearest if they have several. */

@@ -19,6 +19,7 @@ import com.agurim.robocraft.robot.RobotEngine;
 import com.agurim.robocraft.robot.RobotStore;
 import com.agurim.robocraft.ui.ComponentBoard;
 import com.agurim.robocraft.ui.StatusBar;
+import com.agurim.robocraft.ui.TrophyShelf;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -40,6 +41,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     private PlayerStore store;
     private PlotManager plots;
     private ComponentBoard board;
+    private TrophyShelf trophies;
     private WorkshopKiosk kiosk;
     private StatusBar statusBar;
     private AskService ask;
@@ -47,14 +49,16 @@ public final class RoboCraftPlugin extends JavaPlugin {
     private NamespacedKey partKey;
     private NamespacedKey tileKey;
     private NamespacedKey kioskKey;
+    private NamespacedKey trophyKey;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
-        this.partKey  = new NamespacedKey(this, "part");
-        this.tileKey  = new NamespacedKey(this, "tile");
-        this.kioskKey = new NamespacedKey(this, "kiosk");
+        this.partKey   = new NamespacedKey(this, "part");
+        this.tileKey   = new NamespacedKey(this, "tile");
+        this.kioskKey  = new NamespacedKey(this, "kiosk");
+        this.trophyKey = new NamespacedKey(this, "trophy");
 
         this.parts      = new PartRegistry(this);
         this.store      = new PlayerStore(this);
@@ -64,6 +68,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
         this.missions   = new MissionService(this);
         this.engine     = new RobotEngine(this);
         this.board      = new ComponentBoard(this);
+        this.trophies   = new TrophyShelf(this);
         this.kiosk      = new WorkshopKiosk(this);
         this.statusBar  = new StatusBar(this);
         this.ask        = new AskService(this);
@@ -113,6 +118,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     public PlayerStore store()       { return store; }
     public PlotManager plots()       { return plots; }
     public ComponentBoard board()    { return board; }
+    public TrophyShelf trophies()    { return trophies; }
     public WorkshopKiosk kiosk()     { return kiosk; }
     public StatusBar statusBar()     { return statusBar; }
     public AskService ask()          { return ask; }
@@ -120,4 +126,5 @@ public final class RoboCraftPlugin extends JavaPlugin {
     public NamespacedKey partKey()   { return partKey; }
     public NamespacedKey tileKey()   { return tileKey; }
     public NamespacedKey kioskKey()  { return kioskKey; }
+    public NamespacedKey trophyKey() { return trophyKey; }
 }

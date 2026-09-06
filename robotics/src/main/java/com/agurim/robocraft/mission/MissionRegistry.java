@@ -92,6 +92,34 @@ public class MissionRegistry {
         return n;
     }
 
+    public int warmUpCount() { return warmUps().size(); }
+
+    public int warmUpsDone(java.util.Set<String> done) {
+        int n = 0;
+        for (Mission m : warmUps()) if (done.contains(m.id())) n++;
+        return n;
+    }
+
+    /**
+     * What to actually point a student at next - which is not the same question as
+     * {@link #nextFor}.
+     *
+     * <p>{@code nextFor} is the required ladder and nothing else. That is right for counting
+     * progress and wrong for telling a beginner where to go: a student who had just finished
+     * warm-up 1 was being sent straight past warm-ups 2 and 3 to the required ladder, so the two
+     * missions written to give them an easy second and third success were never offered.
+     *
+     * <p>So while the required ladder is untouched, suggest the next warm-up. The moment they
+     * complete a real rung, warm-ups stop being suggested - they are practice, and continuing to
+     * nag about optional work is how optional work stops feeling optional.
+     */
+    public Mission nextSuggested(java.util.Set<String> done) {
+        if (requiredDone(done) == 0) {
+            for (Mission m : warmUps()) if (!done.contains(m.id())) return m;
+        }
+        return nextFor(done);
+    }
+
     /**
      * Walk the ladder and complain if a mission needs a part nothing has unlocked yet.
      *

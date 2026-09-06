@@ -23,28 +23,60 @@ public class StatusBar {
 
     public StatusBar(RoboCraftPlugin plugin) { this.plugin = plugin; }
 
+    /** What the bar should say and how full it should be. Data, so it can be tested. */
+    public record Status(String text, float progress, boolean warmUp) {}
+
+    /**
+     * The bar's contents, with no Bukkit in sight - {@code SelfTest} drives this directly.
+     *
+     * <p>The warm-up track exists because the required ladder alone made a student's first
+     * success invisible: finishing a warm-up moved nothing, since {@link
+     * com.agurim.robocraft.mission.MissionRegistry#requiredDone} deliberately does not count them.
+     * A beginner would complete their first mission and watch the bar stay exactly where it was.
+     * So while they are still on the warm-ups, the bar counts warm-ups.
+     */
+    public static Status compute(String nextName, boolean nextIsWarmUp,
+                                 int warmDone, int warmTotal, int reqDone, int reqTotal) {
+        if (nextName == null) {
+            return new Status("כל המשימות הושלמו! בנו מנגנון משלכם", 1f, false);
+        }
+        if (nextIsWarmUp && warmTotal > 0) {
+            return new Status("חימום " + (warmDone + 1) + "/" + warmTotal + ": " + nextName,
+                    (float) warmDone / warmTotal, true);
+        }
+        int total = Math.max(1, reqTotal);
+        return new Status("משימה " + (reqDone + 1) + "/" + total + ": " + nextName,
+                Math.min(1f, (float) reqDone / total), false);
+    }
+
     public void update(Player player) {
         if (!plugin.getConfig().getBoolean("status-bar.enabled", true)) return;
 
         UUID id = player.getUniqueId();
-        // Required ladder only: a student who skipped the warm-ups is not behind.
-        int done = plugin.missions().registry().requiredDone(plugin.store().completedMissions(id));
-        int total = Math.max(1, plugin.missions().registry().requiredCount());
-        Mission next = plugin.missions().registry().nextFor(plugin.store().completedMissions(id));
+        var registry = plugin.missions().registry();
+        var done = plugin.store().completedMissions(id);
+        Mission next = registry.nextSuggested(done);
 
-        String text = (next == null)
-                ? "כל המשימות הושלמו! בנו מנגנון משלכם"
-                : "משימה " + (done + 1) + "/" + total + ": " + next.name();
+        Status status = compute(
+                next == null ? null : next.name(),
+                next != null && next.optional(),
+                registry.warmUpsDone(done), registry.warmUpCount(),
+                registry.requiredDone(done), registry.requiredCount());
+
+        // A different colour for the warm-up track, so the switch to the real ladder is a visible
+        // promotion rather than a number quietly changing.
+        BossBar.Color color = status.warmUp() ? BossBar.Color.YELLOW : BossBar.Color.BLUE;
 
         BossBar bar = bars.get(id);
         if (bar == null) {
-            bar = BossBar.bossBar(Component.text(text, NamedTextColor.AQUA),
-                    (float) done / total, BossBar.Color.BLUE, BossBar.Overlay.PROGRESS);
+            bar = BossBar.bossBar(Component.text(status.text(), NamedTextColor.AQUA),
+                    status.progress(), color, BossBar.Overlay.PROGRESS);
             bars.put(id, bar);
             player.showBossBar(bar);
         } else {
-            bar.name(Component.text(text, NamedTextColor.AQUA));
-            bar.progress(Math.min(1f, (float) done / total));
+            bar.name(Component.text(status.text(), NamedTextColor.AQUA));
+            bar.progress(status.progress());
+            bar.color(color);
         }
     }
 

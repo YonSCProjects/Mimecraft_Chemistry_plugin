@@ -18,6 +18,8 @@ import com.agurim.robocraft.robot.Robot;
 import com.agurim.robocraft.sense.SensorReader;
 import com.agurim.robocraft.ui.Guide;
 import com.agurim.robocraft.ui.ProgramMenu;
+import com.agurim.robocraft.ui.StatusBar;
+import com.agurim.robocraft.ui.TrophyShelf;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.DyeColor;
@@ -74,6 +76,7 @@ public final class SelfTest {
             editing(plugin, checks);
             vocabulary(plugin, checks);
             geometry(plugin, checks);
+            progression(plugin, checks);
             legibility(plugin, checks);
         } catch (Exception e) {
             checks.add(new Check("self-test ran without throwing", false, e.toString()));
@@ -969,7 +972,148 @@ public final class SelfTest {
         checks.add(new Check("and it faces the board rather than away from it",
                 arrival.getZ() > middleTile.getBlockZ() && Math.abs(arrival.getYaw() - 180f) < 1f,
                 "yaw " + arrival.getYaw()));
+
+        trophies(plugin, checks);
     }
+
+    /**
+     * The trophy shelf, checked arithmetically for the same reason the board is: building one
+     * would overwrite a real student's shelf.
+     *
+     * <p>The collision check is the one that matters. The shelf derives its height from the board
+     * so it adapts to whatever {@code board.offset-y} a server actually uses - which is right, and
+     * which also means a bad {@code above-board} or a board that grows a row would silently park
+     * trophies on top of the part tiles and eat the board.
+     */
+    private static void trophies(RoboCraftPlugin plugin, List<Check> checks) {
+        int plot = 3;
+        List<Mission> missions = new ArrayList<>(plugin.missions().registry().all());
+
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        boolean distinct = true;
+        for (int i = 0; i < missions.size(); i++) {
+            Location slot = plugin.trophies().slotLocation(plot, i);
+            if (!seen.add(slot.getBlockX() + "," + slot.getBlockY() + "," + slot.getBlockZ())) {
+                distinct = false;
+                break;
+            }
+        }
+        checks.add(new Check("every mission gets its own trophy slot",
+                distinct && seen.size() == missions.size(),
+                seen.size() + " slots for " + missions.size() + " missions"));
+
+        boolean onPlot = true;
+        String where = "";
+        for (int i = 0; i < missions.size(); i++) {
+            Location slot = plugin.trophies().slotLocation(plot, i);
+            if (plugin.plots().plotIndexAt(slot) != plot) {
+                onPlot = false;
+                where = "slot " + i + " resolves to plot " + plugin.plots().plotIndexAt(slot);
+                break;
+            }
+        }
+        checks.add(new Check("the whole shelf sits on the student's own plot", onPlot, where));
+
+        java.util.Set<String> boardTiles = new java.util.HashSet<>();
+        for (int i = 0; i < plugin.parts().size(); i++) {
+            Location t = plugin.board().tileLocation(plot, i);
+            boardTiles.add(t.getBlockX() + "," + t.getBlockY() + "," + t.getBlockZ());
+        }
+        boolean clear = true;
+        String clash = "";
+        for (int i = 0; i < missions.size(); i++) {
+            Location slot = plugin.trophies().slotLocation(plot, i);
+            if (boardTiles.contains(slot.getBlockX() + "," + slot.getBlockY() + "," + slot.getBlockZ())) {
+                clear = false;
+                clash = "trophy " + i + " is standing on a board tile";
+                break;
+            }
+        }
+        checks.add(new Check("no trophy overwrites a Component Board tile", clear, clash));
+
+        checks.add(new Check("an unearned trophy is a ghost, an earned one is not",
+                TrophyShelf.trophyBlock(false, false) == Material.GRAY_STAINED_GLASS
+                        && TrophyShelf.trophyBlock(true, false) != Material.GRAY_STAINED_GLASS,
+                String.valueOf(TrophyShelf.trophyBlock(true, false))));
+
+        checks.add(new Check("a warm-up trophy is visibly different from a ladder trophy",
+                TrophyShelf.trophyBlock(true, true) != TrophyShelf.trophyBlock(true, false),
+                TrophyShelf.trophyBlock(true, true) + " vs " + TrophyShelf.trophyBlock(true, false)));
+    }
+
+    // ------------------------------------------------------- F2. progression
+
+    /**
+     * What a student is told they have done, and what to do next.
+     *
+     * <p>This is the arithmetic behind the complaint that started it: finishing a warm-up moved
+     * nothing on screen. Progress deliberately counts the required ladder only, so the bar sat at
+     * "משימה 1/5" before and after a student's first success, and "הבאה בתור" pointed past the two
+     * remaining warm-ups at a rung they were not ready for. Both are pure functions, so both can
+     * be held to account here without a player.
+     */
+    private static void progression(RoboCraftPlugin plugin, List<Check> checks) {
+        var registry = plugin.missions().registry();
+        List<Mission> warmUps = registry.warmUps();
+        List<Mission> required = registry.required();
+
+        if (warmUps.isEmpty() || required.isEmpty()) {
+            checks.add(new Check("the ladder has both warm-ups and required missions", false,
+                    warmUps.size() + " warm-ups, " + required.size() + " required"));
+            return;
+        }
+
+        java.util.Set<String> none = java.util.Set.of();
+        checks.add(new Check("a brand new student is pointed at the first warm-up",
+                warmUps.get(0).id().equals(id(registry.nextSuggested(none))),
+                id(registry.nextSuggested(none))));
+
+        java.util.Set<String> firstWarmDone = java.util.Set.of(warmUps.get(0).id());
+        checks.add(new Check("after warm-up 1 they are pointed at warm-up 2, not past them",
+                warmUps.get(1).id().equals(id(registry.nextSuggested(firstWarmDone))),
+                id(registry.nextSuggested(firstWarmDone))));
+
+        java.util.Set<String> allWarm = new java.util.HashSet<>();
+        for (Mission m : warmUps) allWarm.add(m.id());
+        checks.add(new Check("once the warm-ups are done the required ladder takes over",
+                required.get(0).id().equals(id(registry.nextSuggested(allWarm))),
+                id(registry.nextSuggested(allWarm))));
+
+        // Starting the real ladder must stop the warm-up nagging, or optional work is not optional.
+        java.util.Set<String> onLadder = java.util.Set.of(required.get(0).id());
+        checks.add(new Check("a student on the required ladder is never sent back to a warm-up",
+                !registry.nextSuggested(onLadder).optional(),
+                id(registry.nextSuggested(onLadder))));
+
+        checks.add(new Check("nextFor still ignores warm-ups, so progress maths is unchanged",
+                required.get(0).id().equals(id(registry.nextFor(none))),
+                id(registry.nextFor(none))));
+
+        // --- and what the bar actually reads ---
+        StatusBar.Status fresh = StatusBar.compute(warmUps.get(0).name(), true,
+                0, warmUps.size(), 0, required.size());
+        StatusBar.Status afterOne = StatusBar.compute(warmUps.get(1).name(), true,
+                1, warmUps.size(), 0, required.size());
+        checks.add(new Check("finishing a warm-up actually moves the status bar",
+                afterOne.progress() > fresh.progress(),
+                fresh.progress() + " -> " + afterOne.progress()));
+        checks.add(new Check("the warm-up bar counts warm-ups, not the required ladder",
+                fresh.text().startsWith("חימום 1/" + warmUps.size()) && fresh.warmUp(),
+                fresh.text()));
+
+        StatusBar.Status ladder = StatusBar.compute(required.get(1).name(), false,
+                warmUps.size(), warmUps.size(), 1, required.size());
+        checks.add(new Check("the required bar reads as a mission, not a warm-up",
+                ladder.text().startsWith("משימה 2/" + required.size()) && !ladder.warmUp(),
+                ladder.text()));
+
+        StatusBar.Status done = StatusBar.compute(null, false,
+                warmUps.size(), warmUps.size(), required.size(), required.size());
+        checks.add(new Check("a finished ladder fills the bar rather than dividing by zero",
+                done.progress() == 1f, String.valueOf(done.progress())));
+    }
+
+    private static String id(Mission m) { return m == null ? "null" : m.id(); }
 
     // ------------------------------------------------------------- helpers
 
