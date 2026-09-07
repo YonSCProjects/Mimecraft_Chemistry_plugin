@@ -105,7 +105,11 @@ public class AskService {
                 + "/" + plugin.missions().registry().requiredCount());
         m.put("parts_unlocked", plugin.store().unlocked(id).size() + "/" + plugin.parts().size());
 
-        Mission next = plugin.missions().registry().nextFor(done);
+        // nextSuggested, not nextFor: this is the one record a helper reads to work out where the
+        // student actually is. nextFor skips the warm-ups, so a beginner who had not started the
+        // required ladder was reported as working on twilight - and any answer built on that would
+        // be about a mission they had not reached. Caught by a real /rc ask on 2026-09-06.
+        Mission next = plugin.missions().registry().nextSuggested(done);
         if (next != null) {
             m.put("current_mission", next.id());
             m.put("current_mission_name", next.name());

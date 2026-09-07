@@ -62,10 +62,10 @@ public final class PartLabels {
 
         // Cheap first: if nothing this label shows has changed, stop before building a Component
         // or touching the entity at all. Most parts are unchanged on most ticks.
-        String signature = signature(part, placed, robot);
+        String signature = signature(plugin, part, placed, robot, block);
         if (signature.equals(SHOWING.get(key))) return;
 
-        final Component text = describe(plugin, part, placed, robot);
+        final Component text = describe(plugin, part, placed, robot, block);
         TextDisplay existing = display(plugin, key, block, part.id());
         if (existing != null) {
             existing.text(text);
@@ -91,8 +91,12 @@ public final class PartLabels {
      * worse than a slow one. That is why both go through {@link #shownEnergy} and {@link #pct}
      * rather than reading energy directly.
      */
-    private static String signature(Part part, Placed placed, Robot robot) {
-        if (!placed.attached() && !part.isController()) return "detached";
+    private static String signature(RoboCraftPlugin plugin, Part part, Placed placed, Robot robot,
+                                    Location block) {
+        // The detached label now carries a distance, so it has to be part of the signature too -
+        // otherwise placing a controller next to an orphaned part would leave its label insisting
+        // the controller is still too far away.
+        if (!placed.attached() && !part.isController()) return "detached|" + attachHint(plugin, block);
         if (robot == null) return "no-robot";
         if (part.isController()) {
             return "c|" + robot.running() + "|" + robot.halt() + "|" + robot.lastFired()
@@ -128,15 +132,27 @@ public final class PartLabels {
         return null;
     }
 
-    private static Component describe(RoboCraftPlugin plugin, Part part, Placed placed, Robot robot) {
+    private static Component describe(RoboCraftPlugin plugin, Part part, Placed placed, Robot robot,
+                                      Location block) {
         if (part.isController()) return controller(plugin, part, robot);
 
         Component head = Component.text(
                 (placed.port().isEmpty() ? "" : placed.port() + "  ") + part.name(),
-                placed.attached() ? NamedTextColor.WHITE : NamedTextColor.GRAY);
+                placed.attached() ? NamedTextColor.WHITE : NamedTextColor.RED);
 
+        // A detached part is the failure a student is least equipped to notice. It is placed, it
+        // looks identical to a working one, and the consequence turns up minutes later somewhere
+        // else as a missing port in the rule table. This label already said "not connected" and
+        // that was still not enough: the first person to hit it, an adult who wrote the
+        // curriculum, missed it entirely and had to be told by hand.
+        //
+        // So say the measurement, not just the verdict. 4.1 against a limit of 4 is a number you
+        // can act on, and it is the same lesson the whole plugin teaches - a threshold is a
+        // boundary you measure, not one you guess at.
         if (!placed.attached()) {
-            return head.append(Component.text("\nלא מחובר לבקר", NamedTextColor.RED));
+            return head
+                    .append(Component.text("\nלא מחובר", NamedTextColor.RED))
+                    .append(Component.text("\n" + attachHint(plugin, block), NamedTextColor.YELLOW));
         }
         if (part.isBattery()) {
             int energy = (robot != null) ? robot.energy() : 0;
@@ -158,6 +174,33 @@ public final class PartLabels {
         boolean on = v != null && v != 0;
         return head.append(Component.text("\n" + (on ? "ON" : "OFF"),
                 on ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY));
+    }
+
+    /**
+     * Why this part is not attached, in the terms the student can act on: how far it actually is
+     * against how far it is allowed to be.
+     *
+     * <p>Rounded to one decimal on purpose. The case that caught a real person was 4.12 against a
+     * limit of 4 - a miss of an eighth of a block, invisible to the eye, and indistinguishable
+     * from a correct placement without the number.
+     */
+    public static String attachHint(RoboCraftPlugin plugin, Location block) {
+        int radius = plugin.getConfig().getInt("robot.attach-radius", 4);
+        double nearest = nearestControllerDistance(plugin, block);
+        if (nearest < 0) return "אין בקר. הניחו בקר בקרבת מקום";
+        return String.format("%.1f מהבקר - מותר %d", nearest, radius);
+    }
+
+    /** Distance to the closest controller in the world, ignoring the radius, or -1 if none. */
+    private static double nearestControllerDistance(RoboCraftPlugin plugin, Location block) {
+        double best = -1;
+        for (String key : plugin.placements().controllers()) {
+            Location c = PartStore.fromKey(key);
+            if (c == null || c.getWorld() == null || !c.getWorld().equals(block.getWorld())) continue;
+            double d = c.distance(block);
+            if (best < 0 || d < best) best = d;
+        }
+        return best;
     }
 
     private static Component controller(RoboCraftPlugin plugin, Part part, Robot robot) {

@@ -55,7 +55,9 @@ public final class ProgressReport {
         for (UUID id : roster) {
             Set<String> completed = plugin.store().completedMissions(id);
             for (String missionId : completed) done.merge(missionId, 1, Integer::sum);
-            Mission next = plugin.missions().registry().nextFor(completed);
+            // nextSuggested, so the teacher's view of where a student is agrees with what that
+            // student is actually being told on their own screen - including the warm-ups.
+            Mission next = plugin.missions().registry().nextSuggested(completed);
             if (next != null) stuckOn.merge(next.id(), 1, Integer::sum);
         }
 
@@ -97,7 +99,7 @@ public final class ProgressReport {
 
     private static Row row(RoboCraftPlugin plugin, UUID id) {
         Set<String> completed = plugin.store().completedMissions(id);
-        Mission next = plugin.missions().registry().nextFor(completed);
+        Mission next = plugin.missions().registry().nextSuggested(completed);
 
         // A student with no controller placed has not started building at all - which is a
         // different problem from a student whose robot is built but failing, and needs a

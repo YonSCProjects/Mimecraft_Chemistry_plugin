@@ -167,6 +167,16 @@ public final class SelfTest {
                 labels(plugin, sensLoc, sensor.id()) == 1,
                 labels(plugin, sensLoc, sensor.id()) + " labels (want 1)"));
 
+        // A part just outside the radius is placed, inert, and looks identical to a working one.
+        // The first person to hit it missed it completely and had to be told by hand, so the label
+        // now carries the measurement rather than only the verdict. Far enough out that the check
+        // is about the number, not about rounding.
+        Location farOff = sensLoc.clone().add(0, 0, 40);
+        String hint = PartLabels.attachHint(plugin, farOff);
+        int radius = plugin.getConfig().getInt("robot.attach-radius", 4);
+        checks.add(new Check("a detached part's label states the distance and the limit",
+                hint.matches(".*\\d.*") && hint.contains(String.valueOf(radius)), hint));
+
         // Render the state trace over a robot that has readings, memory and a program, so the log
         // also shows what a student sees when they ask why their robot did something.
         try {
