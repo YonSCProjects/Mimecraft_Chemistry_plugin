@@ -16,6 +16,7 @@ import com.agurim.robocraft.program.RuleEdit;
 import com.agurim.robocraft.program.Verb;
 import com.agurim.robocraft.robot.Robot;
 import com.agurim.robocraft.sense.SensorReader;
+import com.agurim.robocraft.command.RoboCraftCommand;
 import com.agurim.robocraft.listener.InteractListener;
 import com.agurim.robocraft.ui.Guide;
 import com.agurim.robocraft.ui.ProgramMenu;
@@ -1201,20 +1202,33 @@ public final class SelfTest {
                 required.get(0).id().equals(id(registry.nextFor(none))),
                 id(registry.nextFor(none))));
 
-        // A student reads the list, sees a number, and types it. "/rc missions #1" used to drop
-        // the argument in silence - nothing ran, and they believed they had finished until the
-        // trophy stayed grey. Numbering the list is only half of it; the number has to WORK.
-        List<Mission> ordered = new ArrayList<>(required);
-        ordered.addAll(warmUps);
-        checks.add(new Check("the mission list is numbered over required missions then warm-ups",
-                ordered.size() == required.size() + warmUps.size()
-                        && ordered.get(0).id().equals(required.get(0).id()),
-                ordered.size() + " missions, first is " + ordered.get(0).id()));
-        checks.add(new Check("list number 1 resolves to the mission printed as 1",
-                ordered.get(0).id().equals(required.get(0).id()), ordered.get(0).id()));
-        checks.add(new Check("every mission on the list has a number a student can type",
-                ordered.size() == registry.all().size(),
-                ordered.size() + " numbered of " + registry.all().size() + " missions"));
+        // A student reads a number and types it. "/rc missions #1" used to drop the argument in
+        // silence - nothing ran, and they believed they had finished until the trophy stayed grey.
+        //
+        // The numbering then has to match the STATUS BAR, which counts two separate tracks. The
+        // first attempt numbered the required five 1-5 and continued 6-8 into the warm-ups, so
+        // night_light was "6" in the list, "חימום 1/3" on the bar, and order: 1 in missions.yml.
+        // Three names for one mission, and the person testing it asked why.
+        checks.add(new Check("required mission 1 is what the bar calls משימה 1",
+                required.get(0).equals(RoboCraftCommand.resolve("1", required, warmUps)),
+                String.valueOf(id(RoboCraftCommand.resolve("1", required, warmUps)))));
+        checks.add(new Check("warm-up W1 is what the bar calls חימום 1, not a continued number",
+                warmUps.get(0).equals(RoboCraftCommand.resolve("W1", required, warmUps)),
+                String.valueOf(id(RoboCraftCommand.resolve("W1", required, warmUps)))));
+        checks.add(new Check("the Hebrew ח1 works too, since the bar says חימום in Hebrew",
+                warmUps.get(0).equals(RoboCraftCommand.resolve("ח1", required, warmUps)),
+                String.valueOf(id(RoboCraftCommand.resolve("ח1", required, warmUps)))));
+        checks.add(new Check("a copied '#' is stripped rather than rejected",
+                required.get(0).equals(RoboCraftCommand.resolve("#1", required, warmUps)),
+                String.valueOf(id(RoboCraftCommand.resolve("#1", required, warmUps)))));
+        checks.add(new Check("an id still resolves, so docs and mission messages keep working",
+                warmUps.get(0).equals(RoboCraftCommand.resolve(warmUps.get(0).id(), required, warmUps)),
+                warmUps.get(0).id()));
+        checks.add(new Check("nonsense resolves to nothing rather than the wrong mission",
+                RoboCraftCommand.resolve("banana", required, warmUps) == null
+                        && RoboCraftCommand.resolve("99", required, warmUps) == null
+                        && RoboCraftCommand.resolve("", required, warmUps) == null,
+                "expected null for banana / 99 / empty"));
 
         // --- and what the bar actually reads ---
         StatusBar.Status fresh = StatusBar.compute(warmUps.get(0).name(), true,

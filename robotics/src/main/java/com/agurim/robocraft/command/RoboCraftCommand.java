@@ -105,25 +105,35 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
 
         player.sendMessage(Component.text("==== משימות ====", NamedTextColor.AQUA));
         List<Mission> required = plugin.missions().registry().required();
-        for (int i = 0; i < required.size(); i++) line(player, required.get(i), i + 1);
+        for (int i = 0; i < required.size(); i++) line(player, required.get(i), String.valueOf(i + 1));
 
         List<Mission> warmUps = plugin.missions().registry().warmUps();
         if (!warmUps.isEmpty()) {
             player.sendMessage(Component.text("---- חימום (לא חובה) ----", NamedTextColor.DARK_AQUA));
             player.sendMessage(Component.text(
                     "דברים שאפשר לבנות גם באבן אדומה. הם כאן כדי להתרגל לכלים.", NamedTextColor.GRAY));
-            for (int i = 0; i < warmUps.size(); i++) line(player, warmUps.get(i), required.size() + i + 1);
+            for (int i = 0; i < warmUps.size(); i++) line(player, warmUps.get(i), WARM_UP_PREFIX + (i + 1));
         }
     }
 
-    private void line(Player player, Mission m, int number) {
+    /**
+     * Warm-ups are numbered W1..Wn, not carried on from the required ladder.
+     *
+     * <p>The first draft numbered the required five 1-5 and then continued 6-8 into the warm-ups,
+     * which meant night_light was "6" in the list while the status bar called the very same
+     * mission "חימום 1/3" - and it is {@code order: 1} in missions.yml on top of that. Three names
+     * for one thing. The bar already counts two separate tracks, so the list counts the same two.
+     */
+    private static final String WARM_UP_PREFIX = "W";
+
+    private void line(Player player, Mission m, String label) {
         boolean done = plugin.store().isMissionDone(player.getUniqueId(), m.id());
         player.sendMessage(Component.text(
-                (done ? "✔ " : number + ". ") + m.name() + " - " + m.brief(),
+                (done ? "✔ " : label + ". ") + m.name() + " - " + m.brief(),
                 done ? NamedTextColor.GREEN : NamedTextColor.WHITE));
         if (!done) {
-            // The command that RUNS it, spelled out next to the number they can see.
-            player.sendMessage(Component.text("   /rc mission " + number + "   (" + m.id() + ")",
+            // The command that RUNS it, spelled out next to the label they can see.
+            player.sendMessage(Component.text("   /rc mission " + label + "   (" + m.id() + ")",
                     NamedTextColor.GRAY));
         }
     }
@@ -154,22 +164,36 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * A mission from whatever the student typed: "3", "#3", or "night_light".
+     * A mission from whatever the student typed: "3", "#3", "W1", "ח1", or "night_light".
      *
      * <p>The "#" is stripped rather than rejected because that is literally what the first person
-     * typed, copying the numbering off the list.
+     * typed, copying the numbering off the list. Both {@code W} and the Hebrew {@code ח} are
+     * accepted for a warm-up: the list prints W so the token is typeable on any keyboard, but a
+     * student reading "חימום 1/3" off the status bar will reasonably reach for the Hebrew letter,
+     * and their keyboard is already in Hebrew.
      */
     private Mission resolveMission(String token) {
+        return resolve(token, plugin.missions().registry().required(),
+                              plugin.missions().registry().warmUps());
+    }
+
+    /** Bukkit-free so the self-test can drive every form a student might type. */
+    public static Mission resolve(String token, List<Mission> required, List<Mission> warmUps) {
+        if (token == null || token.isEmpty()) return null;
         String t = token.startsWith("#") ? token.substring(1) : token;
+        if (t.isEmpty()) return null;
 
-        Mission byId = plugin.missions().registry().byId(t);
-        if (byId != null) return byId;
+        for (Mission m : required) if (m.id().equals(t)) return m;
+        for (Mission m : warmUps)  if (m.id().equals(t)) return m;
 
-        List<Mission> ordered = new ArrayList<>(plugin.missions().registry().required());
-        ordered.addAll(plugin.missions().registry().warmUps());
+        boolean warmUp = t.length() > 1
+                && (t.charAt(0) == 'W' || t.charAt(0) == 'w' || t.charAt(0) == 'ח');
+        List<Mission> track = warmUp ? warmUps : required;
+        String digits = warmUp ? t.substring(1) : t;
+
         try {
-            int n = Integer.parseInt(t);
-            if (n >= 1 && n <= ordered.size()) return ordered.get(n - 1);
+            int n = Integer.parseInt(digits);
+            if (n >= 1 && n <= track.size()) return track.get(n - 1);
         } catch (NumberFormatException ignored) {
             // not a number; fall through to "no such mission"
         }
