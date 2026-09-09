@@ -60,8 +60,14 @@ public final class Guide {
             new Line("1. הניחו בקר, ולידו סוללה, חיישן ומפעיל.", NamedTextColor.YELLOW),
             new Line("2. כל רכיב מקבל שם: חיישן S1, מפעיל A1.", NamedTextColor.YELLOW),
             new Line("3. לחיצה ימנית = תוכנית. Shift+לחיצה = בנייה.", NamedTextColor.YELLOW),
-            new Line("4. כלל בכל שורה, מלמעלה למטה. המאוחר גובר.", NamedTextColor.YELLOW),
-            new Line("5. פלט זוכר את מצבו - צריך גם כלל שמכבה.", NamedTextColor.GOLD),
+            // A chest GUI shows an item's name only on hover, so a rule row is eight anonymous
+            // items until you mouse over one. Hovering the paper shows the whole rule at once -
+            // the only way to read a rule, and the first person to open the table never found it.
+            // It has to be taught HERE: any hint inside the window is itself hover-only, and chat
+            // is drawn behind the window while it is open, so nothing said there can be read.
+            new Line("4. ריחוף על הדף בתחילת השורה מראה את הכלל.", NamedTextColor.GOLD),
+            // Merged to buy that line back: the budget is eight and it was already full.
+            new Line("5. כלל בכל שורה. המאוחר גובר. פלט זוכר מצב.", NamedTextColor.GOLD),
             new Line("6. התוויות מראות מה כל חיישן קורא עכשיו.", NamedTextColor.YELLOW),
             new Line("פקודות: /rc missions | /rc trace | /rc ask", NamedTextColor.DARK_AQUA));
 

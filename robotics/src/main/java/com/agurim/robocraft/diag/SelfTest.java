@@ -1201,6 +1201,21 @@ public final class SelfTest {
                 required.get(0).id().equals(id(registry.nextFor(none))),
                 id(registry.nextFor(none))));
 
+        // A student reads the list, sees a number, and types it. "/rc missions #1" used to drop
+        // the argument in silence - nothing ran, and they believed they had finished until the
+        // trophy stayed grey. Numbering the list is only half of it; the number has to WORK.
+        List<Mission> ordered = new ArrayList<>(required);
+        ordered.addAll(warmUps);
+        checks.add(new Check("the mission list is numbered over required missions then warm-ups",
+                ordered.size() == required.size() + warmUps.size()
+                        && ordered.get(0).id().equals(required.get(0).id()),
+                ordered.size() + " missions, first is " + ordered.get(0).id()));
+        checks.add(new Check("list number 1 resolves to the mission printed as 1",
+                ordered.get(0).id().equals(required.get(0).id()), ordered.get(0).id()));
+        checks.add(new Check("every mission on the list has a number a student can type",
+                ordered.size() == registry.all().size(),
+                ordered.size() + " numbered of " + registry.all().size() + " missions"));
+
         // --- and what the bar actually reads ---
         StatusBar.Status fresh = StatusBar.compute(warmUps.get(0).name(), true,
                 0, warmUps.size(), 0, required.size());

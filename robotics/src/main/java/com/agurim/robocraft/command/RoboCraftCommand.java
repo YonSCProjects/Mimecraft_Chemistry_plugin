@@ -70,7 +70,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "tp"       -> player.teleport(plugin.board().arrivalSpot(
                                     plugin.store().getOrAssignPlotIndex(player.getUniqueId())));
             case "board"    -> rebuildBoard(player);
-            case "missions" -> listMissions(player);
+            case "missions" -> listMissions(player, args);
             case "mission"  -> runMission(player, args);
             case "run"      -> startRobot(player);
             case "stop"     -> stopRobot(player);
@@ -91,38 +91,59 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
     // ------------------------------------------------------------- students
 
     /** The required ladder first, warm-ups after - and the warm-ups say plainly that they are optional. */
-    private void listMissions(Player player) {
+    /**
+     * The mission list.
+     *
+     * <p>{@code /rc missions} and {@code /rc mission} differ by one letter and do entirely
+     * different things - one lists, one runs a bench test. The first person to use the list read
+     * it, thought "mission #1", and typed {@code /rc missions #1}; the argument was silently
+     * dropped, nothing ran, and they believed they had completed it until the trophy stayed grey.
+     * So an argument here is never ignored: it is what they meant to run.
+     */
+    private void listMissions(Player player, String[] args) {
+        if (args.length >= 2) { runMission(player, args); return; }
+
         player.sendMessage(Component.text("==== משימות ====", NamedTextColor.AQUA));
-        for (Mission m : plugin.missions().registry().required()) line(player, m);
+        List<Mission> required = plugin.missions().registry().required();
+        for (int i = 0; i < required.size(); i++) line(player, required.get(i), i + 1);
 
         List<Mission> warmUps = plugin.missions().registry().warmUps();
         if (!warmUps.isEmpty()) {
             player.sendMessage(Component.text("---- חימום (לא חובה) ----", NamedTextColor.DARK_AQUA));
             player.sendMessage(Component.text(
                     "דברים שאפשר לבנות גם באבן אדומה. הם כאן כדי להתרגל לכלים.", NamedTextColor.GRAY));
-            for (Mission m : warmUps) line(player, m);
+            for (int i = 0; i < warmUps.size(); i++) line(player, warmUps.get(i), required.size() + i + 1);
         }
     }
 
-    private void line(Player player, Mission m) {
+    private void line(Player player, Mission m, int number) {
         boolean done = plugin.store().isMissionDone(player.getUniqueId(), m.id());
         player.sendMessage(Component.text(
-                (done ? "✔ " : "· ") + m.name() + " - " + m.brief(),
+                (done ? "✔ " : number + ". ") + m.name() + " - " + m.brief(),
                 done ? NamedTextColor.GREEN : NamedTextColor.WHITE));
         if (!done) {
-            player.sendMessage(Component.text("   מלמד: " + m.teaches() + "   |   /rc mission " + m.id(),
+            // The command that RUNS it, spelled out next to the number they can see.
+            player.sendMessage(Component.text("   /rc mission " + number + "   (" + m.id() + ")",
                     NamedTextColor.GRAY));
         }
     }
 
+    /**
+     * Run a mission, by list number or by id.
+     *
+     * <p>Numbers because that is what a student reads off the list and what they try first. Ids
+     * because they are stable and are what the docs and the mission's own messages quote.
+     */
     private void runMission(Player player, String[] args) {
         if (args.length < 2) {
-            player.sendMessage(Component.text("/rc mission <id> - הרשימה: /rc missions", NamedTextColor.GRAY));
+            player.sendMessage(Component.text("/rc mission <מספר> - הרשימה: /rc missions",
+                    NamedTextColor.GRAY));
             return;
         }
-        Mission mission = plugin.missions().registry().byId(args[1]);
+        Mission mission = resolveMission(args[1]);
         if (mission == null) {
-            player.sendMessage(Component.text("אין משימה כזו.", NamedTextColor.RED));
+            player.sendMessage(Component.text("אין משימה כזו: " + args[1]
+                    + " - הרשימה: /rc missions", NamedTextColor.RED));
             return;
         }
         Robot robot = myRobot(player);
@@ -130,6 +151,29 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
 
         String why = plugin.missions().start(player, robot, mission);
         if (why != null) player.sendMessage(Component.text(why, NamedTextColor.RED));
+    }
+
+    /**
+     * A mission from whatever the student typed: "3", "#3", or "night_light".
+     *
+     * <p>The "#" is stripped rather than rejected because that is literally what the first person
+     * typed, copying the numbering off the list.
+     */
+    private Mission resolveMission(String token) {
+        String t = token.startsWith("#") ? token.substring(1) : token;
+
+        Mission byId = plugin.missions().registry().byId(t);
+        if (byId != null) return byId;
+
+        List<Mission> ordered = new ArrayList<>(plugin.missions().registry().required());
+        ordered.addAll(plugin.missions().registry().warmUps());
+        try {
+            int n = Integer.parseInt(t);
+            if (n >= 1 && n <= ordered.size()) return ordered.get(n - 1);
+        } catch (NumberFormatException ignored) {
+            // not a number; fall through to "no such mission"
+        }
+        return null;
     }
 
     private void startRobot(Player player) {
