@@ -16,6 +16,7 @@ import com.agurim.robocraft.program.RuleEdit;
 import com.agurim.robocraft.program.Verb;
 import com.agurim.robocraft.robot.Robot;
 import com.agurim.robocraft.sense.SensorReader;
+import com.agurim.robocraft.listener.InteractListener;
 import com.agurim.robocraft.ui.Guide;
 import com.agurim.robocraft.ui.ProgramMenu;
 import com.agurim.robocraft.ui.StatusBar;
@@ -554,6 +555,26 @@ public final class SelfTest {
         robot.program(program);
 
         org.bukkit.inventory.Inventory inv = new ProgramMenu(key).build(plugin);
+        // The readable copy of the program. A chest GUI shows an item's name only on hover, so the
+        // rows are eight anonymous items until you mouse over them one at a time - which is exactly
+        // what the first person to open it reported. These check the text that fixes that.
+        List<Rule> sample = nightLight().rules();
+        List<String> lines = ProgramMenu.programLines(sample);
+        checks.add(new Check("every rule has a readable line, numbered from 1",
+                lines.size() == sample.size() && lines.get(0).startsWith("1. "),
+                String.join(" / ", lines)));
+        // IF, not WHEN - the keyword every language they meet next actually uses. See Rule.
+        checks.add(new Check("a rule line actually spells out the sentence",
+                lines.get(0).contains("IF ") && lines.get(0).contains("THEN"), lines.get(0)));
+        String widestRule = "";
+        for (String l : lines) if (l.length() > widestRule.length()) widestRule = l;
+        checks.add(new Check("a rule line fits the chat without wrapping",
+                widestRule.length() <= Guide.CHAT_WIDTH,
+                widestRule.length() + " chars: " + widestRule));
+        checks.add(new Check("a full program still fits the chat window",
+                ProgramMenu.programLines(sample).size() + 1 <= Guide.CHAT_LINES,
+                sample.size() + " rules + header"));
+
         checks.add(new Check("the rule table paints a full 54-slot window",
                 inv != null && inv.getSize() == 54, inv == null ? "null" : inv.getSize() + " slots"));
         if (inv == null) return;
@@ -561,7 +582,7 @@ public final class SelfTest {
         checks.add(new Check("row 1 column 0 marks rule 1",
                 inv.getItem(0) != null && inv.getItem(0).getType() == Material.PAPER,
                 String.valueOf(inv.getItem(0) == null ? null : inv.getItem(0).getType())));
-        checks.add(new Check("row 1 columns 2 and 3 carry the comparison a WHEN rule needs",
+        checks.add(new Check("row 1 columns 2 and 3 carry the comparison a conditional rule needs",
                 inv.getItem(2) != null && inv.getItem(2).getType() == Material.COMPARATOR
                         && inv.getItem(3) != null && inv.getItem(3).getType() != Material.BLACK_STAINED_GLASS_PANE,
                 "op=" + type(inv, 2) + " value=" + type(inv, 3)));
@@ -824,7 +845,7 @@ public final class SelfTest {
         Map<String, String> ctx = plugin.ask().robotContext(robot);
 
         checks.add(new Check("the assistant is handed the student's actual rule table",
-                ctx.getOrDefault("program", "").contains("WHEN S1 < 7 THEN A1 ON"),
+                ctx.getOrDefault("program", "").contains("IF S1 < 7 THEN A1 ON"),
                 "program = " + ctx.get("program")));
         checks.add(new Check("...and what the sensors are reading right now",
                 "S1=4".equals(ctx.get("readings")), "readings = " + ctx.get("readings")));
@@ -984,6 +1005,44 @@ public final class SelfTest {
                 "yaw " + arrival.getYaw()));
 
         trophies(plugin, checks);
+        charger(plugin, checks);
+    }
+
+    /**
+     * The charging pad must be reachable from where a student actually builds, and must say so
+     * when it is not.
+     *
+     * <p>The pad is at the plot corner; the arrival spot is in front of the board. With the old
+     * radius of 6 those were eleven blocks apart, so a robot built where the game put you could
+     * never reach its own charger - and the click was silent about it. Both halves are checked
+     * here because fixing only one still leaves a student stuck.
+     */
+    private static void charger(RoboCraftPlugin plugin, List<Check> checks) {
+        int plot = 3;
+        int radius = plugin.getConfig().getInt("power.charger-radius", 14);
+        Location pad = plugin.kiosk().chargerLocation(plot);
+        Location arrival = plugin.board().arrivalSpot(plot);
+
+        double away = Math.hypot(arrival.getX() - (pad.getBlockX() + 0.5),
+                                 arrival.getZ() - (pad.getBlockZ() + 0.5));
+        checks.add(new Check("the charging pad reaches where a student is actually put down",
+                away <= radius, String.format("%.1f blocks from the arrival spot, radius %d", away, radius)));
+
+        // And every branch of the message says something a student can act on.
+        String tooFar = plain(InteractListener.chargeResult(0, 8.9, false, radius));
+        checks.add(new Check("a click out of range reports the distance and the reach",
+                tooFar.contains("8.9") && tooFar.contains(String.valueOf(radius)), tooFar));
+        String noBattery = plain(InteractListener.chargeResult(0, -1, true, radius));
+        checks.add(new Check("a robot with no battery is told so, not told it is out of range",
+                !noBattery.contains(String.valueOf(radius)) && !noBattery.isEmpty(), noBattery));
+        String ok = plain(InteractListener.chargeResult(2, -1, false, radius));
+        checks.add(new Check("a successful charge reports how many robots were topped up",
+                ok.contains("2"), ok));
+    }
+
+    private static String plain(Component c) {
+        return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+                .plainText().serialize(c);
     }
 
     /**

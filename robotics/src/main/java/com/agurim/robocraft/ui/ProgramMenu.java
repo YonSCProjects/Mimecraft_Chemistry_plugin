@@ -81,6 +81,49 @@ public class ProgramMenu implements InventoryHolder {
         renderControls(plugin, robot);
     }
 
+    // ------------------------------------------------------- the readable copy
+
+    /**
+     * The program as plain text lines, e.g. {@code "1. IF S1 < 7 THEN A1 ON"}.
+     *
+     * <p>A chest GUI renders an item's name only while the mouse is over it. So the rule table -
+     * whose founding idea is that a rule reads left to right like a sentence - is in practice eight
+     * anonymous items until you hover them one at a time. The first person ever to open it said
+     * exactly that: "I see all sorts of inventory stuff but not the text". Every self-test around
+     * this GUI passed; none of them asked whether a row could be read.
+     *
+     * <p>Chat is the one surface that draws real text over an open container, so the sentence goes
+     * there. The window title would be the other candidate and is arguably what it is for, but
+     * {@code InventoryView.setTitle} re-sends the open-window packet - precisely what {@link
+     * #render} exists to avoid, because doing that mid-click desyncs the client into ghost items
+     * and clicks that land on the wrong cell.
+     */
+    public static List<String> programLines(List<Rule> rules) {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < rules.size(); i++) out.add((i + 1) + ". " + rules.get(i).text());
+        return out;
+    }
+
+    /** The whole program, for when it changes shape: opening the menu, adding or deleting a rule. */
+    public static void echoProgram(RoboCraftPlugin plugin, Player player, String robotKey) {
+        Robot robot = plugin.robots().get(robotKey);
+        List<Rule> rules = (robot == null) ? List.of() : robot.program().rules();
+        if (rules.isEmpty()) {
+            player.sendMessage(Component.text("התוכנית ריקה - לחצו על האמרלד כדי להוסיף כלל.",
+                    NamedTextColor.GRAY));
+            return;
+        }
+        player.sendMessage(Component.text("==== התוכנית ====", NamedTextColor.DARK_AQUA));
+        for (String line : programLines(rules)) {
+            player.sendMessage(Component.text(line, NamedTextColor.WHITE));
+        }
+    }
+
+    /** One rule, for a single cell edit - so the sentence visibly changes as you click. */
+    public static void echoRule(Player player, int index, Rule rule) {
+        player.sendMessage(Component.text((index + 1) + ". " + rule.text(), NamedTextColor.YELLOW));
+    }
+
     // ------------------------------------------------------------------ rows
 
     private void renderRule(RoboCraftPlugin plugin, int index, Rule rule) {

@@ -16,8 +16,8 @@ Sibling of ChemCraft in the same repo. They never run together; each has its own
 3. **Right-click the controller** and write the program by clicking — one rule per row:
 
    ```
-   WHEN  S1  <   7   THEN  A1  ON
-   WHEN  S1  >=  9   THEN  A1  OFF
+   IF    S1  <   7   THEN  A1  ON
+   IF    S1  >=  9   THEN  A1  OFF
    ```
 
    No typing, so no syntax errors and no English barrier.

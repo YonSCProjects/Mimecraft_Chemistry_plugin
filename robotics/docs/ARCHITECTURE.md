@@ -41,7 +41,7 @@ Bukkit-free by rule, so `tools/BenchCheck.java` can drive it without a server.
   target kind, so the GUI cannot build a nonsense rule.
 - `Operand` (record): either a constant or a reference to a source. `encode`/`decode` as `C7`/`PS1`.
 - `Rule` (record): source, op, rhs, target, verb, arg. Source `ALWAYS` = unconditional.
-  `text()` renders "WHEN S1 < 7 THEN A1 ON"; `encode`/`decode` round-trip through a pipe-delimited
+  `text()` renders "IF S1 < 7 THEN A1 ON"; `encode`/`decode` round-trip through a pipe-delimited
   string; `decode` returns a blank rule rather than throwing on garbage.
 - `Program`: an ordered `List<Rule>` plus `encode`/`decode`.
 - `Evaluator`: **one pass of the rule table.** Rules run top to bottom, later wins, and memory

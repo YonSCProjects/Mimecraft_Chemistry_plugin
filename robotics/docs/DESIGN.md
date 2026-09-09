@@ -25,7 +25,7 @@ Everything a middle-schooler needs from an intro robotics course falls out of th
 | Concept | Where it shows up here |
 |---|---|
 | Sensors turn the physical world into **numbers** | every sensor reads to an int, shown live on its label |
-| A **threshold** is a boundary you measure, not guess | `WHEN S1 < 7` - the 7 is the student's problem |
+| A **threshold** is a boundary you measure, not guess | `IF S1 < 7` - the 7 is the student's problem |
 | **Actuators latch** until told otherwise | outputs hold; forgetting to turn one off is the first bug everyone hits |
 | **Feedback**: your action changes the next reading | the thermostat oscillates if you use one threshold |
 | **Hysteresis** fixes oscillation | two thresholds + a memory bit - mission 5 |
@@ -53,7 +53,7 @@ cannot be read off the page. RoboCraft moves the difficulty to where the learnin
 |---|---|---|
 | The program is | invisible; inferred from wire layout | **a readable list of rules**, visible at once |
 | Sensor values are | binary, mostly | **analog ints** - light 0-15, distance 0-16, colour, heat |
-| Thresholds | comparator hacks | `WHEN S1 < 7` - a number you measure and tune |
+| Thresholds | comparator hacks | `IF S1 < 7` - a number you measure and tune |
 | Debugging | trace the wire | **watch live values**; see which rule fired this tick |
 | Energy | free and infinite | **a battery that runs out** |
 | Failure feedback | "it didn't work" | **a bench that names the check that failed** |
@@ -134,9 +134,9 @@ location map (`PartStore`). No new block IDs; a plugin cannot register those.
 ### 4.2 The program is a rule table
 
 ```
-  1  WHEN  S1  <   7   THEN  A1  ON
-  2  WHEN  S1  >=  9   THEN  A1  OFF
-  3  WHEN  S2  =   1   THEN  A2  ON
+  1  IF    S1  <   7   THEN  A1  ON
+  2  IF    S1  >=  9   THEN  A1  OFF
+  3  IF    S2  =   1   THEN  A2  ON
   4  ALWAYS            THEN  A3  SHOW S1
 ```
 
@@ -153,7 +153,7 @@ location map (`PartStore`). No new block IDs; a plugin cannot register those.
 Grammar, deliberately tiny:
 
 ```
-RULE    := WHEN <cond> THEN <action>  |  ALWAYS THEN <action>
+RULE    := IF <cond> THEN <action>  |  ALWAYS THEN <action>
 cond    := <source> <op> <int>
 source  := S1..Sn | M1..M4 | TIME
 op      := <  |  <=  |  =  |  !=  |  >=  |  >
@@ -281,19 +281,19 @@ are. They grant no parts and gate nothing.
 Rung 1 is where "later rules win" stops being a gotcha and becomes the answer:
 
 ```
-1  WHEN  S1  >=  10   THEN  A1  OFF     day: off
-2  WHEN  S1  <   10   THEN  A1  ON      dim: on
-3  WHEN  S1  <    4   THEN  A1  OFF     full dark: off again, overriding rule 2
+1  IF    S1  >=  10   THEN  A1  OFF     day: off
+2  IF    S1  <   10   THEN  A1  ON      dim: on
+3  IF    S1  <    4   THEN  A1  OFF     full dark: off again, overriding rule 2
 ```
 
 Rung 2 is the warm-up door done properly - the reflex version shuts the instant you step away;
 this one holds a deadline in memory:
 
 ```
-1  WHEN  S1    =  1    THEN  M1  SET TIME
-2  WHEN  S1    =  1    THEN  M1  ADD  3
-3  WHEN  TIME  <  M1   THEN  A1  ON
-4  WHEN  TIME  >= M1   THEN  A1  OFF
+1  IF    S1    =  1    THEN  M1  SET TIME
+2  IF    S1    =  1    THEN  M1  ADD  3
+3  IF    TIME  <  M1   THEN  A1  ON
+4  IF    TIME  >= M1   THEN  A1  OFF
 ```
 
 Rung 4 remains the intellectual peak: the bench asks for the heater's state at 45 degrees *twice*

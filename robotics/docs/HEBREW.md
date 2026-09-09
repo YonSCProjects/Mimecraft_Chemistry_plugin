@@ -6,7 +6,7 @@ Every piece of player-facing Hebrew in the plugin, grouped by where it appears.
 gender forms and register all need a pass before this meets a class. ChemCraft's
 convention of slashed dual-gender forms (`עוזר/ת`) is not applied consistently here yet.
 
-Latin tokens inside a string - `S1`, `A1`, `ON`, `WHEN`, `/rc trace` - are deliberate and
+Latin tokens inside a string - `S1`, `A1`, `ON`, `IF`, `/rc trace` - are deliberate and
 must stay Latin: a rule row has to read identically in any client.
 
 
@@ -27,7 +27,7 @@ must stay Latin: a rule row has to read identically in any client.
 | `Guide` | 8. תקועים? /rc trace מראה מה כל חיישן קורא ואיזה כלל קבע כל פלט. |
 | `Guide` | 9. עדיין תקועים? שאלו: /rc ask <שאלה> - התשובה תגיע אליכם בצ'אט. |
 | `Guide` | ==== RoboCraft - איך משחקים ==== |
-| `Guide` | WHEN S1 < 7 THEN A1 ON  =  כשהאור קטן מ-7, הדליקו את A1. |
+| `Guide` | IF S1 < 7 THEN A1 ON  =  כשהאור קטן מ-7, הדליקו את A1. |
 | `Guide` | ·  רכיבים: |
 | `Guide` | ברוכים הבאים ל-RoboCraft! זו הסדנה שלכם, והקיר שלפניכם הוא מלאי הרכיבים. |
 | `Guide` | הבאה בתור: |

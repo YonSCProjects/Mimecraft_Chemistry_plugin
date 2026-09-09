@@ -101,6 +101,9 @@ public class InteractListener implements Listener {
                 return;
             }
             new ProgramMenu(PartStore.key(loc)).open(plugin, player);
+            // The rows are unreadable without hovering each cell, so put the program in chat too,
+            // where it renders over the open window.
+            ProgramMenu.echoProgram(plugin, player, PartStore.key(loc));
             return;
         }
 
@@ -130,33 +133,71 @@ public class InteractListener implements Listener {
         return charger != null && charger == mat;
     }
 
-    /** Top up every robot the clicker owns within range. Charging is deliberately manual: an
-     *  energy budget you can refill without thinking is not a budget. */
+    /**
+     * Top up every robot the clicker owns within range. Charging is deliberately manual: an
+     * energy budget you can refill without thinking is not a budget.
+     *
+     * <p>Saying why nothing happened matters more here than almost anywhere else. The pad sits at
+     * one corner of the plot and the game lands a student eleven blocks away, in front of the
+     * board, which is exactly where they then build - so with the old radius of 6 a robot built
+     * where the game invited you to build could not reach its own charger. The robot simply
+     * stopped, and the one object on the plot that looks like it should help did nothing at all
+     * when clicked. Now it reports the distance and the reach, the same way a detached part does.
+     */
     private void charge(Player player, Location loc) {
-        int radius = plugin.getConfig().getInt("power.charger-radius", 6);
+        int radius = plugin.getConfig().getInt("power.charger-radius", 14);
         int rate = plugin.getConfig().getInt("power.charger-rate", 60);
         int charged = 0;
+        double nearestOutOfReach = -1;
+        boolean ownRobotWithoutBattery = false;
 
         for (String key : plugin.placements().controllers()) {
             Location c = PartStore.fromKey(key);
-            if (c == null || !c.getWorld().equals(loc.getWorld()) || c.distance(loc) > radius) continue;
+            if (c == null || c.getWorld() == null || !c.getWorld().equals(loc.getWorld())) continue;
             Robot robot = plugin.robots().get(key);
+            // Owner first, then distance: to explain a miss we have to measure THEIR robots, and
+            // the old order threw away the out-of-range ones before we knew whose they were.
             if (robot == null || robot.owner() == null || !robot.owner().equals(player.getUniqueId())) continue;
+
+            double d = c.distance(loc);
+            if (d > radius) {
+                if (nearestOutOfReach < 0 || d < nearestOutOfReach) nearestOutOfReach = d;
+                continue;
+            }
 
             int capacity = 0;
             for (Placed p : plugin.placements().partsOf(key).values()) {
                 Part part = plugin.parts().get(p.partId());
                 if (part != null && part.isBattery()) capacity += part.capacity();
             }
-            if (capacity <= 0) continue;
+            if (capacity <= 0) { ownRobotWithoutBattery = true; continue; }
             robot.energy(Math.min(capacity, robot.energy() + rate * 20));
             charged++;
         }
         plugin.robots().save();
 
         player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 1.6f);
-        player.sendMessage(charged > 0
-                ? Component.text("נטענו " + charged + " רובוטים.", NamedTextColor.GOLD)
-                : Component.text("אין רובוט שלכם עם סוללה בטווח.", NamedTextColor.GRAY));
+        player.sendMessage(chargeResult(charged, nearestOutOfReach, ownRobotWithoutBattery, radius));
+    }
+
+    /**
+     * What the pad says. Kept separate and Bukkit-free so the self-test can hold every branch to
+     * account - a message nobody can act on is the failure mode this exists to prevent.
+     */
+    public static Component chargeResult(int charged, double nearestOutOfReach,
+                                         boolean ownRobotWithoutBattery, int radius) {
+        if (charged > 0) {
+            return Component.text("נטענו " + charged + " רובוטים.", NamedTextColor.GOLD);
+        }
+        if (nearestOutOfReach >= 0) {
+            return Component.text(String.format(
+                    "הרובוט שלכם רחוק מדי: %.1f - הרציף מגיע עד %d. קרבו את הרובוט לרציף.",
+                    nearestOutOfReach, radius), NamedTextColor.RED);
+        }
+        if (ownRobotWithoutBattery) {
+            return Component.text("אין סוללה מחוברת לרובוט. הניחו סוללה ליד הבקר.",
+                    NamedTextColor.RED);
+        }
+        return Component.text("אין לכם רובוט. הניחו בקר, סוללה, חיישן ומפעיל.", NamedTextColor.GRAY);
     }
 }

@@ -54,7 +54,12 @@ power:
   # purpose: an energy budget you can top up without thinking is not a budget.
   # Must be a block that never changes state on its own - waxed copper, never plain.
   charger-block: WAXED_CHISELED_COPPER
-  charger-radius: 6
+  # 14, not 6. The pad sits at the plot corner and JoinListener lands a student ELEVEN blocks away,
+  # in front of the board - which is exactly where they then build. At 6 a robot built where the
+  # game invited you to build could not reach its own charger, and clicking the pad did nothing
+  # with no explanation. Found by playtest. Raise the radius AND say why a click missed; either
+  # alone leaves a student stuck or walking their robot around the plot.
+  charger-radius: 14
   charger-rate: 60
 
 missions:

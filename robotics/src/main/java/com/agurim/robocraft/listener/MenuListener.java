@@ -80,6 +80,15 @@ public class MenuListener implements Listener {
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.4f, 1.6f);
         menu.render(plugin);
         player.updateInventory();
+
+        // The cells only say what they mean on hover, so echo the sentence where it can be read
+        // without one. Deleting changes the numbering of every rule below, so that reprints the lot.
+        if (field == RuleEdit.DELETE) {
+            ProgramMenu.echoProgram(plugin, player, menu.robotKey());
+        } else {
+            Rule edited = robot.program().get(index);
+            if (edited != null) ProgramMenu.echoRule(player, index, edited);
+        }
     }
 
     /** Reduce a Bukkit click to the three things that change what it means. */
@@ -104,6 +113,7 @@ public class MenuListener implements Listener {
                         ProgramMenu.sources(plugin, menu.robotKey()),
                         ProgramMenu.targets(plugin, menu.robotKey())));
                 plugin.robots().save();
+                ProgramMenu.echoProgram(plugin, player, menu.robotKey());
             }
             case ProgramMenu.SLOT_RUN -> {
                 String why = plugin.engine().whyNotReady(robot);
