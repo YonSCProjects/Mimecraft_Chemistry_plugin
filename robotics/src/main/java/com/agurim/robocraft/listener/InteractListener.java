@@ -150,6 +150,7 @@ public class InteractListener implements Listener {
         int charged = 0;
         double nearestOutOfReach = -1;
         boolean ownRobotWithoutBattery = false;
+        boolean midRun = false;
 
         for (String key : plugin.placements().controllers()) {
             Location c = PartStore.fromKey(key);
@@ -164,6 +165,9 @@ public class InteractListener implements Listener {
                 if (nearestOutOfReach < 0 || d < nearestOutOfReach) nearestOutOfReach = d;
                 continue;
             }
+            // Never mid-run: a budget mission starts the robot nearly flat on purpose, and one
+            // click here would let an always-on lamp pass "still running".
+            if (plugin.missions().isRunning(key)) { midRun = true; continue; }
 
             int capacity = 0;
             for (Placed p : plugin.placements().partsOf(key).values()) {
@@ -177,6 +181,11 @@ public class InteractListener implements Listener {
         plugin.robots().save();
 
         player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 1.6f);
+        if (charged == 0 && midRun) {
+            player.sendMessage(Component.text("הרובוט באמצע הרצת ניסוי - הטעינה תחכה לסיום.",
+                    NamedTextColor.YELLOW));
+            return;
+        }
         player.sendMessage(chargeResult(charged, nearestOutOfReach, ownRobotWithoutBattery, radius));
     }
 

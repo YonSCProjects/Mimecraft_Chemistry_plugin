@@ -1,61 +1,104 @@
-# The mission ladder.
+# The mission ladder - and where each mission is met.
 #
-# Split in two (see docs/DESIGN.md 5). The three WARM-UPS are `optional: true`: they cover the
-# things redstone already does well - a night light, a tripwire alarm, a pressure-plate door - and
-# exist so a student who has never programmed gets an easy first success with the tools. They are
-# honest about being redstone-equivalent, they grant no parts, and they gate nothing.
+# Three tiers (see docs/DESIGN.md 5).
+#
+# WARM-UPS are `optional: true`: they cover the things redstone already does well - a night light,
+# a doorbell, a hatch - and exist so a student who has never programmed gets an easy first success
+# with the tools. They are honest about being redstone-equivalent, they grant no parts, and they
+# gate nothing.
 #
 # The REQUIRED ladder starts where redstone stops being adequate: analog bands, memory holding a
-# deadline, edge detection, feedback, and an energy budget. Every part it unlocks is one redstone
-# does not have - distance, heat, colour, rain, a display, a solar panel. The progression is the
-# argument.
+# deadline, edge detection, feedback, hysteresis, and an energy budget. Every part it unlocks is one
+# redstone does not have - distance, heat, colour, rain, a display, a solar panel, an animal sensor.
+# The progression is the argument. Six rungs. Rung 4, the flicker fix, is the playtest's accidental
+# feedback loop made deliberate: a student's lamp lit its own light sensor and the robot oscillated
+# every tick - mission 5's lesson arriving on mission 1, for free. It sits between the counter and
+# the thermostat so hysteresis is met first on a lamp you can WATCH flicker, then again on heat.
 #
-# A warm-up must never be the only source of a part, or skipping it strands the student.
+# BONUS missions are `bonus: true`. They use the parts the ladder unlocked but never asked for, they
+# grant nothing and gate nothing, and they are suggested only once the required ladder is done. A
+# student who never touches one is not behind.
+#
+# A warm-up or a bonus must never be the only source of a part, or skipping it strands the student.
 # MissionRegistry.validate enforces that on every enable.
 #
 # A mission runs on the TEST BENCH: `env` injects simulated sensor readings instead of changing the
 # shared world. Forcing real night would black out the whole class, setPlayerTime is client-side
 # only so block light would not move anyway, and a real day/night cycle is ten minutes against the
 # bench's fifteen seconds. It is also how real embedded code is tested: inject inputs, assert
-# outputs.
+# outputs. After a PASS the robot keeps running against the real world - that is the reward, never
+# the check.
 #
+# SITES (docs/DESIGN.md 4.8). `site:`, `quest:` and `value:` say where a mission is MET - a place the
+# plugin builds on the student's own plot, what it says when clicked, what the robot is worth there.
+# The bench that VERIFIES a mission ignores all three. They are dormant until the yard is built.
+#
+# mission fields:
+#   order, optional, bonus, name, brief, teaches, hint, needs, reward, start-energy, steps
+#   site    - a place id (sites.yml, once it exists)
+#   quest   - what the place says when clicked. At most 5 lines, each at most 48 characters, or it
+#             wraps and the top of the story scrolls off before anyone reads it
+#   value   - one line: what the robot is worth in the world once it works
 # step fields:
-#   say     - narrated to the student so the simulated conditions are visible
-#   env     - simulated sensor values by SENSOR TYPE (light, distance, player, heat, color, ...)
-#   wait    - ticks to let the program run before the next step. 20 ticks = 1 second of TIME.
-#   expect  - assertions by ACTUATOR TYPE (on/off), memory slot (a number), or `running`
-#   because - shown when this check fails. Never a score, always the reason.
+#   say      - narrated to the student so the simulated conditions are visible
+#   env      - simulated sensor values by SENSOR TYPE (light, distance, player, mob, heat, color,
+#              rain, redstone). Accumulates for the run: a value stays injected until overwritten.
+#   feedback - { <sensor type>: { actuator: <actuator type>, add: N, max: M } } - while ANY actuator
+#              of that type is ON, the injected reading is env + add (capped at max). The bench's
+#              way of saying "the lamp lights its own sensor" without reading the world. Persists
+#              for the run like env.
+#   wait     - ticks to let the program run before the next step. 20 ticks = 1 second of TIME.
+#   expect   - assertions by ACTUATOR TYPE (on/off, or a number for display), memory slot (M1: 2),
+#              `running: true|false`, or `steady: <actuator type>` - that type switched at most
+#              once during the preceding wait. A flickering lamp switches eight times.
+#   because  - shown when this check fails. Never a score, always the reason.
 
 # ============================ WARM-UPS (optional) ============================
 
 night_light:
   order: 1
   optional: true
+  site: mine
   name: "נורת לילה"
   brief: "הדליקו את הנורה כשחשוך, וכבו אותה כשאור."
   teaches: "חיישן, סף, פלט - ושפלט זוכר את מצבו"
+  value: "אור בפתח המכרה כשמחשיך - בלי שאף אחד ייגע בכלום."
+  quest:
+    - "חשוך בפתח המכרה בלילה, והכורים מחפשים את הכניסה."
+    - "בנו על המשטח בקר וסוללה. חיישן אור - על האריח,"
+    - "מתחת לשמיים. את הנורה שימו על המדף שבפתח."
+    - "כשמחשיך - שתידלק. כשמאיר - שתיכבה."
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, light_sensor, lamp]
   reward: []
   steps:
-    - { say: "יום. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
+    - { say: "יום בפתח המכרה. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום הנורה צריכה להיות כבויה" }
     - { say: "לילה. עוצמת אור 2.", env: { light: 2 }, wait: 30 }
     - { expect: { lamp: on }, because: "בחושך הנורה צריכה להידלק" }
-    - { say: "שוב יום. עוצמת אור 13.", env: { light: 13 }, wait: 30 }
+    - { say: "שוב בוקר. עוצמת אור 13.", env: { light: 13 }, wait: 30 }
     - { expect: { lamp: off }, because: "כשהאור חוזר הנורה צריכה להיכבות. פלט זוכר את מצבו - צריך כלל שמכבה אותו" }
 
 alarm:
   order: 2
   optional: true
-  name: "אזעקה"
-  brief: "כשמישהו מתקרב - הפעילו זמזם וגם נורה."
+  site: storeroom
+  name: "שומר המחסן"
+  brief: "כשמישהו מתקרב לדלת המחסן - הפעילו זמזם וגם נורה."
   teaches: "חיישן שני, שתי פעולות מתנאי אחד"
+  value: "פעמון דלת ואזעקה למחסן - שומעים אותו מכל החצר."
+  quest:
+    - "במחסן יש כלים לכל החצר, וכולם עוברים בדלת הזו."
+    - "בנו שומר: חיישן נוכחות על האריח ליד הדלת,"
+    - "זמזם ונורה על המדף. כשמישהו מגיע - צלצול ואור."
+    - "רמז: כשאתם עומדים ליד הבקר, החיישן רואה גם אתכם."
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, presence_sensor, buzzer, lamp]
   reward: []
   steps:
-    - { say: "אין אף אחד.", env: { player: 0 }, wait: 30 }
+    - { say: "אין אף אחד ליד המחסן.", env: { player: 0 }, wait: 30 }
     - { expect: { buzzer: off }, because: "כשאין אף אחד קרוב האזעקה שקטה" }
-    - { say: "מישהו הגיע!", env: { player: 1 }, wait: 30 }
+    - { say: "מישהו הגיע לדלת!", env: { player: 1 }, wait: 30 }
     - { expect: { buzzer: on }, because: "כשמזוהה נוכחות הזמזם צריך לפעול" }
     - { expect: { lamp: on }, because: "גם הנורה צריכה להידלק - שני כללים על אותו תנאי" }
     - { say: "הוא הלך.", env: { player: 0 }, wait: 30 }
@@ -64,15 +107,23 @@ alarm:
 auto_door:
   order: 3
   optional: true
-  name: "דלת אוטומטית"
-  brief: "השער נפתח כשמישהו נמצא בסביבה, ונסגר כשהוא הולך."
+  site: storeroom
+  name: "פתח המרתף"
+  brief: "השער בפתח המרתף נפתח כשמישהו נמצא בסביבה, ונסגר כשהוא הולך."
   teaches: "מפעיל מכני"
+  value: "דלת ברזל שאין לה מפתח חוץ מהתוכנית שלכם."
+  quest:
+    - "ברצפת המחסן יש פתח למרתף, ובמרתף - ארגז ציוד."
+    - "שער ברזל אי אפשר לפתוח ביד. שימו את השער בחור"
+    - "המסומן, וחיישן נוכחות על האריח שלו."
+    - "כשמישהו מגיע - נפתח. כשהוא הולך - נסגר."
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, presence_sensor, gate]
   reward: []
   steps:
-    - { say: "אין אף אחד.", env: { player: 0 }, wait: 30 }
+    - { say: "אין אף אחד במחסן.", env: { player: 0 }, wait: 30 }
     - { expect: { gate: off }, because: "בלי אף אחד בסביבה השער סגור" }
-    - { say: "מישהו הגיע.", env: { player: 1 }, wait: 30 }
+    - { say: "מישהו הגיע לפתח.", env: { player: 1 }, wait: 30 }
     - { expect: { gate: on }, because: "כשמזוהה נוכחות השער צריך להיפתח" }
     - { say: "הוא הלך.", env: { player: 0 }, wait: 30 }
     - { expect: { gate: off }, because: "השער צריך להיסגר אחריו" }
@@ -81,68 +132,126 @@ auto_door:
 
 twilight:
   order: 10
-  name: "אור דמדומים"
-  brief: "הדליקו את הנורה רק בין אור לחושך - לא ביום, ולא בחושך מוחלט."
+  site: greenhouse
+  name: "מנורת החממה"
+  brief: "הדליקו את המנורה רק בין אור לחושך - לא ביום, ולא בחושך מוחלט."
   teaches: "תחום בין שני ספים; כלל מאוחר גובר - הפעם ככלי, לא כמלכודת"
+  value: "החיטה גדלה בדמדומים, והסוללה נשמרת בלילה."
+  quest:
+    - "חיטה גדלה רק כשיש מספיק אור - בערב היא נעצרת."
+    - "חיישן אור בחוץ, מעבר לזכוכית. נורה על הקורה."
+    - "ביום מלא - כבויה, זה בזבוז. כשמחשיך - דולקת."
+    - "בחושך מוחלט - כבויה: הצמחים נחים, וגם הסוללה."
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, light_sensor, lamp]
   reward: [display]
   hint: "שלושה כללים על אותו פלט, והסדר הוא התשובה: כבו ביום, הדליקו כשמחשיך, ואז כבו שוב בחושך מוחלט"
   steps:
-    - { say: "יום מלא. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
+    - { say: "צהריים בחממה. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום הנורה כבויה" }
     - { say: "דמדומים. עוצמת אור 7.", env: { light: 7 }, wait: 30 }
     - { expect: { lamp: on }, because: "בתחום הדמדומים הנורה דולקת" }
-    - { say: "חושך מוחלט. עוצמת אור 1.", env: { light: 1 }, wait: 30 }
+    - { say: "לילה עמוק. עוצמת אור 1.", env: { light: 1 }, wait: 30 }
     - { expect: { lamp: off }, because: "בחושך מוחלט היא כבויה שוב - צריך כלל שלישי שגובר על השני" }
-    - { say: "שוב דמדומים. עוצמת אור 5.", env: { light: 5 }, wait: 30 }
+    - { say: "לפנות בוקר. עוצמת אור 5.", env: { light: 5 }, wait: 30 }
     - { expect: { lamp: on }, because: "כשחוזרים לתחום היא נדלקת שוב" }
     - { say: "ובוקר.", env: { light: 12 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום כבויה" }
 
 timed_door:
   order: 11
-  name: "דלת שנשארת פתוחה"
+  site: storeroom
+  name: "פתח שמחכה"
   brief: "השער נפתח כשמישהו מגיע - ונשאר פתוח עוד 3 שניות אחרי שהלך."
   teaches: "זיכרון ששומר מועד ולא רק דגל; TIME"
+  value: "פתח שאפשר באמת לרדת דרכו בסולם בלי שייטרק."
+  quest:
+    - "הפתח מהחימום נטרק ברגע שיורדים בסולם -"
+    - "החיישן כבר לא רואה אתכם, והשער נסגר על הראש."
+    - "בנו שער שנשאר פתוח עוד 3 שניות אחרי שהאדם הלך."
+    - "רמז: לזכור מתי מותר להיסגר - לא אם מישהו כאן."
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, presence_sensor, gate]
   reward: [distance_sensor]
   hint: "M1 SET TIME ואז M1 ADD 3. הזיכרון מחזיק מתי מותר להיסגר - לא אם מישהו נמצא"
   steps:
-    - { say: "אין אף אחד.", env: { player: 0 }, wait: 40 }
+    - { say: "אין אף אחד במחסן.", env: { player: 0 }, wait: 40 }
     - { expect: { gate: off }, because: "בלי אף אחד השער סגור" }
-    - { say: "מישהו הגיע.", env: { player: 1 }, wait: 30 }
+    - { say: "מישהו הגיע לפתח.", env: { player: 1 }, wait: 30 }
     - { expect: { gate: on }, because: "כשמזוהה נוכחות השער נפתח" }
-    - { say: "הוא הלך - עברה שנייה.", env: { player: 0 }, wait: 20 }
+    - { say: "הוא ירד בסולם - עברה שנייה.", env: { player: 0 }, wait: 20 }
     - { expect: { gate: on }, because: "שנייה אחרי שהלך השער עדיין פתוח. זה כל העניין - הזיכרון מחזיק מועד" }
     - { say: "עברו עוד ארבע שניות.", wait: 90 }
     - { expect: { gate: off }, because: "אחרי 3 שניות השער נסגר לבד. אם נשאר פתוח - הזיכרון לא נקבע למועד" }
 
 counter:
   order: 12
-  name: "מונה"
-  brief: "ספרו כמה פעמים מישהו נכנס. השתמשו בזיכרון M1."
+  site: gate
+  name: "מונה בשער"
+  brief: "ספרו כמה פעמים מישהו נכנס בשער החצר, והראו את המספר על הצג."
   teaches: "ADD, זיהוי מעבר, סדר הכללים"
+  value: "ספר אורחים בשער - מספר אמיתי שכל מי שנכנס רואה."
+  quest:
+    - "כל מי שנכנס לחצר עובר בשער הזה."
+    - "חיישן נוכחות על האריח ליד השער, צג על העמוד."
+    - "הצג מראה כמה פעמים מישהו נכנס - לא כמה זמן עמד."
+    - "רמז: כדי לספור מעברים, זכרו מה היה בסיבוב הקודם."
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, presence_sensor, display]
-  reward: [heat_sensor]
-  hint: "כדי לספור מעברים צריך לזכור מה היה בסיבוב הקודם: M2 SET S1 - אבל רק אחרי הכלל שמשווה"
+  reward: [heat_sensor, mob_sensor]
+  hint: "כדי לספור מעברים צריך לזכור מה היה בסיבוב הקודם: M2 SET S1 - אבל רק אחרי הכלל שמשווה. והצג מראה את M1"
   steps:
-    - { say: "מאפסים.", env: { player: 0 }, wait: 20 }
-    - { say: "כניסה ראשונה.", env: { player: 1 }, wait: 20 }
-    - { say: "יצא.", env: { player: 0 }, wait: 20 }
-    - { say: "כניסה שנייה.", env: { player: 1 }, wait: 20 }
-    - { say: "יצא.", env: { player: 0 }, wait: 20 }
-    - { expect: { M1: 2 }, because: "שתי כניסות - M1 צריך להיות 2. אם יצא מספר גדול, אתם סופרים כל סיבוב במקום כל מעבר" }
+    - { say: "השער ריק. מאפסים.", env: { player: 0 }, wait: 20 }
+    - { say: "אורח ראשון נכנס.", env: { player: 1 }, wait: 20 }
+    - { say: "עבר.", env: { player: 0 }, wait: 20 }
+    - { say: "אורח שני נכנס.", env: { player: 1 }, wait: 20 }
+    - { say: "עבר.", env: { player: 0 }, wait: 20 }
+    - { expect: { M1: 2, display: 2 }, because: "שתי כניסות - M1 צריך להיות 2, והצג צריך כלל SHOW M1 שמראה אותו. אם יצא מספר גדול, אתם סופרים כל סיבוב במקום כל מעבר" }
+
+flicker:
+  order: 13
+  site: mine
+  name: "נורה שלא מרצדת"
+  brief: "העבירו את הנורה לתקרת המנהרה - היא מאירה את החיישן שלה. תקנו את הריצוד."
+  teaches: "משוב מהעולם: הפלט משנה את הקריאה הבאה. היסטרזיס - שני ספים - על חיישן אור"
+  value: "מנורת מנהרה יציבה גם כשהיא מאירה את החיישן."
+  quest:
+    - "העבירו את הנורה מהפתח אל המדף שבתקרת המנהרה."
+    - "בלילה היא תרצד: נדלקת, מאירה את החיישן,"
+    - "החיישן 'רואה יום', הנורה נכבית - וחוזר חלילה."
+    - "תקנו: סף להדלקה כשחשוך, וסף גבוה יותר לכיבוי."
+    - "בין הספים - לא נוגעים. כשמוכן, לחצו כאן שוב."
+  needs: [controller, battery, light_sensor, lamp]
+  reward: []
+  hint: "שני ספים: הדליקו מתחת ל-7, כבו רק מעל 13 - האור שהנורה עצמה נותנת. בין הספים הפלט זוכר את מצבו"
+  steps:
+    - { say: "יום. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
+    - { expect: { lamp: off }, because: "ביום כבויה" }
+    - { say: "לילה. אור 4 - וכשהנורה דולקת, החיישן רואה גם אותה: 13.", env: { light: 4 }, feedback: { light: { actuator: lamp, add: 9, max: 15 } }, wait: 80 }
+    - { expect: { steady: lamp, lamp: on }, because: "הנורה מרצדת: נדלקת, מאירה את החיישן, 'רואה יום', נכבית, וחוזר חלילה. סף הכיבוי חייב להיות מעל האור שהנורה עצמה נותנת - 13" }
+    - { say: "בוקר. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
+    - { expect: { lamp: off }, because: "כשהשמש חוזרת הנורה נכבית. גם עם שני ספים - צריך כלל שמכבה" }
+    - { say: "ושוב לילה. אור 4.", env: { light: 4 }, wait: 80 }
+    - { expect: { steady: lamp, lamp: on }, because: "דולקת ויציבה כל הלילה - זה ההבדל בין מכרה שאפשר לעבוד בו לבין סטרובוסקופ" }
 
 thermostat:
-  order: 13
+  order: 14
+  site: forge
   name: "תרמוסטט"
-  brief: "החזיקו את החום בתחום. שימו לב: סף אחד גורם לנורה לרצד."
-  teaches: "משוב, היסטרזיס - שני ספים"
+  brief: "החזיקו את חום הנפחייה בתחום. שימו לב: סף אחד גורם למחמם לרצד."
+  teaches: "משוב, היסטרזיס - שני ספים, הפעם על חום"
+  value: "מחמם שמחזיק את הנפחייה בתחום - בלי לרצד."
+  quest:
+    - "הכור צריך להישאר חם, אבל לא לוהט."
+    - "חיישן חום על המשטח. הנורה היא המחמם."
+    - "כשקר - דולק. כשחם - כבוי. עם סף אחד הוא מרצד."
+    - "נסו: שימו את החיישן על 'חם' ועל 'קר' וקראו."
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, heat_sensor, lamp]
   reward: [solar_panel, rain_sensor]
-  hint: "עם סף אחד המערכת מתנדנדת. נסו סף להדלקה וסף אחר - גבוה יותר - לכיבוי"
+  hint: "עם סף אחד המערכת מתנדנדת. נסו סף להדלקה וסף אחר - גבוה יותר - לכיבוי. בדיוק כמו הנורה במכרה"
   steps:
-    - { say: "קר. חום 20.", env: { heat: 20 }, wait: 30 }
+    - { say: "קר בנפחייה. חום 20.", env: { heat: 20 }, wait: 30 }
     - { expect: { lamp: on }, because: "כשקר המחמם צריך לעבוד" }
     - { say: "מתחמם. חום 45 - באמצע.", env: { heat: 45 }, wait: 30 }
     - { expect: { lamp: on }, because: "באמצע התחום המחמם ממשיך - הוא כבר דולק ולא הגיע לסף הכיבוי" }
@@ -152,10 +261,18 @@ thermostat:
     - { expect: { lamp: off }, because: "באמצע התחום המחמם נשאר כבוי. אם נדלק - יש לכם סף אחד, ולכן ריצוד" }
 
 efficiency:
-  order: 14
-  name: "חיסכון"
-  brief: "אותה נורת לילה - אבל עם רבע סוללה. אל תיתנו לרובוט להיכבות."
+  order: 15
+  site: tower
+  name: "אור המגדל"
+  brief: "אותה נורת לילה, למרגלות המגדל - אבל עם רבע סוללה. אל תיתנו לרובוט להיכבות."
   teaches: "תקציב אנרגיה, מחזור עבודה"
+  value: "אור מגדל שמחזיק לילה שלם על רבע סוללה."
+  quest:
+    - "האור למרגלות המגדל הוא הדרך הביתה בלילה."
+    - "הפעם יש רק רבע סוללה, ואף אחד לא יבוא לטעון."
+    - "חיישן אור על האריח, נורה על המדף."
+    - "כל מפעיל דולק שורף. מה חייב להיות דלוק, ומתי?"
+    - "כשהרובוט מוכן, לחצו כאן שוב."
   needs: [controller, battery, light_sensor, lamp]
   reward: [marker, color_sensor, redstone_sensor]
   hint: "כל מפעיל דולק שורף חשמל בכל סיבוב. מה באמת חייב להיות דלוק, ומתי?"
@@ -163,10 +280,204 @@ efficiency:
   # even with a spare sensor attached, while an always-on lamp runs flat around two thirds in.
   start-energy: 150
   steps:
-    - { say: "יום.", env: { light: 14 }, wait: 60 }
+    - { say: "יום למרגלות המגדל.", env: { light: 14 }, wait: 60 }
     - { expect: { lamp: off }, because: "ביום כבוי" }
     - { say: "לילה.", env: { light: 2 }, wait: 60 }
     - { expect: { lamp: on }, because: "בלילה דלוק" }
     - { say: "יום.", env: { light: 14 }, wait: 60 }
     - { expect: { lamp: off }, because: "ביום כבוי" }
     - { expect: { running: true }, because: "הסוללה נגמרה באמצע. מפעיל שדולק כשאין בו צורך שורף את התקציב" }
+
+# ============================ BONUS (optional, after the ladder) ============================
+# Every bonus uses a part the ladder unlocked. None grants anything. None gates anything.
+
+fire_alarm:
+  order: 20
+  bonus: true
+  site: forge
+  name: "אזעקת אש"
+  brief: "הצג מראה את החום תמיד; כשעובר את הסף - הזמזם מצלצל. לפיד לא צריך לצלצל."
+  teaches: "סף שנבחר לפי מספרים אמיתיים (לפיד 52, מאגמה 56); שני פלטים מקריאה אחת"
+  value: "אזעקה שמצלצלת על אש ומאגמה - ולא על לפיד."
+  quest:
+    - "ליד הכור יש מאגמה מתחת לזכוכית. אם משהו נדלק -"
+    - "צריך לדעת מיד. חיישן חום על המשטח, צג שמראה"
+    - "את החום כל הזמן, וזמזם שמצלצל מעל הסף."
+    - "לפיד אחד מעלה ל-52. בלוק מאגמה אחד - ל-56."
+    - "לפיד זה לא שריפה. כשמוכן, לחצו כאן שוב."
+  needs: [controller, battery, heat_sensor, buzzer, display]
+  reward: []
+  hint: "ALWAYS צג SHOW S1 - ואז סף אחד לזמזם, בין 52 ל-56. וכלל שמכבה כשמתקרר"
+  steps:
+    - { say: "האולם רגוע. חום 50.", env: { heat: 50 }, wait: 30 }
+    - { expect: { display: 50, buzzer: off }, because: "הצג מראה את החום תמיד; בלי אש - שקט" }
+    - { say: "מישהו הניח לפיד ליד החיישן. חום 52.", env: { heat: 52 }, wait: 30 }
+    - { expect: { buzzer: off }, because: "לפיד זה לא שריפה. הסף נמוך מדי - מאגמה מתחילה ב-56" }
+    - { say: "אש! חום 56.", env: { heat: 56 }, wait: 30 }
+    - { expect: { buzzer: on, display: 56 }, because: "בלוק מאגמה אחד בטווח = 56. מעל הסף - צלצול" }
+    - { say: "כיבו. חום 50.", env: { heat: 50 }, wait: 30 }
+    - { expect: { buzzer: off }, because: "כשמתקרר האזעקה נרגעת - צריך כלל שמכבה" }
+    - { say: "הכור מתחמם שוב. חום 62.", env: { heat: 62 }, wait: 30 }
+    - { expect: { buzzer: on }, because: "האזעקה חוזרת - הזמזם מצלצל מחדש בכל התחלה" }
+
+tunnel_gauge:
+  order: 21
+  bonus: true
+  site: mine
+  name: "מד מנהרה"
+  brief: "הצג מראה כמה המנהרה פנויה; כשמשהו חוסם קרוב - הזמזם מצלצל."
+  teaches: "חיישן עם כיוון; SHOW של קריאה גולמית; סף על מרחק; 16 פירושו 'לא רואה כלום'"
+  value: "מד שמראה כמה המנהרה פנויה ומצלצל על מפולת."
+  quest:
+    - "כמה המנהרה פנויה? חיישן מרחק על המדף שבפתח,"
+    - "מכוון פנימה - עמדו עם הפנים אל המנהרה כשמניחים."
+    - "הוא מודד עד הבלוק הראשון. הצג מראה את המספר."
+    - "משהו חוסם פחות מ-3 בלוקים ממנו - הזמזם מצלצל."
+    - "נסו באמת: שימו אבן במנהרה. כשמוכן, לחצו שוב."
+  needs: [controller, battery, distance_sensor, display, buzzer]
+  reward: []
+  hint: "ALWAYS צג SHOW S1. סף: פחות מ-3 - זמזם ON, אחרת OFF. הקיר בסוף המנהרה נמצא במרחק 11"
+  steps:
+    - { say: "המנהרה פנויה עד הקיר בסוף. מרחק 11.", env: { distance: 11 }, wait: 30 }
+    - { expect: { display: 11, buzzer: off }, because: "הצג מראה את המרחק שהחיישן קורא, והקיר בסוף לא מפריע" }
+    - { say: "מפולת! אבן נפלה 2 בלוקים מהחיישן.", env: { distance: 2 }, wait: 30 }
+    - { expect: { display: 2, buzzer: on }, because: "משהו חוסם קרוב - הזמזם מצלצל" }
+    - { say: "פינו את האבן. מרחק 11.", env: { distance: 11 }, wait: 30 }
+    - { expect: { buzzer: off }, because: "כשהדרך פנויה - שקט. צריך כלל שמכבה" }
+    - { say: "סובבו את החיישן החוצה, אל השמיים. אין שום דבר בטווח.", env: { distance: 16 }, wait: 30 }
+    - { expect: { display: 16, buzzer: off }, because: "16 זה לא 'רחוק מאוד' - זה 'לא רואה כלום'. הטווח של החיישן נגמר ב-16" }
+
+pen_guard:
+  order: 22
+  bonus: true
+  site: pen
+  name: "שומר הדיר"
+  brief: "כשכבשה יוצאת מהדיר - אור. והצג סופר כמה פעמים זה קרה."
+  teaches: "חיישן ליצורים חיים, לא לאנשים; המונה מהשער על חיישן אחר; חמישה כללים בדיוק"
+  value: "אזעקה ומונה לכבשים שברחו - ולא לאנשים שעוברים."
+  quest:
+    - "בדיר שתי כבשים, ומישהו תמיד משאיר את השער פתוח."
+    - "חיישן חיות על האריח מחוץ לגדר - רואה 5 בלוקים,"
+    - "לא את הכבשים שבפנים. כבשה בחוץ - נורה."
+    - "וצג שסופר כמה בריחות היו. חיטה בארגז המחסן."
+    - "פתו אותן החוצה ונסו. כשמוכן, לחצו כאן שוב."
+  needs: [controller, battery, mob_sensor, lamp, display]
+  reward: []
+  hint: "המונה מהשער, עם חיישן חיות במקום נוכחות: השוו לפני שזוכרים, ותנו לצג להראות את M1. בדיוק חמישה כללים"
+  steps:
+    - { say: "שקט בדיר, השער סגור.", env: { mob: 0 }, wait: 20 }
+    - { expect: { lamp: off, display: 0 }, because: "אין חיה בחוץ - אור כבוי, המונה על 0" }
+    - { say: "כבשה יצאה!", env: { mob: 1 }, wait: 20 }
+    - { expect: { lamp: on }, because: "חיה מחוץ לדיר - אור" }
+    - { say: "החזרתם אותה.", env: { mob: 0 }, wait: 20 }
+    - { expect: { lamp: off, display: 1 }, because: "בריחה אחת - הצג מראה 1. אם יצא מספר גדול, ספרתם כל סיבוב במקום כל בריחה" }
+    - { say: "ועוד אחת ברחה.", env: { mob: 1 }, wait: 20 }
+    - { say: "חזרה.", env: { mob: 0 }, wait: 20 }
+    - { expect: { display: 2, M1: 2 }, because: "שתי בריחות - 2. זה המונה מהשער, עם חיישן אחר" }
+
+rain_vent:
+  order: 23
+  bonus: true
+  site: greenhouse
+  name: "צוהר הגשם"
+  brief: "הצוהר בגג פתוח כשיש אור ויבש, וסגור בלילה - וברגע שמתחיל גשם."
+  teaches: "שני חיישנים; 'וגם' שנכתב ככלל מאוחר שגובר"
+  value: "צוהר בגג החממה שנסגר לבד כשמתחיל גשם."
+  quest:
+    - "בחממה חם ביום. פתחו צוהר בגג כשיש אור -"
+    - "וסגרו בלילה, וברגע שמתחיל גשם, שהחיטה לא תיטבע."
+    - "השער בחור שבגג. חיישן גשם על האריח שלו במשטח -"
+    - "הוא מרגיש את הגשם של כל העולם, גם מתחת לגג."
+    - "מי גובר - האור או הגשם? כשמוכן, לחצו כאן שוב."
+  needs: [controller, battery, light_sensor, rain_sensor, gate]
+  reward: []
+  hint: "כלל האור פותח וסוגר; כלל הגשם סוגר - והוא חייב לבוא אחרון, אחרת כלל האור פותח מחדש. בדקו על התוויות איזה חיישן הוא S1"
+  steps:
+    - { say: "יום יבש. אור 14, גשם 0.", env: { light: 14, rain: 0 }, wait: 30 }
+    - { expect: { gate: on }, because: "ביום יבש הצוהר פתוח - לאוורר את החממה" }
+    - { say: "התחיל גשם.", env: { rain: 1 }, wait: 30 }
+    - { expect: { gate: off }, because: "בגשם הצוהר נסגר - גם כשיש אור. כלל הגשם חייב לגבור על כלל האור" }
+    - { say: "הגשם פסק, אבל ירד לילה. אור 3.", env: { rain: 0, light: 3 }, wait: 30 }
+    - { expect: { gate: off }, because: "בלילה סגור" }
+    - { say: "בוקר יבש. אור 14.", env: { light: 14 }, wait: 30 }
+    - { expect: { gate: on }, because: "כשיבש ויש אור - נפתח שוב" }
+
+solar_station:
+  order: 24
+  bonus: true
+  site: tower
+  name: "תחנת השמש"
+  brief: "תחנה בראש המגדל שמציגה את האור וחיה מהשמש בלבד. הסוללה כמעט ריקה בהתחלה."
+  teaches: "מאזן אנרגיה: רווח מול הוצאה. לוח נותן 2 בשמש מלאה; בקר, חיישן וצג שורפים 3"
+  value: "תחנה בראש המגדל שחיה מהשמש ולא צריכה טעינה."
+  quest:
+    - "בראש המגדל תמיד יש שמש - ואף אחד לא יעלה לטעון."
+    - "בנו תחנה שמציגה את עוצמת האור על הצג,"
+    - "וחיה מלוחות סולאריים בלבד. כמה לוחות צריך?"
+    - "חשבו: כמה נכנס, כמה יוצא. כל חלק מיותר שורף."
+    - "הסוללה מתחילה כמעט ריקה. כשמוכן, לחצו כאן שוב."
+  needs: [controller, battery, solar_panel, light_sensor, display]
+  reward: []
+  hint: "לוח אחד: נכנס 2, יוצא 3 - מפסידים 1 בכל סיבוב. שני לוחות: מרוויחים 1. ובלי חיישנים מיותרים"
+  start-energy: 40
+  steps:
+    - { say: "צהריים על הגג. אור 15. הסוללה כמעט ריקה - 40.", env: { light: 15 }, wait: 600 }
+    - { expect: { running: true, display: 15 }, because: "לוח אחד נותן 2 בסיבוב; בקר, חיישן וצג שורפים 3. עם לוח אחד מפסידים 1 בכל סיבוב - עוד לוח, או פחות חלקים" }
+    - { say: "לילה. אור 2. אין שמש - חיים על מה שנאגר.", env: { light: 2 }, wait: 200 }
+    - { expect: { running: true, display: 2 }, because: "בלילה אין טעינה. אם הרובוט נעצר - לא נאגר מספיק ביום" }
+
+color_lock:
+  order: 25
+  bonus: true
+  site: storeroom
+  name: "מנעול צבע"
+  brief: "המרתף נפתח רק כשצמר ירוק מונח מתחת לחיישן הצבע."
+  teaches: "שוויון על קוד; 14 הוא לא 'יותר' מ-11; חיישן שהקלט שלו הוא משהו שמניחים"
+  value: "מנעול למרתף שנפתח רק לצמר בצבע הנכון."
+  quest:
+    - "נעלו את המרתף: השער נפתח רק למפתח הנכון."
+    - "חיישן צבע על האריח 'מפתח' קורא את הבלוק שמתחתיו."
+    - "שברו את האבן שמתחתיו ושימו שם צמר מהארגז במרתף."
+    - "ירוק 13, אדום 14, כחול 11, צהוב 4, כלום 16."
+    - "רק ירוק פותח. כשמוכן, לחצו כאן שוב."
+  needs: [controller, battery, color_sensor, gate]
+  reward: []
+  hint: "שני כללים: שווה 13 - פתוח. לא שווה 13 - סגור. קוד לא משווים עם קטן או גדול"
+  steps:
+    - { say: "אין בלוק מתחת לחיישן. צבע 16.", env: { color: 16 }, wait: 30 }
+    - { expect: { gate: off }, because: "בלי מפתח המרתף סגור" }
+    - { say: "צמר אדום במפתח. צבע 14.", env: { color: 14 }, wait: 30 }
+    - { expect: { gate: off }, because: "אדום זה לא המפתח" }
+    - { say: "צמר כחול. צבע 11.", env: { color: 11 }, wait: 30 }
+    - { expect: { gate: off }, because: "כחול הוא 11 - קטן מ-13, אבל לא המפתח. קוד לא משווים עם קטן או גדול, רק עם שווה" }
+    - { say: "צמר ירוק. צבע 13.", env: { color: 13 }, wait: 30 }
+    - { expect: { gate: on }, because: "ירוק = 13 - המפתח הנכון פותח" }
+    - { say: "הוציאו את הצמר. צבע 16.", env: { color: 16 }, wait: 30 }
+    - { expect: { gate: off }, because: "כשהמפתח יוצא המרתף נסגר - צריך כלל שסוגר" }
+
+manual_override:
+  order: 26
+  bonus: true
+  site: mine
+  name: "מתג ידני"
+  brief: "אור הפתח דולק כשחשוך - וגם בכל פעם שמישהו מרים את המתג האמיתי."
+  teaches: "'או' - שתי סיבות לאותו פלט, וסדר כללים שנותן למתג לגבור. הגשר מאבן אדומה לתוכנית"
+  value: "מתג אמיתי שמדליק את אור המכרה מתי שרוצים."
+  quest:
+    - "ליד המשטח יש מתג אמיתי על עמוד אבן. שימו חיישן"
+    - "אבן אדומה על האריח שצמוד לעמוד - כשהמתג למעלה"
+    - "החיישן קורא 15. הנורה בפתח דולקת כשחשוך,"
+    - "וגם בכל פעם שמישהו מרים את המתג - גם ביום."
+    - "שתי סיבות לאותו פלט. כשמוכן, לחצו כאן שוב."
+  needs: [controller, battery, light_sensor, redstone_sensor, lamp]
+  reward: []
+  hint: "כללי האור מדליקים ומכבים; כלל המתג מדליק - והוא חייב להיות אחרון, אחרת כלל היום מכבה אותו"
+  steps:
+    - { say: "יום, המתג למטה. אור 14, אות 0.", env: { light: 14, redstone: 0 }, wait: 30 }
+    - { expect: { lamp: off }, because: "ביום, בלי מתג - כבויה" }
+    - { say: "מישהו הרים את המתג. אות 15.", env: { redstone: 15 }, wait: 30 }
+    - { expect: { lamp: on }, because: "המתג גובר על היום - הכלל שלו חייב להיות אחרון" }
+    - { say: "המתג ירד, וירד לילה. אור 2.", env: { redstone: 0, light: 2 }, wait: 30 }
+    - { expect: { lamp: on }, because: "בלילה דולקת גם בלי מתג" }
+    - { say: "בוקר. אור 14.", env: { light: 14 }, wait: 30 }
+    - { expect: { lamp: off }, because: "ביום בלי מתג - כבויה. שתי סיבות להדליק, ולשתיהן צריך כלל שמכבה" }

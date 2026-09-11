@@ -15,6 +15,7 @@ import java.util.UUID;
  * Per-player progress, persisted to players.yml:
  *   &lt;uuid&gt;.plot         -&gt; assigned plot index
  *   &lt;uuid&gt;.board-built   -&gt; has their Component Board been spawned
+ *   &lt;uuid&gt;.layout-parts / .layout-missions -&gt; how much content that wall was built for
  *   &lt;uuid&gt;.unlocked      -&gt; part ids unlocked by mission rewards
  *   &lt;uuid&gt;.missions      -&gt; completed mission ids
  *   &lt;uuid&gt;.kit-claimed   -&gt; has the one-time starter kit been taken
@@ -68,6 +69,28 @@ public class PlayerStore {
     public boolean isBoardBuilt(UUID id)          { return yml.getBoolean(id + ".board-built", false); }
     public void setBoardBuilt(UUID id, boolean v) { yml.set(id + ".board-built", v); save(); }
 
+    /**
+     * Was the board and shelf last built against this much content? False until recorded, so a
+     * plot built before the count was tracked reads as stale exactly once.
+     *
+     * <p>{@code board-built} says a plot has its wall; it does not say the wall is the right
+     * size. When a part is appended or a mission added, every plot already built keeps the old
+     * tile count for ever - a student on a five-rung server would join a six-rung one and see a
+     * shelf with no slot for the new rung, and a board with no tile for the new sensor. The first
+     * time that happened it needed {@code board-built: false} set by hand on seven servers.
+     * Recording the counts makes the join rebuild the wall by itself when content grows.
+     */
+    public boolean isLayoutCurrent(UUID id, int parts, int missions) {
+        return yml.getInt(id + ".layout-parts", -1) == parts
+                && yml.getInt(id + ".layout-missions", -1) == missions;
+    }
+
+    public void setLayout(UUID id, int parts, int missions) {
+        yml.set(id + ".layout-parts", parts);
+        yml.set(id + ".layout-missions", missions);
+        save();
+    }
+
     // ---- parts -------------------------------------------------------------
 
     /** Every part this player may draw: the always-available ones plus whatever missions unlocked. */
@@ -111,6 +134,26 @@ public class PlayerStore {
         }
     }
 
+    /**
+     * Grant every reward of every mission this player has already passed. Idempotent.
+     *
+     * <p>Rewards are handed out at the moment of passing. When a mission's reward list later
+     * grows - counter now also unlocks the animal sensor - a student who passed it last term
+     * would never be given the new part, and the bonus job that needs it would sit on their list
+     * forever with no way to reach it. Run on every join, it costs nothing and closes that gap.
+     */
+    public int reconcileUnlocks(UUID id, com.agurim.robocraft.mission.MissionRegistry registry) {
+        int granted = 0;
+        for (String missionId : completedMissions(id)) {
+            com.agurim.robocraft.mission.Mission m = registry.byId(missionId);
+            if (m == null) continue;
+            for (String partId : m.reward()) {
+                if (plugin.parts().has(partId) && unlock(id, partId)) granted++;
+            }
+        }
+        return granted;
+    }
+
     // ---- misc --------------------------------------------------------------
 
     public boolean isKitClaimed(UUID id) { return yml.getBoolean(id + ".kit-claimed", false); }
@@ -118,6 +161,9 @@ public class PlayerStore {
 
     public void cacheName(UUID id, String name) { yml.set(id + ".name", name); save(); }
     public String getName(UUID id)              { return yml.getString(id + ".name", "?"); }
+
+    /** Drop every record of this id. For the self-test's throwaway players; never for a student. */
+    public void forget(UUID id) { yml.set(id.toString(), null); save(); }
 
     /** Wipe progress but keep the plot, so a reset student stays where their build is. */
     public void reset(UUID id) {

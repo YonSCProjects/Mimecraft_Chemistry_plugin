@@ -77,6 +77,7 @@ public class ComponentBoard {
 
     /** (Re)build every tile for this plot, lit according to what the owner has unlocked. */
     public void build(int plotIndex, UUID owner) {
+        clearLabels(plotIndex);
         List<Part> parts = parts();
         for (int i = 0; i < parts.size(); i++) {
             Part part = parts.get(i);
@@ -84,6 +85,38 @@ public class ComponentBoard {
             Location loc = tileLocation(plotIndex, i);
             world().getBlockAt(loc).setType(unlocked ? part.block() : Material.GRAY_STAINED_GLASS);
             spawnLabel(part, loc, unlocked);
+        }
+    }
+
+    /**
+     * Remove every tile label on this plot before a rebuild.
+     *
+     * <p>{@link #removeLabel} only deletes the label whose id matches the part being redrawn at
+     * that tile. That holds while parts.yml is fixed, and breaks the moment a part is inserted:
+     * every tile after it shifts one slot, and each old label is left floating under a different
+     * part's block. Appending keeps the existing tiles still, but clearing the whole box first
+     * makes a rebuild honest whatever moved.
+     */
+    private void clearLabels(int plotIndex) {
+        int n = parts().size();
+        if (n == 0) return;
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+        Location any = tileLocation(plotIndex, 0);
+        for (int i = 0; i < n; i++) {
+            Location t = tileLocation(plotIndex, i);
+            minX = Math.min(minX, t.getBlockX()); maxX = Math.max(maxX, t.getBlockX());
+            minY = Math.min(minY, t.getBlockY()); maxY = Math.max(maxY, t.getBlockY());
+        }
+        Location centre = new Location(world(), (minX + maxX) / 2.0 + 0.5, (minY + maxY) / 2.0 + 0.5,
+                any.getBlockZ() + 1.3);
+        new Location(world(), minX, minY, any.getBlockZ()).getChunk().getEntities();
+        new Location(world(), maxX, maxY, any.getBlockZ()).getChunk().getEntities();
+        double hx = (maxX - minX) / 2.0 + 1.5, hy = (maxY - minY) / 2.0 + 1.5;
+        for (Entity ent : world().getNearbyEntities(centre, hx, hy, 1.5)) {
+            if (ent instanceof TextDisplay td
+                    && td.getPersistentDataContainer().has(plugin.tileKey(), PersistentDataType.STRING)) {
+                td.remove();
+            }
         }
     }
 

@@ -158,3 +158,20 @@ marker:
   drain: 8
   unlocked: false
   hint: "פולט חלקיקים כשהוא דולק"
+
+# Appended LAST on purpose. Tiles are laid out in file order, and inserting a part in the middle
+# shifts every tile after it - the board rebuild then leaves each old label floating under a
+# different part's block. Unlocked by the required rung `counter`, never by a bonus, so a student
+# who skips every extra still gets it. BONE_BLOCK never changes state and looks nothing like the
+# presence sensor's SCULK_SENSOR, which is the point: two sensors that read "someone is here"
+# must not look like the same part.
+mob_sensor:
+  name: "חיישן חיות"
+  kind: sensor
+  sensor: mob
+  block: BONE_BLOCK
+  radius: 5
+  range: "0/1"
+  drain: 1
+  unlocked: false
+  hint: "1 אם יש חיה או יצור בקרבת מקום - לא אנשים"

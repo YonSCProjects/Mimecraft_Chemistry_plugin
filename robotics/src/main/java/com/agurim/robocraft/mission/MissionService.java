@@ -62,6 +62,11 @@ public class MissionService {
         final CommandSender sender;
         final UUID owner;                 // null when nobody's progress should change
         final Map<String, Integer> env = new LinkedHashMap<>();
+        final Map<String, Mission.Feedback> feedback = new LinkedHashMap<>();
+        /** Outputs as of the last advance(), so a switch can be counted. */
+        final Map<String, Integer> lastOutputs = new LinkedHashMap<>();
+        /** Port -> how many times it switched on/off during the current wait. */
+        final Map<String, Integer> switches = new LinkedHashMap<>();
         int index;
         int waitLeft;
 
@@ -72,10 +77,33 @@ public class MissionService {
         }
     }
 
-    /** Simulated readings for this robot, or null when it is not on the bench. */
+    /**
+     * Simulated readings for this robot, or null when it is not on the bench.
+     *
+     * <p>With {@code feedback} in play the view is computed: for each fed-back sensor type, if any
+     * actuator of the named type is currently ON, its reading is raised. This is read by the engine
+     * at the top of a tick, BEFORE this tick's ACT phase, so the outputs it sees are last tick's -
+     * the lamp that was lit last tick is what lights the sensor now. That one-tick lag is exactly
+     * what makes a single-threshold program oscillate, and exactly what real feedback does.
+     */
     public Map<String, Integer> envFor(String robotKey) {
         Run run = runs.get(robotKey);
-        return (run == null) ? null : run.env;
+        if (run == null) return null;
+        if (run.feedback.isEmpty()) return run.env;
+
+        Robot robot = plugin.robots().get(robotKey);
+        Map<String, Integer> view = new LinkedHashMap<>(run.env);
+        for (Map.Entry<String, Mission.Feedback> e : run.feedback.entrySet()) {
+            String sensorType = e.getKey();
+            Mission.Feedback fb = e.getValue();
+            if (!view.containsKey(sensorType) || robot == null) continue;
+            boolean anyOn = false;
+            for (String port : portsOfType(robot, fb.actuator())) {
+                if (robot.outputs().getOrDefault(port, 0) != 0) { anyOn = true; break; }
+            }
+            if (anyOn) view.put(sensorType, Math.min(fb.max(), view.get(sensorType) + fb.add()));
+        }
+        return view;
     }
 
     public boolean isRunning(String robotKey)      { return runs.containsKey(robotKey); }
@@ -130,6 +158,11 @@ public class MissionService {
             return;
         }
 
+        // Count on/off switches every tick, including during a wait - a `steady` check at the
+        // next step asks how many happened while it waited. A flickering lamp switches eight
+        // times in eighty ticks; a hysteretic one, once.
+        countSwitches(run, robot);
+
         int interval = Math.max(1, plugin.getConfig().getInt("robot.tick-interval", 10));
         if (run.waitLeft > 0) { run.waitLeft -= interval; return; }
 
@@ -146,13 +179,31 @@ public class MissionService {
                 run.sender.sendMessage(Component.text("· " + step.say(), NamedTextColor.GRAY));
             }
             if (step.hasEnv()) run.env.putAll(step.env());
+            if (step.hasFeedback()) run.feedback.putAll(step.feedback());
             if (step.hasExpect()) {
-                String failure = check(robot, step);
+                String failure = check(run, robot, step);
                 if (failure != null) { fail(run, robot, step, failure); return; }
             }
             run.index++;
-            if (step.waitTicks() > 0) { run.waitLeft = step.waitTicks(); return; }
+            if (step.waitTicks() > 0) {
+                run.waitLeft = step.waitTicks();
+                // A fresh wait starts a fresh count, so `steady` measures only this wait.
+                run.switches.clear();
+                run.lastOutputs.clear();
+                run.lastOutputs.putAll(robot.outputs());
+                return;
+            }
         }
+    }
+
+    private static void countSwitches(Run run, Robot robot) {
+        for (Map.Entry<String, Integer> e : robot.outputs().entrySet()) {
+            boolean was = run.lastOutputs.getOrDefault(e.getKey(), 0) != 0;
+            boolean is  = e.getValue() != 0;
+            if (was != is) run.switches.merge(e.getKey(), 1, Integer::sum);
+        }
+        run.lastOutputs.clear();
+        run.lastOutputs.putAll(robot.outputs());
     }
 
     /**
@@ -169,7 +220,7 @@ public class MissionService {
     // ---------------------------------------------------------------- checks
 
     /** null when every expectation holds, otherwise the Hebrew detail of the first that did not. */
-    private String check(Robot robot, Mission.Step step) {
+    private String check(Run run, Robot robot, Mission.Step step) {
         for (Map.Entry<String, String> e : step.expect().entrySet()) {
             String key = e.getKey();
             String want = e.getValue();
@@ -181,6 +232,11 @@ public class MissionService {
                 }
                 continue;
             }
+            if ("steady".equalsIgnoreCase(key)) {
+                String detail = checkSteady(run, robot, want);
+                if (detail != null) return detail;
+                continue;
+            }
             if (key.length() >= 2 && key.charAt(0) == 'M' && Character.isDigit(key.charAt(1))) {
                 int slot = Integer.parseInt(key.substring(1)) - 1;
                 int expected = parseInt(want, 0);
@@ -189,6 +245,21 @@ public class MissionService {
             }
             String detail = checkActuator(robot, key, want);
             if (detail != null) return detail;
+        }
+        return null;
+    }
+
+    /**
+     * Did every actuator of this type hold still during the wait that just ended? One switch is
+     * allowed - the lamp legitimately coming on when night falls. Two or more is a flicker.
+     */
+    private String checkSteady(Run run, Robot robot, String type) {
+        List<String> ports = portsOfType(robot, type);
+        String label = actuatorName(type);
+        if (ports.isEmpty()) return "אין " + label + " מחובר לרובוט";
+        for (String port : ports) {
+            int n = run.switches.getOrDefault(port, 0);
+            if (n > 1) return label + " (" + port + ") החליף מצב " + n + " פעמים בזמן ההמתנה - ריצוד";
         }
         return null;
     }
@@ -212,7 +283,13 @@ public class MissionService {
             if (!ok) {
                 String shown  = numeric ? String.valueOf(actual)   : (actual != 0 ? "ON" : "OFF");
                 String wanted = numeric ? String.valueOf(expected) : (expected != 0 ? "ON" : "OFF");
-                return label + " (" + port + ") = " + shown + " במקום " + wanted;
+                String detail = label + " (" + port + ") = " + shown + " במקום " + wanted;
+                // A second lamp left attached from an earlier job fails the very first check with
+                // no visible reason - "A2 = OFF" when the student only ever thinks about A1.
+                if (ports.size() > 1) {
+                    detail += " (יש " + ports.size() + " " + label + " מחוברים - המשימה מצפה לאחד)";
+                }
+                return detail;
             }
         }
         return null;
@@ -252,10 +329,18 @@ public class MissionService {
             }
         }
 
-        // Say what they GAINED, not the mission name they already know they just ran. For a
-        // warm-up there is nothing to unlock, so the subtitle carries the encouragement instead.
+        // A budget mission started the robot nearly flat and it passed on what it had. Left like
+        // that it dies seconds after the celebration - at real dusk the lamp drains 8 a tick.
+        // The pass was the point; the robot may now keep working.
+        if (run.mission.startEnergy() > 0) {
+            robot.energy(batteryCapacity(robot));
+            run.sender.sendMessage(Component.text("הסוללה מולאה לרגל ההצלחה.", NamedTextColor.GRAY));
+        }
+
+        // Say what they GAINED, not the mission name they already know they just ran. A warm-up
+        // or bonus has nothing to unlock, so the subtitle carries the encouragement instead.
         String gained = unlocked.isEmpty()
-                ? (run.mission.optional() ? "חימום הושלם" : run.mission.name())
+                ? (run.mission.warmUp() ? "חימום הושלם" : run.mission.bonus() ? "בונוס הושלם" : run.mission.name())
                 : "נפתח: " + String.join(", ", unlocked);
 
         if (run.sender instanceof Player player) {
@@ -305,7 +390,7 @@ public class MissionService {
             // Above the board, where they are standing and looking - and high enough that the
             // burst cannot hurt anybody. Fireworks damage on detonation at point-blank range.
             Location spot = plugin.board().arrivalSpot(plot).add(0, 2, 0);
-            spawnFirework(spot, run.mission.optional());
+            spawnFirework(spot, run.mission);
         }
 
         if (plugin.getConfig().getBoolean("celebrate.broadcast", true)) {
@@ -315,13 +400,16 @@ public class MissionService {
         }
     }
 
-    private void spawnFirework(Location spot, boolean warmUp) {
+    /** Silver for a warm-up, gold for a rung of the ladder, green for a bonus - same as the trophies. */
+    private void spawnFirework(Location spot, Mission mission) {
         if (spot.getWorld() == null) return;
+        boolean warmUp = mission.warmUp();
+        Color colour = warmUp ? Color.SILVER : mission.bonus() ? Color.LIME : Color.YELLOW;
         spot.getWorld().spawn(spot, Firework.class, fw -> {
             FireworkMeta meta = fw.getFireworkMeta();
             meta.addEffect(FireworkEffect.builder()
                     .with(warmUp ? FireworkEffect.Type.BALL : FireworkEffect.Type.BALL_LARGE)
-                    .withColor(warmUp ? Color.SILVER : Color.YELLOW)
+                    .withColor(colour)
                     .withFade(Color.WHITE)
                     .trail(!warmUp)
                     .build());

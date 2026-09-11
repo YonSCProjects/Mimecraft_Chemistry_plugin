@@ -441,6 +441,52 @@ public final class SelfTest {
                     "outcome " + plugin.missions().lastOutcome(key)));
         }
 
+        // --- rung 4, the flicker fix: the bench reproduces the playtest's feedback loop ---
+        // A student's lamp lit its own light sensor and the robot oscillated every tick. `feedback`
+        // raises the injected reading while the lamp is on; `steady` counts the switches. The
+        // ordinary night-light program must now FAIL here, and two thresholds must pass.
+        Mission flicker = plugin.missions().registry().byId("flicker");
+        if (flicker == null) {
+            checks.add(new Check("missions.yml defines the flicker rung", false, "not found"));
+        } else {
+            robot.program(nightLight());
+            if (plugin.missions().start(sender, null, robot, flicker) == null) {
+                drive(plugin, robot, key);
+                checks.add(new Check("under feedback the night-light program flickers, and the bench says so",
+                        plugin.missions().lastOutcome(key) == MissionService.Outcome.FAIL,
+                        "outcome " + plugin.missions().lastOutcome(key)));
+            }
+            Program hysteresis = new Program();
+            hysteresis.add(new Rule("S1", Op.LT, Operand.of(7),  "A1", Verb.ON,  Operand.of(0)));
+            hysteresis.add(new Rule("S1", Op.GT, Operand.of(13), "A1", Verb.OFF, Operand.of(0)));
+            robot.program(hysteresis);
+            if (plugin.missions().start(sender, null, robot, flicker) == null) {
+                drive(plugin, robot, key);
+                checks.add(new Check("two thresholds hold the lamp steady through its own light",
+                        plugin.missions().lastOutcome(key) == MissionService.Outcome.PASS,
+                        "outcome " + plugin.missions().lastOutcome(key)));
+            }
+        }
+
+        // --- solar gain follows the bench's sun, never the real clock ---
+        // Otherwise a solar mission tested at midnight would gain nothing and tell the student
+        // their sizing was wrong - the first mission ever to depend on the time of day.
+        Part solar = kind(plugin, "solar");
+        if (solar != null && !plugin.missions().isRunning(key)) {
+            scratch.part(plugin, origin.clone().add(4, 0, 0), solar, key, "");
+            robot.program(nightLight());
+            robot.energy(1000);
+            robot.start(plugin.engine().now());
+            plugin.engine().tick(robot, Map.of("light", 15));
+            int sunny = robot.energy() - 1000;
+            robot.energy(1000);
+            plugin.engine().tick(robot, Map.of("light", 0));
+            int dark = robot.energy() - 1000;
+            checks.add(new Check("a solar panel charges from the injected light, not the world's",
+                    sunny > dark, "delta at light 15 = " + sunny + ", at light 0 = " + dark));
+            robot.stop("selftest");
+        }
+
         checks.add(new Check("a self-test run never records progress",
                 plugin.store().completedMissions(java.util.UUID.nameUUIDFromBytes("selftest".getBytes()))
                         .isEmpty(), "expected no missions recorded"));
@@ -1102,8 +1148,8 @@ public final class SelfTest {
         checks.add(new Check("no trophy overwrites a Component Board tile", clear, clash));
 
         checks.add(new Check("an unearned trophy still looks different from an earned one",
-                TrophyShelf.trophyBlock(false, false) != TrophyShelf.trophyBlock(true, false),
-                TrophyShelf.trophyBlock(false, false) + " vs " + TrophyShelf.trophyBlock(true, false)));
+                TrophyShelf.trophyBlock(false, false, false) != TrophyShelf.trophyBlock(true, false, false),
+                TrophyShelf.trophyBlock(false, false, false) + " vs " + TrophyShelf.trophyBlock(true, false, false)));
 
         // The one a person had to find for us. An empty trophy used to be GRAY_STAINED_GLASS,
         // which is exactly what a locked board tile is - so the shelf did not read as a separate
@@ -1112,16 +1158,17 @@ public final class SelfTest {
         // only this second one was ever in doubt.
         boolean sharesWallBlock = false;
         for (Part part : plugin.parts().all()) {
-            if (part.block() == TrophyShelf.trophyBlock(false, false)
-                    || part.block() == TrophyShelf.trophyBlock(true, true)
-                    || part.block() == TrophyShelf.trophyBlock(true, false)) {
+            if (part.block() == TrophyShelf.trophyBlock(false, false, false)
+                    || part.block() == TrophyShelf.trophyBlock(true, true, false)
+                    || part.block() == TrophyShelf.trophyBlock(true, false, false)
+                    || part.block() == TrophyShelf.trophyBlock(true, false, true)) {
                 sharesWallBlock = true;
                 break;
             }
         }
         checks.add(new Check("no trophy block is also a part block, so the shelf is never mistaken for the wall",
-                !sharesWallBlock && TrophyShelf.trophyBlock(false, false) != Material.GRAY_STAINED_GLASS,
-                "ghost is " + TrophyShelf.trophyBlock(false, false)));
+                !sharesWallBlock && TrophyShelf.trophyBlock(false, false, false) != Material.GRAY_STAINED_GLASS,
+                "ghost is " + TrophyShelf.trophyBlock(false, false, false)));
 
         // Beside the board, not on top of it: every trophy must be clear of the board's columns.
         int boardMaxX = Integer.MIN_VALUE;
@@ -1150,8 +1197,37 @@ public final class SelfTest {
                 "shelf top y=" + shelfTop + ", board spans " + boardBottom + ".." + boardTop));
 
         checks.add(new Check("a warm-up trophy is visibly different from a ladder trophy",
-                TrophyShelf.trophyBlock(true, true) != TrophyShelf.trophyBlock(true, false),
-                TrophyShelf.trophyBlock(true, true) + " vs " + TrophyShelf.trophyBlock(true, false)));
+                TrophyShelf.trophyBlock(true, true, false) != TrophyShelf.trophyBlock(true, false, false),
+                TrophyShelf.trophyBlock(true, true, false) + " vs " + TrophyShelf.trophyBlock(true, false, false)));
+        checks.add(new Check("a bonus trophy is a third metal, distinct from both",
+                TrophyShelf.trophyBlock(true, false, true) != TrophyShelf.trophyBlock(true, false, false)
+                        && TrophyShelf.trophyBlock(true, false, true) != TrophyShelf.trophyBlock(true, true, false),
+                String.valueOf(TrophyShelf.trophyBlock(true, false, true))));
+
+        // Sixteen missions on a shelf sized for eight would stack four rows high and climb out of
+        // eye level - the exact mistake the first shelf made.
+        int rows = 0;
+        java.util.Set<Integer> ys = new java.util.HashSet<>();
+        for (int i = 0; i < missions.size(); i++) ys.add(plugin.trophies().slotLocation(plot, i).getBlockY());
+        rows = ys.size();
+        checks.add(new Check("the shelf holds every mission in at most two rows",
+                rows <= 2 && missions.size() >= 16, rows + " rows for " + missions.size() + " missions"));
+
+        // A wall built for eight missions stays eight slots wide for ever unless something notices
+        // the content grew. The join path notices through this flag; make sure it can.
+        java.util.UUID ghost = java.util.UUID.nameUUIDFromBytes("selftest-layout".getBytes());
+        int p = plugin.parts().size(), m = missions.size();
+        boolean staleBeforeRecorded = !plugin.store().isLayoutCurrent(ghost, p, m);
+        plugin.store().setLayout(ghost, p, m);
+        boolean currentAfter = plugin.store().isLayoutCurrent(ghost, p, m);
+        boolean staleWhenAPartIsAppended = !plugin.store().isLayoutCurrent(ghost, p + 1, m);
+        boolean staleWhenAMissionIsAdded = !plugin.store().isLayoutCurrent(ghost, p, m + 1);
+        plugin.store().forget(ghost);
+        checks.add(new Check("a wall built before the count was tracked reads as stale once, then current",
+                staleBeforeRecorded && currentAfter, "stale=" + staleBeforeRecorded + " current=" + currentAfter));
+        checks.add(new Check("appending a part or adding a mission makes every built wall stale",
+                staleWhenAPartIsAppended && staleWhenAMissionIsAdded,
+                "part=" + staleWhenAPartIsAppended + " mission=" + staleWhenAMissionIsAdded));
     }
 
     // ------------------------------------------------------- F2. progression
@@ -1195,62 +1271,127 @@ public final class SelfTest {
         // Starting the real ladder must stop the warm-up nagging, or optional work is not optional.
         java.util.Set<String> onLadder = java.util.Set.of(required.get(0).id());
         checks.add(new Check("a student on the required ladder is never sent back to a warm-up",
-                !registry.nextSuggested(onLadder).optional(),
+                !registry.nextSuggested(onLadder).warmUp(),
                 id(registry.nextSuggested(onLadder))));
 
         checks.add(new Check("nextFor still ignores warm-ups, so progress maths is unchanged",
                 required.get(0).id().equals(id(registry.nextFor(none))),
                 id(registry.nextFor(none))));
 
+        List<Mission> bonus = registry.bonus();
+
+        // --- six rungs, and the flicker fix sits where hysteresis is first met ---
+        // Yon promoted the playtest's accidental feedback loop to a required rung, placed after the
+        // counter and before the thermostat: two thresholds first on a lamp you can WATCH flicker,
+        // then again on heat. A student at 5/5 on a live server is now at 5/6 with rung 6 reachable.
+        checks.add(new Check("the required ladder is six rungs",
+                required.size() == 6, required.size() + " rungs"));
+        int counterAt = -1, flickerAt = -1, thermoAt = -1;
+        for (int i = 0; i < required.size(); i++) {
+            switch (required.get(i).id()) {
+                case "counter"    -> counterAt = i;
+                case "flicker"    -> flickerAt = i;
+                case "thermostat" -> thermoAt  = i;
+                default -> { }
+            }
+        }
+        checks.add(new Check("the flicker fix is the rung between the counter and the thermostat",
+                counterAt >= 0 && flickerAt == counterAt + 1 && thermoAt == flickerAt + 1,
+                "counter@" + counterAt + " flicker@" + flickerAt + " thermostat@" + thermoAt));
+        Mission flickerRung = registry.byId("flicker");
+        checks.add(new Check("flicker is required and grants nothing - no reward moved between rungs",
+                flickerRung != null && !flickerRung.skippable() && flickerRung.reward().isEmpty(),
+                flickerRung == null ? "missing" : "skippable=" + flickerRung.skippable() + " reward=" + flickerRung.reward()));
+
+        // --- bonus: after the ladder, never before, never a gate ---
+        checks.add(new Check("there are bonus missions, and every one grants nothing",
+                !bonus.isEmpty() && bonus.stream().allMatch(m -> m.reward().isEmpty() && m.skippable() && !m.warmUp()),
+                bonus.size() + " bonus"));
+        java.util.Set<String> fiveOfSix = new java.util.HashSet<>();
+        for (int i = 0; i < required.size() - 1; i++) fiveOfSix.add(required.get(i).id());
+        checks.add(new Check("a student at 5/6 is pointed at rung 6, never at a bonus",
+                required.get(required.size() - 1).id().equals(id(registry.nextSuggested(fiveOfSix))),
+                id(registry.nextSuggested(fiveOfSix))));
+        java.util.Set<String> ladderDone = new java.util.HashSet<>();
+        for (Mission m : required) ladderDone.add(m.id());
+        checks.add(new Check("once the ladder is done the first bonus is suggested",
+                !bonus.isEmpty() && bonus.get(0).id().equals(id(registry.nextSuggested(ladderDone))),
+                id(registry.nextSuggested(ladderDone))));
+        checks.add(new Check("nextFor never points at a bonus, so n/6 stays honest",
+                registry.nextFor(ladderDone) == null && registry.requiredDone(ladderDone) == required.size(),
+                "nextFor=" + id(registry.nextFor(ladderDone))));
+
+        // Skipping every extra must never strand a student: every locked part comes from a rung.
+        boolean skippableGrants = false;
+        for (Mission m : registry.all()) if (m.skippable() && !m.reward().isEmpty()) skippableGrants = true;
+        checks.add(new Check("no skippable mission grants a part", !skippableGrants, ""));
+        java.util.Set<String> granted = new java.util.HashSet<>();
+        for (Mission m : required) granted.addAll(m.reward());
+        String unreachable = "";
+        for (Part p : plugin.parts().all()) {
+            if (!p.unlockedByDefault() && !granted.contains(p.id())) unreachable += p.id() + " ";
+        }
+        checks.add(new Check("every locked part is unlocked by a required rung",
+                unreachable.isEmpty(), unreachable.isEmpty() ? "" : "unreachable: " + unreachable));
+
         // A student reads a number and types it. "/rc missions #1" used to drop the argument in
         // silence - nothing ran, and they believed they had finished until the trophy stayed grey.
         //
-        // The numbering then has to match the STATUS BAR, which counts two separate tracks. The
+        // The numbering then has to match the STATUS BAR, which counts three separate tracks. The
         // first attempt numbered the required five 1-5 and continued 6-8 into the warm-ups, so
         // night_light was "6" in the list, "חימום 1/3" on the bar, and order: 1 in missions.yml.
         // Three names for one mission, and the person testing it asked why.
         checks.add(new Check("required mission 1 is what the bar calls משימה 1",
-                required.get(0).equals(RoboCraftCommand.resolve("1", required, warmUps)),
-                String.valueOf(id(RoboCraftCommand.resolve("1", required, warmUps)))));
+                required.get(0).equals(RoboCraftCommand.resolve("1", required, warmUps, bonus)),
+                String.valueOf(id(RoboCraftCommand.resolve("1", required, warmUps, bonus)))));
         checks.add(new Check("warm-up W1 is what the bar calls חימום 1, not a continued number",
-                warmUps.get(0).equals(RoboCraftCommand.resolve("W1", required, warmUps)),
-                String.valueOf(id(RoboCraftCommand.resolve("W1", required, warmUps)))));
+                warmUps.get(0).equals(RoboCraftCommand.resolve("W1", required, warmUps, bonus)),
+                String.valueOf(id(RoboCraftCommand.resolve("W1", required, warmUps, bonus)))));
         checks.add(new Check("the Hebrew ח1 works too, since the bar says חימום in Hebrew",
-                warmUps.get(0).equals(RoboCraftCommand.resolve("ח1", required, warmUps)),
-                String.valueOf(id(RoboCraftCommand.resolve("ח1", required, warmUps)))));
+                warmUps.get(0).equals(RoboCraftCommand.resolve("ח1", required, warmUps, bonus)),
+                String.valueOf(id(RoboCraftCommand.resolve("ח1", required, warmUps, bonus)))));
+        checks.add(new Check("bonus B1 is what the bar calls בונוס 1",
+                !bonus.isEmpty() && bonus.get(0).equals(RoboCraftCommand.resolve("B1", required, warmUps, bonus)),
+                String.valueOf(id(RoboCraftCommand.resolve("B1", required, warmUps, bonus)))));
+        checks.add(new Check("the Hebrew ב1 works too",
+                !bonus.isEmpty() && bonus.get(0).equals(RoboCraftCommand.resolve("ב1", required, warmUps, bonus)),
+                String.valueOf(id(RoboCraftCommand.resolve("ב1", required, warmUps, bonus)))));
         checks.add(new Check("a copied '#' is stripped rather than rejected",
-                required.get(0).equals(RoboCraftCommand.resolve("#1", required, warmUps)),
-                String.valueOf(id(RoboCraftCommand.resolve("#1", required, warmUps)))));
+                required.get(0).equals(RoboCraftCommand.resolve("#1", required, warmUps, bonus)),
+                String.valueOf(id(RoboCraftCommand.resolve("#1", required, warmUps, bonus)))));
         checks.add(new Check("an id still resolves, so docs and mission messages keep working",
-                warmUps.get(0).equals(RoboCraftCommand.resolve(warmUps.get(0).id(), required, warmUps)),
+                warmUps.get(0).equals(RoboCraftCommand.resolve(warmUps.get(0).id(), required, warmUps, bonus)),
                 warmUps.get(0).id()));
         checks.add(new Check("nonsense resolves to nothing rather than the wrong mission",
-                RoboCraftCommand.resolve("banana", required, warmUps) == null
-                        && RoboCraftCommand.resolve("99", required, warmUps) == null
-                        && RoboCraftCommand.resolve("", required, warmUps) == null,
-                "expected null for banana / 99 / empty"));
+                RoboCraftCommand.resolve("banana", required, warmUps, bonus) == null
+                        && RoboCraftCommand.resolve("99", required, warmUps, bonus) == null
+                        && RoboCraftCommand.resolve("B99", required, warmUps, bonus) == null
+                        && RoboCraftCommand.resolve("", required, warmUps, bonus) == null,
+                "expected null for banana / 99 / B99 / empty"));
 
         // --- and what the bar actually reads ---
-        StatusBar.Status fresh = StatusBar.compute(warmUps.get(0).name(), true,
-                0, warmUps.size(), 0, required.size());
-        StatusBar.Status afterOne = StatusBar.compute(warmUps.get(1).name(), true,
-                1, warmUps.size(), 0, required.size());
+        int w = warmUps.size(), r = required.size(), b = bonus.size();
+        StatusBar.Status fresh = StatusBar.compute(warmUps.get(0).name(), true, false, 0, w, 0, r, 0, b);
+        StatusBar.Status afterOne = StatusBar.compute(warmUps.get(1).name(), true, false, 1, w, 0, r, 0, b);
         checks.add(new Check("finishing a warm-up actually moves the status bar",
                 afterOne.progress() > fresh.progress(),
                 fresh.progress() + " -> " + afterOne.progress()));
         checks.add(new Check("the warm-up bar counts warm-ups, not the required ladder",
-                fresh.text().startsWith("חימום 1/" + warmUps.size()) && fresh.warmUp(),
+                fresh.text().startsWith("חימום 1/" + w) && fresh.warmUp(),
                 fresh.text()));
 
-        StatusBar.Status ladder = StatusBar.compute(required.get(1).name(), false,
-                warmUps.size(), warmUps.size(), 1, required.size());
-        checks.add(new Check("the required bar reads as a mission, not a warm-up",
-                ladder.text().startsWith("משימה 2/" + required.size()) && !ladder.warmUp(),
+        StatusBar.Status ladder = StatusBar.compute(required.get(1).name(), false, false, w, w, 1, r, 0, b);
+        checks.add(new Check("the required bar reads as a mission out of six",
+                ladder.text().startsWith("משימה 2/6") && !ladder.warmUp() && !ladder.bonus(),
                 ladder.text()));
 
-        StatusBar.Status done = StatusBar.compute(null, false,
-                warmUps.size(), warmUps.size(), required.size(), required.size());
-        checks.add(new Check("a finished ladder fills the bar rather than dividing by zero",
+        StatusBar.Status extra = StatusBar.compute(bonus.isEmpty() ? "x" : bonus.get(0).name(),
+                false, true, w, w, r, r, 0, b);
+        checks.add(new Check("after the ladder the bar switches to a green bonus track",
+                extra.bonus() && extra.text().startsWith("בונוס 1/" + b), extra.text()));
+
+        StatusBar.Status done = StatusBar.compute(null, false, false, w, w, r, r, b, b);
+        checks.add(new Check("everything done fills the bar rather than dividing by zero",
                 done.progress() == 1f, String.valueOf(done.progress())));
     }
 

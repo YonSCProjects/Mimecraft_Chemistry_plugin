@@ -1,6 +1,49 @@
 # Changelog
 
-Built in slices. Versions are pre-release working milestones.
+Built in slices. Versions are pre-release working milestones. ChemCraft entries carry its
+version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
+`robotics/docs/DESIGN.md`.
+
+## RoboCraft 2026-09-11 - Six rungs, seven bonus jobs, and a bench that flickers on purpose
+Step 1 of "The Yard" (`robotics/docs/DESIGN.md` §5): every mission now names the place on the
+student's plot where it will be met, the content ships in full, and the world does not change yet.
+- **The ladder is six.** Yon's call, mid-term, on a live class: the playtest's accidental feedback
+  loop - a lamp lighting its own light sensor, oscillating twice a second - was mission 5's lesson
+  arriving on mission 1, so it became rung 4, **נורה שלא מרצדת**, between the counter and the
+  thermostat. Hysteresis is met first on a lamp you can watch flicker, then again on heat. The rung
+  grants nothing, so nobody's earned parts moved; every 5/5 became 5/6.
+- **The bench can feed an output back into an input.** A step may carry
+  `feedback: { light: { actuator: lamp, add: 9, max: 15 } }` - while a lamp is on, the injected
+  light reads 9 higher next tick - and an expect may carry `steady: lamp` - at most one switch
+  during the wait. A single-threshold night light switches eight times in eighty ticks and the
+  failure names it: `החליף מצב 8 פעמים בזמן ההמתנה - ריצוד`. Deterministic, fifteen seconds.
+- **Seven bonus jobs after the ladder** (`bonus: true`): fire alarm, tunnel gauge, sheep-pen
+  guard, rain vent, solar station, colour lock, manual override - one per part the ladder unlocks
+  but never asked for. They grant nothing, gate nothing, are suggested only once the ladder is
+  done, and get their own bossbar track (`בונוס 2/7`), their own gold trophy, and `B1..B7` in
+  `/rc missions` (`ב1` works too). `nextFor` still ignores them, so progress maths is unchanged.
+- **Animal sensor** (`mob_sensor`, unlocked by the counter): counts mobs, not players, and ignores
+  armour stands so a part's own label cannot trip it. Appended to `parts.yml` - the board is
+  indexed by position, and inserting a part shifts every tile after it on every live plot.
+- **Every mission carries `site`, a five-line `quest` and a one-line `value`**, ready for the job
+  posts of step 3. `validate` now refuses a quest line the chat would wrap (`Guide.CHAT_WIDTH`)
+  and an expect that could never fail - both fired during authoring.
+- Solar panels charge from the *injected* light when a bench supplies one, so the solar station
+  can be tested at noon. A mission with `start-energy` refills the battery on success. A charge
+  attempt mid-run is refused and says so, because the efficiency rung is an energy budget.
+- Board and shelf clear every label in their box before a rebuild, so a rebuild is honest whatever
+  moved, and **a wall rebuilds itself on join when the content grew** - `players.yml` now records
+  how many parts and missions each wall was built for, so a student whose shelf has eight slots
+  gets sixteen the next time they log in, on every server, with nobody editing `board-built` by
+  hand. `reconcileUnlocks` on join grants the rewards of already-passed missions, for when a
+  reward list grows after the fact - as the counter's just did.
+- `/rc selftest` 93 -> **149/149**; `tools/BenchCheck.java` 33 -> **85** over all sixteen
+  missions (run it with the JDK 25 tools - the build classes are version 69).
+- Also since v0.8.2, from Yon's September playtest on the Tair server: the trophy shelf and a
+  celebration on every pass (`aaf62a6`, `1c47a22`), a detached part that says why (`02fca61`),
+  `IF` instead of `WHEN` and a charging pad that reaches the arrival spot (`0cb8c91`), and mission
+  numbers that agree with the status bar (`b55d67c`, `9cd1990`). Every one was a thing that was
+  provably correct and impossible to perceive.
 
 ## v0.8.2 - Multi-project build: room for a second plugin
 - **Repo is now a Gradle multi-project** holding two unrelated teaching plugins: `chemcraft/` and

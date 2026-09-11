@@ -122,7 +122,7 @@ public class RobotEngine {
         }
 
         // ---- POWER ----
-        power(robot, parts);
+        power(robot, parts, env);
 
         // ---- SHOW ---- (the labels are the debugger; they update in place, never respawn)
         for (String key : parts.keySet()) {
@@ -139,7 +139,7 @@ public class RobotEngine {
      * Energy is what turns "it works" into "it works within a budget" - the whole point of
      * mission 6. Active actuators cost, sensors cost a little, solar panels pay some back.
      */
-    private void power(Robot robot, Map<String, Placed> parts) {
+    private void power(Robot robot, Map<String, Placed> parts, Map<String, Integer> env) {
         if (!plugin.getConfig().getBoolean("power.enabled", true)) return;
 
         int drain = plugin.getConfig().getInt("power.base-drain", 1);
@@ -156,11 +156,18 @@ public class RobotEngine {
             } else if (part.isActuator()) {
                 if (robot.outputs().getOrDefault(e.getValue().port(), 0) != 0) drain += part.drain();
             } else if (part.isSolar()) {
-                Location loc = PartStore.fromKey(e.getKey());
-                if (loc != null && loc.isChunkLoaded()) {
-                    int light = loc.clone().add(0, 1, 0).getBlock().getLightLevel();
-                    gain += plugin.getConfig().getInt("power.solar-gain", 2) * light / 15;
+                // On the bench the injected light is the sun. Otherwise a solar mission would be
+                // the first to depend on the real clock - a panel tested at midnight gains nothing
+                // and the student is told their sizing is wrong (docs/DESIGN.md 4.4).
+                int light;
+                if (env != null && env.containsKey("light")) {
+                    light = Math.max(0, Math.min(15, env.get("light")));
+                } else {
+                    Location loc = PartStore.fromKey(e.getKey());
+                    light = (loc != null && loc.isChunkLoaded())
+                            ? loc.clone().add(0, 1, 0).getBlock().getLightLevel() : 0;
                 }
+                gain += plugin.getConfig().getInt("power.solar-gain", 2) * light / 15;
             }
         }
 

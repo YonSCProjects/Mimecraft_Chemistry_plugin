@@ -24,29 +24,34 @@ public class StatusBar {
     public StatusBar(RoboCraftPlugin plugin) { this.plugin = plugin; }
 
     /** What the bar should say and how full it should be. Data, so it can be tested. */
-    public record Status(String text, float progress, boolean warmUp) {}
+    public record Status(String text, float progress, boolean warmUp, boolean bonus) {}
 
     /**
      * The bar's contents, with no Bukkit in sight - {@code SelfTest} drives this directly.
      *
-     * <p>The warm-up track exists because the required ladder alone made a student's first
-     * success invisible: finishing a warm-up moved nothing, since {@link
-     * com.agurim.robocraft.mission.MissionRegistry#requiredDone} deliberately does not count them.
-     * A beginner would complete their first mission and watch the bar stay exactly where it was.
-     * So while they are still on the warm-ups, the bar counts warm-ups.
+     * <p>Three tracks, in the order a student meets them. The warm-up track exists because the
+     * required ladder alone made a student's first success invisible: finishing a warm-up moved
+     * nothing, since {@link com.agurim.robocraft.mission.MissionRegistry#requiredDone}
+     * deliberately does not count them. The bonus track appears only once the ladder is done, so
+     * the bar can never point past a required rung at something optional.
      */
-    public static Status compute(String nextName, boolean nextIsWarmUp,
-                                 int warmDone, int warmTotal, int reqDone, int reqTotal) {
+    public static Status compute(String nextName, boolean nextIsWarmUp, boolean nextIsBonus,
+                                 int warmDone, int warmTotal, int reqDone, int reqTotal,
+                                 int bonusDone, int bonusTotal) {
         if (nextName == null) {
-            return new Status("כל המשימות הושלמו! בנו מנגנון משלכם", 1f, false);
+            return new Status("כל המשימות הושלמו! בנו מנגנון משלכם", 1f, false, false);
         }
         if (nextIsWarmUp && warmTotal > 0) {
             return new Status("חימום " + (warmDone + 1) + "/" + warmTotal + ": " + nextName,
-                    (float) warmDone / warmTotal, true);
+                    (float) warmDone / warmTotal, true, false);
+        }
+        if (nextIsBonus && bonusTotal > 0) {
+            return new Status("בונוס " + (bonusDone + 1) + "/" + bonusTotal + ": " + nextName,
+                    (float) bonusDone / bonusTotal, false, true);
         }
         int total = Math.max(1, reqTotal);
         return new Status("משימה " + (reqDone + 1) + "/" + total + ": " + nextName,
-                Math.min(1f, (float) reqDone / total), false);
+                Math.min(1f, (float) reqDone / total), false, false);
     }
 
     public void update(Player player) {
@@ -59,13 +64,16 @@ public class StatusBar {
 
         Status status = compute(
                 next == null ? null : next.name(),
-                next != null && next.optional(),
+                next != null && next.warmUp(),
+                next != null && next.bonus(),
                 registry.warmUpsDone(done), registry.warmUpCount(),
-                registry.requiredDone(done), registry.requiredCount());
+                registry.requiredDone(done), registry.requiredCount(),
+                registry.bonusDone(done), registry.bonusCount());
 
-        // A different colour for the warm-up track, so the switch to the real ladder is a visible
-        // promotion rather than a number quietly changing.
-        BossBar.Color color = status.warmUp() ? BossBar.Color.YELLOW : BossBar.Color.BLUE;
+        // A different colour per track, so moving from warm-ups to the ladder to the bonus jobs is
+        // a visible promotion rather than a number quietly changing.
+        BossBar.Color color = status.warmUp() ? BossBar.Color.YELLOW
+                : status.bonus() ? BossBar.Color.GREEN : BossBar.Color.BLUE;
 
         BossBar bar = bars.get(id);
         if (bar == null) {

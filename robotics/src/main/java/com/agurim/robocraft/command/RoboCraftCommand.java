@@ -114,17 +114,31 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
                     "דברים שאפשר לבנות גם באבן אדומה. הם כאן כדי להתרגל לכלים.", NamedTextColor.GRAY));
             for (int i = 0; i < warmUps.size(); i++) line(player, warmUps.get(i), WARM_UP_PREFIX + (i + 1));
         }
+
+        List<Mission> bonus = plugin.missions().registry().bonus();
+        if (!bonus.isEmpty()) {
+            boolean ladderDone = plugin.missions().registry().requiredDone(
+                    plugin.store().completedMissions(player.getUniqueId()))
+                    >= plugin.missions().registry().requiredCount();
+            player.sendMessage(Component.text("---- בונוס (אחרי הסולם) ----", NamedTextColor.DARK_GREEN));
+            player.sendMessage(Component.text(ladderDone
+                    ? "עבודות לרכיבים שהסולם פתח. אין פרס - רק מה שהרובוט עושה."
+                    : "נפתחות אחרי שהסולם גמור. אפשר לנסות כבר עכשיו, אבל הרכיבים עוד נעולים.",
+                    NamedTextColor.GRAY));
+            for (int i = 0; i < bonus.size(); i++) line(player, bonus.get(i), BONUS_PREFIX + (i + 1));
+        }
     }
 
     /**
-     * Warm-ups are numbered W1..Wn, not carried on from the required ladder.
+     * Warm-ups are numbered W1..Wn and bonus jobs B1..Bn, not carried on from the required ladder.
      *
      * <p>The first draft numbered the required five 1-5 and then continued 6-8 into the warm-ups,
      * which meant night_light was "6" in the list while the status bar called the very same
      * mission "חימום 1/3" - and it is {@code order: 1} in missions.yml on top of that. Three names
-     * for one thing. The bar already counts two separate tracks, so the list counts the same two.
+     * for one thing. The bar counts three separate tracks, so the list counts the same three.
      */
     private static final String WARM_UP_PREFIX = "W";
+    private static final String BONUS_PREFIX   = "B";
 
     private void line(Player player, Mission m, String label) {
         boolean done = plugin.store().isMissionDone(player.getUniqueId(), m.id());
@@ -164,32 +178,35 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
-     * A mission from whatever the student typed: "3", "#3", "W1", "ח1", or "night_light".
+     * A mission from whatever the student typed: "3", "#3", "W1", "ח1", "B2", "ב2", or an id.
      *
      * <p>The "#" is stripped rather than rejected because that is literally what the first person
-     * typed, copying the numbering off the list. Both {@code W} and the Hebrew {@code ח} are
-     * accepted for a warm-up: the list prints W so the token is typeable on any keyboard, but a
-     * student reading "חימום 1/3" off the status bar will reasonably reach for the Hebrew letter,
-     * and their keyboard is already in Hebrew.
+     * typed, copying the numbering off the list. Both the Latin letter and the Hebrew one are
+     * accepted for each track: the list prints W/B so the token is typeable on any keyboard, but a
+     * student reading "חימום 1/3" or "בונוס 2/7" off the status bar will reasonably reach for the
+     * Hebrew letter, and their keyboard is already in Hebrew.
      */
     private Mission resolveMission(String token) {
-        return resolve(token, plugin.missions().registry().required(),
-                              plugin.missions().registry().warmUps());
+        var r = plugin.missions().registry();
+        return resolve(token, r.required(), r.warmUps(), r.bonus());
     }
 
     /** Bukkit-free so the self-test can drive every form a student might type. */
-    public static Mission resolve(String token, List<Mission> required, List<Mission> warmUps) {
+    public static Mission resolve(String token, List<Mission> required, List<Mission> warmUps,
+                                  List<Mission> bonus) {
         if (token == null || token.isEmpty()) return null;
         String t = token.startsWith("#") ? token.substring(1) : token;
         if (t.isEmpty()) return null;
 
         for (Mission m : required) if (m.id().equals(t)) return m;
         for (Mission m : warmUps)  if (m.id().equals(t)) return m;
+        for (Mission m : bonus)    if (m.id().equals(t)) return m;
 
-        boolean warmUp = t.length() > 1
-                && (t.charAt(0) == 'W' || t.charAt(0) == 'w' || t.charAt(0) == 'ח');
-        List<Mission> track = warmUp ? warmUps : required;
-        String digits = warmUp ? t.substring(1) : t;
+        char c = t.charAt(0);
+        boolean warmUp = t.length() > 1 && (c == 'W' || c == 'w' || c == 'ח');
+        boolean extra  = t.length() > 1 && (c == 'B' || c == 'b' || c == 'ב');
+        List<Mission> track = warmUp ? warmUps : extra ? bonus : required;
+        String digits = (warmUp || extra) ? t.substring(1) : t;
 
         try {
             int n = Integer.parseInt(digits);
@@ -223,6 +240,13 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
     private void chargeRobot(Player player) {
         Robot robot = myRobot(player);
         if (robot == null) return;
+        // A budget mission starts the robot nearly flat on purpose. A refill mid-run would let an
+        // always-on lamp pass "still running", which is the one thing the rung exists to catch.
+        if (plugin.missions().isRunning(robot.key())) {
+            player.sendMessage(Component.text("הרובוט באמצע הרצת ניסוי - הטעינה תחכה לסיום.",
+                    NamedTextColor.YELLOW));
+            return;
+        }
         int capacity = plugin.batteryCapacity(robot.key());
         if (capacity <= 0) {
             player.sendMessage(Component.text("אין סוללה מחוברת לרובוט.", NamedTextColor.RED));
@@ -252,6 +276,8 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         plugin.board().build(plot, player.getUniqueId());
         plugin.trophies().build(plot, player.getUniqueId());
         plugin.kiosk().build(plot);
+        plugin.store().setLayout(player.getUniqueId(),
+                plugin.parts().size(), plugin.missions().registry().all().size());
         player.sendMessage(Component.text("לוח הרכיבים והמדף נבנו מחדש.", NamedTextColor.GREEN));
     }
 

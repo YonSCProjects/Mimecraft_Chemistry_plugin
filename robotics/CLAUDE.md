@@ -13,16 +13,18 @@ run the bench -> unlock parts.**
 
 Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-mc26.2].jar`.
 
-> **Status: runs clean on both targets.** Verified on Paper 1.21.8 build 60 (Java 21) and Paper
-> 26.2 build 116 (Java 25): enables, writes its content YAML, registers commands, saves its runtime
-> files on disable, zero exceptions, and **`/rc selftest` passes 93/93 on both**. The mission ladder
-> is separately checked offline (`tools/BenchCheck.java`, 33 checks).
+> **Status: runs clean on 26.2, and a person has now played it.** Verified on Paper 26.2 build 116
+> (Java 25): enables, writes its content YAML, registers commands, saves its runtime files on
+> disable, zero exceptions, and **`/rc selftest` passes 149/149**. The mission content is
+> separately checked offline (`tools/BenchCheck.java`, 85 checks over all sixteen missions - run
+> it with the **JDK 25** `javac`/`java`, the build classes are version 69). Yon walked the first
+> warm-up end to end on the Tair class server in September 2026; everything he could not
+> perceive got fixed (`docs/DESIGN.md` §4.9).
 >
-> **Still unverified: anything that needs a real player at a keyboard** - `JoinListener`,
-> `PlotProtection`, `StatusBar`, and the event plumbing in the two block listeners. The *logic*
-> those listeners used to hold has been pulled out into `Attachment` and `RuleEdit`, which the
-> self-test drives directly; what is left in them is the plumbing and the Hebrew messages.
-> No human has ever clicked the rule table.
+> **Seven per-class servers are live** (`C:\26.2_RoboCraft_<Class>`, ports 25567-25573) and
+> three hold real student work. A bundled YAML is copied to a server **only if absent**, so a
+> content change ships by copying `missions.yml`/`parts.yml` explicitly, never `config.yml`
+> (theirs carry `plot.ground-y: -61`, and the bundled 64 builds the plot in the sky).
 
 ## The two decisions everything rests on
 1. **Redstone teaches wiring; we teach the program.** Minecraft already ships sensor -> logic ->
@@ -50,10 +52,14 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
 - `sense/SensorReader` - world (or simulated bench input) -> an int.
 - `act/ActuatorDriver` - a decision -> a block change.
 - `mission/` - `Mission`, `MissionRegistry` (`missions.yml` + ladder validation),
-  `MissionService` (the **test bench**). The ladder is split: three `optional: true` warm-ups
-  covering what redstone already does well, then five required rungs where it does not. Progress
-  is counted over the required ladder only, and `validate` rejects a warm-up that is the sole
-  source of a part - skipping one must strand nobody. See docs/DESIGN.md 5.
+  `MissionService` (the **test bench**). Three tiers: three `optional: true` warm-ups covering
+  what redstone already does well, **six required rungs** where it does not, and seven
+  `bonus: true` jobs after the ladder that grant and gate nothing. Progress is counted over the
+  required ladder only; `skippable()` is warm-up-or-bonus, and `validate` rejects either as the
+  sole source of a part - skipping one must strand nobody. A bench step may carry `feedback:`
+  (an actuator that is ON raises an injected reading next tick - the lamp lighting its own
+  sensor) and an expect may carry `steady:` (at most one switch during the wait) - that pair is
+  how the flicker rung fails a single threshold in fifteen seconds. See docs/DESIGN.md 4.4, 5.
 - `plot/` - `PlotManager` (copied from ChemCraft), `WorkshopKiosk` (the charging pad).
 - `data/PlayerStore` - per-UUID progress (`players.yml`): plot, unlocked parts, completed missions.
 - `ui/` - `ProgramMenu` (the rule-table GUI), `ComponentBoard` (the ghost->lit parts wall),
@@ -98,8 +104,13 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 ## Known issues / caveats
 - **No human has ever played it.** The click model's layout and semantics are both checked; what
   is not checked is whether it is *learnable*, and no test can tell us that.
-- `SensorReader` implements `mob` and `random`, but no part in `parts.yml` uses them - dead
-  branches until a part is added, kept because both are cheap and obviously useful.
+- `SensorReader` implements `random`, but no part in `parts.yml` uses it - a dead branch until a
+  part is added, kept because it is cheap and obviously useful. (`mob` got its part in September
+  2026: `mob_sensor`, the animal sensor, which ignores armour stands so a part label cannot trip
+  it.)
+- **`parts.yml` is append-only.** Board and shelf tiles are indexed by position in the file, so
+  inserting a part in the middle shifts every tile after it on every live plot. `clearLabels`
+  makes a rebuild honest whatever moved, but the *blocks* still move; append.
 - **`/rc selftest` cannot be driven over RCON.** It builds a twenty-robot fleet and outruns RCON's
   packet timeout, and worse, a command's output goes back to the *sender* - so over RCON the result
   vanishes with the timed-out connection instead of reaching the log. Run it from the server console
@@ -128,8 +139,16 @@ for admins. **`whisper` is the assistant's delivery channel and must work from t
 run from the console** - the first is what you want before a lesson, the second during one.
 
 ## Roadmap
-- **Watch a real student use it.** Everything mechanical is now checked; what is not checked is
-  whether the rule table is *learnable*, and that needs a person, not a test.
+- **The Yard** (designed, skeptic-reviewed, step 1 of 3 shipped): every mission becomes a job at
+  a site on the student's own plot - a house, a gatehouse, a pen, a tunnel, a station - with a
+  job post as the mission's front door. Step 1 (this content, the bench keys, the animal sensor)
+  ships with zero world change. Step 2 builds the sites; step 3 wires the posts. Design and the
+  five decisions Yon took are in `docs/DESIGN.md` §5 and
+  `C:\Users\Admin\.claude\plans\yard-design-draft\`.
+- **Explore world and boss arena** (approved, unbuilt): `C:\Users\Admin\.claude\plans\lets-plan-a-way-pure-quasar.md`
+  layers 3-4. `pvp=false` on every class server before any gear ships.
+- **Watch a real student use it.** Yon has; a class has not. What is not checked is whether the
+  rule table is *learnable* by a twelve-year-old, and that needs thirty of them, not a test.
 - **Rovers** (Phase 2): a config-capped chassis that shifts a block per move step, carrying its
   parts and labels.
 - Resource pack mapping `custom_model_data` (`parts.base-model-data` + index) to real part icons.

@@ -29,10 +29,14 @@ public class MissionRegistry {
                     id,
                     s.getInt("order", 999),
                     s.getBoolean("optional", false),
+                    s.getBoolean("bonus", false),
                     s.getString("name", id),
                     s.getString("brief", ""),
                     s.getString("teaches", ""),
                     s.getString("hint", ""),
+                    s.getString("site", ""),
+                    s.getStringList("quest"),
+                    s.getString("value", ""),
                     s.getStringList("needs"),
                     s.getStringList("reward"),
                     s.getInt("start-energy", 0),
@@ -50,6 +54,20 @@ public class MissionRegistry {
             if (envRaw instanceof Map<?, ?> m) {
                 m.forEach((k, v) -> { if (v instanceof Number n) env.put(String.valueOf(k), n.intValue()); });
             }
+            // feedback: { light: { actuator: lamp, add: 9, max: 15 } }
+            Map<String, Mission.Feedback> feedback = new LinkedHashMap<>();
+            Object fbRaw = raw.get("feedback");
+            if (fbRaw instanceof Map<?, ?> m) {
+                m.forEach((k, v) -> {
+                    if (v instanceof Map<?, ?> spec) {
+                        Object act = spec.get("actuator"), add = spec.get("add"), max = spec.get("max");
+                        feedback.put(String.valueOf(k), new Mission.Feedback(
+                                act == null ? "" : String.valueOf(act),
+                                add instanceof Number n ? n.intValue() : 0,
+                                max instanceof Number n ? n.intValue() : Integer.MAX_VALUE));
+                    }
+                });
+            }
             Map<String, String> expect = new LinkedHashMap<>();
             Object expRaw = raw.get("expect");
             if (expRaw instanceof Map<?, ?> m) {
@@ -58,6 +76,7 @@ public class MissionRegistry {
             out.add(new Mission.Step(
                     raw.get("say") == null ? "" : String.valueOf(raw.get("say")),
                     env,
+                    feedback,
                     raw.get("wait") instanceof Number n ? n.intValue() : 0,
                     expect,
                     raw.get("because") == null ? "" : String.valueOf(raw.get("because"))));
@@ -70,18 +89,20 @@ public class MissionRegistry {
     public int size()                       { return missions.size(); }
 
     /**
-     * The first REQUIRED mission this player has not completed - what the status bar points at.
-     * Warm-ups are skipped: they are practice, and a student who ignores them is not behind.
+     * The first REQUIRED mission this player has not completed - what progress is counted against.
+     * Warm-ups and bonus missions are skipped: they are practice and extras, and a student who
+     * ignores them is not behind.
      */
     public Mission nextFor(java.util.Set<String> done) {
         for (Mission m : missions.values()) {
-            if (!m.optional() && !done.contains(m.id())) return m;
+            if (!m.skippable() && !done.contains(m.id())) return m;
         }
         return null;
     }
 
-    public List<Mission> required() { return missions.values().stream().filter(m -> !m.optional()).toList(); }
-    public List<Mission> warmUps()  { return missions.values().stream().filter(Mission::optional).toList(); }
+    public List<Mission> required() { return missions.values().stream().filter(m -> !m.skippable()).toList(); }
+    public List<Mission> warmUps()  { return missions.values().stream().filter(Mission::warmUp).toList(); }
+    public List<Mission> bonus()    { return missions.values().stream().filter(Mission::bonus).toList(); }
 
     /** Progress is counted over the required ladder only, so warm-ups never make anyone look behind. */
     public int requiredCount() { return required().size(); }
@@ -97,6 +118,14 @@ public class MissionRegistry {
     public int warmUpsDone(java.util.Set<String> done) {
         int n = 0;
         for (Mission m : warmUps()) if (done.contains(m.id())) n++;
+        return n;
+    }
+
+    public int bonusCount() { return bonus().size(); }
+
+    public int bonusDone(java.util.Set<String> done) {
+        int n = 0;
+        for (Mission m : bonus()) if (done.contains(m.id())) n++;
         return n;
     }
 
@@ -117,7 +146,13 @@ public class MissionRegistry {
         if (requiredDone(done) == 0) {
             for (Mission m : warmUps()) if (!done.contains(m.id())) return m;
         }
-        return nextFor(done);
+        Mission next = nextFor(done);
+        if (next != null) return next;
+        // The ladder is done, so every part is unlocked (each rung grants its own), and the first
+        // undone bonus in order is always buildable. Bonus is only ever suggested here - after
+        // the ladder - so a place can never pull a student off the required track.
+        for (Mission m : bonus()) if (!done.contains(m.id())) return m;
+        return null;
     }
 
     /**
@@ -150,21 +185,92 @@ public class MissionRegistry {
                             + "' rewards unknown part '" + reward + "'");
                 }
             }
-            // Only a REQUIRED mission's rewards count towards what is reachable. Warm-ups are
-            // skippable, so anything gated behind one would strand every student who skipped it -
-            // and that student would see a part they cannot obtain with no hint that the content
-            // is at fault. This check is what keeps the warm-ups genuinely optional.
-            if (!m.optional()) available.addAll(m.reward());
+            // Only a REQUIRED mission's rewards count towards what is reachable. Warm-ups and
+            // bonus missions are skippable, so anything gated behind one would strand every
+            // student who skipped it - and that student would see a part they cannot obtain with
+            // no hint that the content is at fault. This check is what keeps them genuinely optional.
+            if (!m.skippable()) available.addAll(m.reward());
             else if (!m.reward().isEmpty()) {
-                plugin.getLogger().warning("missions.yml: warm-up '" + m.id() + "' grants "
-                        + m.reward() + " - a skippable mission must not be the only source of a part.");
+                plugin.getLogger().warning("missions.yml: " + (m.bonus() ? "bonus" : "warm-up") + " '"
+                        + m.id() + "' grants " + m.reward()
+                        + " - a skippable mission must not be the only source of a part.");
             }
+
+            legibility(plugin, m);
+            steps(plugin, m);
         }
 
         for (com.agurim.robocraft.part.Part p : plugin.parts().all()) {
             if (!available.contains(p.id())) {
                 plugin.getLogger().info("parts.yml: '" + p.id()
                         + "' is never unlocked by any mission (fine for a bonus part).");
+            }
+        }
+    }
+
+    /**
+     * Quest and value text have to fit the chat they are printed into, or the top of the story
+     * scrolls off before anyone reads it - the exact failure /rc guide had. Same budget.
+     */
+    private void legibility(RoboCraftPlugin plugin, Mission m) {
+        int width = com.agurim.robocraft.ui.Guide.CHAT_WIDTH;
+        if (m.quest().size() > 5) {
+            plugin.getLogger().warning("missions.yml: '" + m.id() + "' quest is " + m.quest().size()
+                    + " lines - at most 5 fit under the chat's ten with room for the rest.");
+        }
+        for (String line : m.quest()) {
+            if (line.length() > width) {
+                plugin.getLogger().warning("missions.yml: '" + m.id() + "' quest line is "
+                        + line.length() + " chars, wraps past " + width + ": " + line);
+            }
+        }
+        if (m.value().length() > width) {
+            plugin.getLogger().warning("missions.yml: '" + m.id() + "' value is "
+                    + m.value().length() + " chars, wraps past " + width + ".");
+        }
+    }
+
+    /**
+     * A misspelt expect key or an impossible value used to pass silently - the bench treated an
+     * unknown value as "no opinion". A typo in content should be a log line at enable, not a
+     * mission that can never fail.
+     */
+    private void steps(RoboCraftPlugin plugin, Mission m) {
+        java.util.Set<String> actuatorTypes = new java.util.HashSet<>();
+        for (com.agurim.robocraft.part.Part p : plugin.parts().all()) {
+            if (p.isActuator()) actuatorTypes.add(p.actuator());
+        }
+        for (Mission.Step step : m.steps()) {
+            for (Map.Entry<String, Mission.Feedback> e : step.feedback().entrySet()) {
+                if (!com.agurim.robocraft.sense.SensorReader.TYPES.contains(e.getKey())) {
+                    plugin.getLogger().warning("missions.yml: '" + m.id() + "' feedback names sensor type '"
+                            + e.getKey() + "' which nothing reads.");
+                }
+                if (!actuatorTypes.contains(e.getValue().actuator())) {
+                    plugin.getLogger().warning("missions.yml: '" + m.id() + "' feedback names actuator type '"
+                            + e.getValue().actuator() + "' which no part has.");
+                }
+            }
+            for (Map.Entry<String, String> e : step.expect().entrySet()) {
+                String key = e.getKey(), want = e.getValue().toLowerCase();
+                boolean ok;
+                if (key.equals("running")) {
+                    ok = want.equals("true") || want.equals("false");
+                } else if (key.equals("steady")) {
+                    ok = actuatorTypes.contains(e.getValue());
+                } else if (key.length() >= 2 && key.charAt(0) == 'M' && Character.isDigit(key.charAt(1))) {
+                    ok = want.matches("-?\\d+");
+                } else if (actuatorTypes.contains(key)) {
+                    ok = want.equals("on") || want.equals("off") || want.equals("true")
+                            || want.equals("false") || want.matches("-?\\d+");
+                } else {
+                    ok = false;
+                }
+                if (!ok) {
+                    plugin.getLogger().warning("missions.yml: '" + m.id() + "' expects '" + key + ": "
+                            + e.getValue() + "' - not an actuator type, memory slot, running, or steady; "
+                            + "this check could never fail.");
+                }
             }
         }
     }

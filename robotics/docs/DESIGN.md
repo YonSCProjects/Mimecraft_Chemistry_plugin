@@ -193,6 +193,17 @@ conditions are visible, and on failure it names **which check failed**, not just
 
 Rewards are **parts**, which light tiles on the Component Board.
 
+**The one thing the bench learned from the world is feedback (2026-09-10).** In playtest a student
+put the lamp two blocks from the light sensor. At dusk the lamp came on, lit the sensor, the sensor
+read "day", the lamp went off, the sensor read "night", the lamp came on - twice a second, forever.
+That is the whole of hysteresis, produced by placing two blocks near each other, on mission 1. The
+bench can now say it deterministically. A step may carry
+`feedback: { light: { actuator: lamp, add: 9, max: 15 } }` - while any lamp is on, the injected
+light reads 9 higher, capped at 15, on the *next* tick (the same one-tick lag a real lamp has). And
+an expect may carry `steady: lamp` - the lamp switched at most once during the preceding wait. A
+single-threshold night light switches eight times in eighty ticks and the failure says so:
+"הנורה (A1) החליף מצב 8 פעמים בזמן ההמתנה - ריצוד". Fifteen seconds, no dusk required.
+
 > **OPEN #4.** Is a bench too much like a test? It gives the objective feedback a robotics student
 > desperately needs, but a red FAIL can land badly in a classroom. Current plan: unlimited retries,
 > never a score, always name the failing check, and frame it as "הרצת ניסוי" rather than a grade.
@@ -270,13 +281,22 @@ are. They grant no parts and gate nothing.
 
 ### The ladder (required)
 
+**Decision (2026-09-10, Yon): six rungs.** The playtest's accidental feedback loop (§4.4) was
+mission 5's lesson arriving on mission 1, for free. Rather than keep it a hint, it became a rung -
+placed after the counter and before the thermostat, so hysteresis is met first on a lamp you can
+*watch* flicker and then again on heat, where you cannot. Every student at 5/5 on a live server
+became 5/6 mid-term. Yon chose that over waiting for a term break: the finish line moved, the
+lesson is worth it, and rewards did not move with it - the flicker rung grants nothing, so what a
+student already held stayed theirs.
+
 | # | Mission | Teaches | Why redstone struggles |
 |---|---|---|---|
 | 1 | **אור דמדומים** twilight lamp | a band between two thresholds; **later-rules-win as a tool** | two comparator threshold circuits plus combining logic |
 | 2 | **דלת שנשארת פתוחה** the door that stays open | memory holding a **deadline**, not a flag; `TIME` | needs a monostable circuit |
-| 3 | **מונה** counter | `ADD`, edge detection, rule order | hopper counter or a flip-flop chain |
-| 4 | **תרמוסטט** thermostat | **feedback and hysteresis** | latch + two comparators - and there is no temperature to sense at all |
-| 5 | **חיסכון** efficiency | energy budget, duty cycling | the concept does not exist |
+| 3 | **מונה** counter | `ADD`, edge detection, rule order - and the display shows the count | hopper counter or a flip-flop chain |
+| 4 | **נורה שלא מרצדת** the flicker fix | **feedback and hysteresis, on light** - the lamp lights its own sensor | a daylight sensor beside a lamp does exactly this in vanilla, and nothing in redstone reasons about it |
+| 5 | **תרמוסטט** thermostat | hysteresis again, on heat - two thresholds, same input, two right answers | latch + two comparators - and there is no temperature to sense at all |
+| 6 | **חיסכון** efficiency | energy budget, duty cycling | the concept does not exist |
 
 Rung 1 is where "later rules win" stops being a gotcha and becomes the answer:
 
@@ -296,19 +316,46 @@ this one holds a deadline in memory:
 4  IF    TIME  >= M1   THEN  A1  OFF
 ```
 
-Rung 4 remains the intellectual peak: the bench asks for the heater's state at 45 degrees *twice*
-and expects different answers, which a single threshold cannot produce.
+Rung 4 is the night light with the lamp moved to where it lights its own sensor. At night the bench
+injects light 4, and while the lamp is on the sensor reads 13. The two-rule night light strobes; the
+fix is an OFF threshold strictly *above* what the lamp itself contributes:
+
+```
+1  IF    S1  <   7   THEN  A1  ON
+2  IF    S1  >  13   THEN  A1  OFF      off only above the lamp's own light; 13 itself still flickers
+```
+
+Rungs 4 and 5 are the intellectual peak, met twice: the bench asks for the output at the *same*
+reading twice and expects different answers, which a single threshold cannot produce. First on a
+lamp, where the flicker is visible; then on heat, where it is not.
+
+### Bonus (after the ladder)
+
+Seven jobs for the parts the ladder unlocks but never asks for. `bonus: true` - they grant nothing,
+gate nothing, and are suggested only once the ladder is done, so a place can never pull a student
+off the required track. A student who never touches one is not behind.
+
+| Mission | Teaches |
+|---|---|
+| **אזעקת אש** fire alarm | a threshold chosen from real magnitudes - a torch reads 52, magma 56; two outputs from one reading |
+| **מד מנהרה** tunnel gauge | a directional sensor; showing a raw reading; **16 means "sees nothing"** |
+| **שומר הדיר** sheep guard | the counter on an animal sensor, plus a lamp, in exactly five rules |
+| **צוהר הגשם** rain vent | two sensors; "and" written as a later rule that wins |
+| **תחנת השמש** solar station | energy *balance* - one panel loses 1 a tick, two gain 1 |
+| **מנעול צבע** colour lock | equality on a code - 14 is not "more than" 11 |
+| **מתג ידני** manual override | "or" - two reasons for one output; the lever's rule comes last |
 
 ### The parts follow the same line
 
-Seven parts are available from the start - exactly what the warm-ups need. The eight the ladder
+Seven parts are available from the start - exactly what the warm-ups need. The nine the ladder
 unlocks are exactly the ones **redstone has no equivalent for**: distance, heat, colour, rain, a
-redstone bridge, a display, a solar panel, a marker. Nothing had to be said about it; the
-progression is the argument.
+redstone bridge, a display, a solar panel, a marker, and an animal sensor. Nothing had to be said
+about it; the progression is the argument.
 
-**A warm-up must never be the only source of a part**, or skipping one strands the student.
-`MissionRegistry.validate` enforces that on every enable, and its check was verified by seeding the
-fault deliberately.
+**A warm-up or a bonus must never be the only source of a part**, or skipping one strands the
+student. `MissionRegistry.validate` enforces that on every enable, and its check was verified by
+seeding the fault deliberately. The same pass now also refuses quest text that would wrap the chat
+and expect values that could never fail.
 
 ## 6. What we inherit from ChemCraft
 

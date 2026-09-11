@@ -44,17 +44,23 @@ Then the ladder proper, which starts where redstone stops being adequate:
 | 1 | אור דמדומים — twilight lamp | a band between two thresholds; **later rules win, as a tool** |
 | 2 | דלת שנשארת פתוחה — the door that stays open | memory holding a deadline, not a flag |
 | 3 | מונה — counter | edge detection, and that rule order matters |
-| 4 | תרמוסטט — thermostat | **feedback and hysteresis** |
-| 5 | חיסכון — efficiency | an energy budget; duty-cycling |
+| 4 | נורה שלא מרצדת — the flicker fix | **feedback and hysteresis**, on a lamp that lights its own sensor |
+| 5 | תרמוסטט — thermostat | hysteresis again, on heat you cannot see |
+| 6 | חיסכון — efficiency | an energy budget; duty-cycling |
 
-Mission 4 is the peak. The bench asks for the heater's state at the *same* temperature twice and
+Missions 4 and 5 are the peak. The bench asks for the output at the *same* reading twice and
 expects different answers — which a single threshold cannot produce. The only way through is two
 thresholds. A genuinely deep idea, reachable by a twelve-year-old who has just watched their own
-lamp flicker.
+lamp flicker — and in mission 4 the bench makes the lamp flicker on purpose, by feeding its light
+back into the sensor, so the lesson arrives on a lamp before it is asked for on a thermostat.
 
-Seven parts are available from the start. **The eight you earn are exactly the ones redstone has no
-equivalent for** — distance, heat, colour and rain sensors, a display, a solar panel, a marker, and
-a redstone bridge for students who want to feed a contraption in.
+After the ladder come seven **bonus** jobs — a fire alarm, a tunnel gauge, a sheep-pen guard, a
+rain vent, a solar station, a colour lock and a manual override. They use the parts the ladder
+earned, grant nothing, and gate nothing.
+
+Seven parts are available from the start. **The nine you earn are exactly the ones redstone has no
+equivalent for** — distance, heat, colour, rain and animal sensors, a display, a solar panel, a
+marker, and a redstone bridge for students who want to feed a contraption in.
 
 ## The assistant
 

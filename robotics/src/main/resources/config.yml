@@ -112,8 +112,8 @@ celebrate:
   broadcast: true
 
 # A grid of trophies BESIDE the Component Board - one slot per mission, dark glass until earned,
-# then iron for a warm-up and gold for a rung of the required ladder. Permanent, visible to
-# visitors, and grants nothing whatsoever.
+# then iron for a warm-up, gold for a rung of the required ladder, emerald for a bonus job.
+# Permanent, visible to visitors, and grants nothing whatsoever.
 #
 # It started above the board and that was wrong twice over: the first person to stand on a plot
 # never saw it, because it was above eye level - and once told where to look, said it "looks like
@@ -126,8 +126,9 @@ celebrate:
 trophies:
   enabled: true
   spacing: 2
-  # 8 missions over 4 columns = two rows, both at eye level.
-  per-row: 4
+  # 16 missions over 8 columns = two rows, both at eye level. The code default is 8 as well: a
+  # bundled default never reaches a server that already has a config.yml.
+  per-row: 8
   # Blocks of empty wall between the board's right-hand edge and the first trophy.
   gap: 3
 

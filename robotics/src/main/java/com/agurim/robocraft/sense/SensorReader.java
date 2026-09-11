@@ -73,9 +73,15 @@ public final class SensorReader {
         return 0;
     }
 
+    /**
+     * Any living creature that is not a player. An armour stand is a LivingEntity in Bukkit, and
+     * a student could plant one to pin a classmate's animal sensor at 1 forever - so it does not
+     * count. The pen's sheep are meant to.
+     */
     private static int nearMob(Location loc, int radius) {
         for (org.bukkit.entity.Entity e : loc.getWorld().getNearbyEntities(loc, radius, radius, radius)) {
-            if (e instanceof LivingEntity && !(e instanceof Player)) return 1;
+            if (e instanceof LivingEntity && !(e instanceof Player)
+                    && !(e instanceof org.bukkit.entity.ArmorStand)) return 1;
         }
         return 0;
     }

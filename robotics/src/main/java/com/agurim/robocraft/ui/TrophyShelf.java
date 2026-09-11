@@ -43,7 +43,9 @@ public class TrophyShelf {
     private boolean enabled() { return plugin.getConfig().getBoolean("trophies.enabled", true); }
 
     private int spacing() { return Math.max(1, plugin.getConfig().getInt("trophies.spacing", 2)); }
-    private int perRow()  { return Math.max(1, plugin.getConfig().getInt("trophies.per-row", 4)); }
+    // 8 in code as well as in the bundled config: the class servers never receive a new bundled
+    // default, and with 16 missions a per-row of 4 would stack the shelf four rows high.
+    private int perRow()  { return Math.max(1, plugin.getConfig().getInt("trophies.per-row", 8)); }
 
     private List<Mission> missions() { return new ArrayList<>(plugin.missions().registry().all()); }
 
@@ -94,21 +96,28 @@ public class TrophyShelf {
      * the shelf invisible as a separate object - the whole point of it is to be a different thing
      * you have earned, so it has to look like one before anything is earned at all.
      */
-    public static Material trophyBlock(boolean earned, boolean warmUp) {
+    public static Material trophyBlock(boolean earned, boolean warmUp, boolean bonus) {
         if (!earned) return Material.BLACK_STAINED_GLASS;
-        return warmUp ? Material.IRON_BLOCK : Material.GOLD_BLOCK;
+        // Iron for practice, gold for the ladder, emerald for the extras - none is a part block,
+        // which the self-test asserts, so the shelf can never be mistaken for the wall.
+        return warmUp ? Material.IRON_BLOCK : bonus ? Material.EMERALD_BLOCK : Material.GOLD_BLOCK;
+    }
+
+    public static Material trophyBlock(boolean earned, Mission mission) {
+        return trophyBlock(earned, mission.warmUp(), mission.bonus());
     }
 
     /** (Re)build every trophy slot for this plot, lit according to what the owner has completed. */
     public void build(int plotIndex, UUID owner) {
         if (!enabled()) return;
+        clearLabels(plotIndex);
         Set<String> done = owner == null ? Set.of() : plugin.store().completedMissions(owner);
         List<Mission> missions = missions();
         for (int i = 0; i < missions.size(); i++) {
             Mission m = missions.get(i);
             boolean earned = done.contains(m.id());
             Location loc = slotLocation(plotIndex, i);
-            world().getBlockAt(loc).setType(trophyBlock(earned, m.optional()));
+            world().getBlockAt(loc).setType(trophyBlock(earned, m));
             spawnLabel(m, loc, earned);
         }
     }
@@ -120,9 +129,42 @@ public class TrophyShelf {
         for (int i = 0; i < missions.size(); i++) {
             if (!missions.get(i).id().equals(mission.id())) continue;
             Location loc = slotLocation(plotIndex, i);
-            world().getBlockAt(loc).setType(trophyBlock(true, mission.optional()));
+            world().getBlockAt(loc).setType(trophyBlock(true, mission));
             spawnLabel(mission, loc, true);
             return;
+        }
+    }
+
+    /**
+     * Remove every trophy label on this plot before a rebuild.
+     *
+     * <p>{@link #removeLabel} only deletes the label whose id matches the mission being redrawn at
+     * that slot. That holds while the mission list is fixed, and breaks the moment one is added:
+     * every slot after it shifts, and each old label is left floating under a different mission's
+     * block. Going from 8 missions to 16 is exactly that. Clearing the whole shelf first makes a
+     * rebuild honest whatever moved.
+     */
+    private void clearLabels(int plotIndex) {
+        int n = missions().size();
+        if (n == 0) return;
+        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
+        Location any = slotLocation(plotIndex, 0);
+        for (int i = 0; i < n; i++) {
+            Location s = slotLocation(plotIndex, i);
+            minX = Math.min(minX, s.getBlockX()); maxX = Math.max(maxX, s.getBlockX());
+            minY = Math.min(minY, s.getBlockY()); maxY = Math.max(maxY, s.getBlockY());
+        }
+        Location centre = new Location(world(), (minX + maxX) / 2.0 + 0.5, (minY + maxY) / 2.0 + 0.5,
+                any.getBlockZ() + 1.3);
+        // Force the entities of every chunk the shelf spans to load, or they cannot be found.
+        new Location(world(), minX, minY, any.getBlockZ()).getChunk().getEntities();
+        new Location(world(), maxX, maxY, any.getBlockZ()).getChunk().getEntities();
+        double hx = (maxX - minX) / 2.0 + 1.5, hy = (maxY - minY) / 2.0 + 1.5;
+        for (Entity ent : world().getNearbyEntities(centre, hx, hy, 1.5)) {
+            if (ent instanceof TextDisplay td
+                    && td.getPersistentDataContainer().has(plugin.trophyKey(), PersistentDataType.STRING)) {
+                td.remove();
+            }
         }
     }
 
