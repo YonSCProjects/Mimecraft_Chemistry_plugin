@@ -15,11 +15,11 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 
 > **Status: runs clean on 26.2, and a person has now played it.** Verified on Paper 26.2 build 116
 > (Java 25): enables, writes its content YAML, registers commands, saves its runtime files on
-> disable, zero exceptions, and **`/rc selftest` passes 149/149**. The mission content is
+> disable, zero exceptions, and **`/rc selftest` passes 161/161**. The mission content is
 > separately checked offline (`tools/BenchCheck.java`, 85 checks over all sixteen missions - run
 > it with the **JDK 25** `javac`/`java`, the build classes are version 69). Yon walked the first
 > warm-up end to end on the Tair class server in September 2026; everything he could not
-> perceive got fixed (`docs/DESIGN.md` §4.9).
+> perceive got fixed (the RoboCraft entries in the root `CHANGELOG.md`).
 >
 > **Seven per-class servers are live** (`C:\26.2_RoboCraft_<Class>`, ports 25567-25573) and
 > three hold real student work. A bundled YAML is copied to a server **only if absent**, so a
@@ -68,6 +68,11 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   it captures a question plus the state needed to answer it (the student's rule table, live
   readings, last rule fired, last failed bench check) into `questions.jsonl`, and an external agent
   replies via `/rc whisper`. See docs/DESIGN.md 4.7.
+- `classroom/` - the teacher's hand on the room. `PauseState` (who is paused, what they were
+  told - no Bukkit, self-tested), `PauseService` (freeze, pinned title, resume, `announce`),
+  `BigText` (word-wrap for a title that does not wrap by itself: 20 chars on the big line, 40 on
+  the subtitle, paged). `listener/PauseListener` runs at LOWEST so a paused player's event is
+  dead before protection or the part listeners see it.
 - `diag/` - `SelfTest` + `Scratch`: builds real robots out of real blocks, drives known inputs
   through them, checks real blocks moved, and restores the world exactly. **This is the test
   suite**, and it is also the answer to "does this work on this server?" before a lesson.
@@ -134,9 +139,14 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 
 ## Commands
 `/rc guide | kit | tp | board | missions | mission <id> | run | stop | charge` for students;
-`ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions | whisper`
-for admins. **`whisper` is the assistant's delivery channel and must work from the console.** **`selftest` and `progress` also
-run from the console** - the first is what you want before a lesson, the second during one.
+`ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions | whisper |
+pause | resume | say` for admins. **`whisper` is the assistant's delivery channel and must work
+from the console.** **`selftest`, `progress`, `pause`, `resume` and `say` also run from the
+console** - the first is what you want before a lesson, the rest during one.
+`pause [player] [text]` freezes the room or one student (movement, building, clicks, inventories,
+non-admin commands) and pins a title until `resume`; `say [player] <text>` is the title without
+the freeze. The world is never paused - a robot frozen mid-bench would fail for a reason the
+student never caused. Second word is a player if one of that name is online, else text.
 
 ## Roadmap
 - **The Yard** (designed, skeptic-reviewed, step 1 of 3 shipped): every mission becomes a job at

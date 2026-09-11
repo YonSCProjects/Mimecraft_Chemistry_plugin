@@ -258,6 +258,36 @@ bench check they most recently failed. That is the difference between "check you
 
 ---
 
+### 4.8 The teacher's hand on the room
+
+Yon, 2026-09-11, before the next lesson: *"it would be very helpful for me in the workshop to be
+able to pause the game for one player or for all and send a big text that will appear on his
+screen."* A workshop of thirty twelve-year-olds does not stop because someone at the front says
+"stop". It stops when the screens stop.
+
+`/rc pause [player] [text]` freezes the **player**, not the world: no walking, building,
+clicking, inventories or student commands; looking around and chat stay, because a pause is
+"hands off the keyboard", not a blindfold. A title is pinned to the screen and re-sent before it
+can fade. `/rc resume [player]` lifts it. `/rc say [player] <text>` is the title without the
+freeze.
+
+**Decision: the world is never paused.** Robots keep ticking and a bench run finishes. The
+alternative - suspending the engine - would make a robot frozen mid-bench fail its checks for a
+reason the student never caused, which breaks the bench's one promise (§4.4: it names the check
+that failed and *why*). A teacher who wants a run not to complete says so before starting it.
+
+**Decision: "everyone" never catches a teacher; a name catches anyone.** The first rule keeps
+the teacher able to type `/rc resume`. The second is how Yon sees what a student sees, on his
+own account, which [[verified-but-illegible]] says is the only way anything here gets checked.
+
+**A title does not wrap.** Twenty characters fit on the big line, forty on the subtitle, and a
+longer message runs silently off both edges of the screen. So `BigText` cuts the teacher's text
+at word boundaries and pages it, twenty on the big line if it fits, otherwise the teacher's name
+big and the text paging underneath; and every big text is echoed to chat, because a student who
+looked away for two seconds has otherwise missed it. The wrap is self-tested at its widths. What
+no test can tell us is whether the title *reads* on a real screen at a real GUI scale; that is
+Yon's walk on Tair.
+
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do
 
 **Decision (2026-08-25, fork B): the ladder splits in two.** Yon has no redstone experience, so the

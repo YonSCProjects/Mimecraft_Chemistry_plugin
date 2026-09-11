@@ -4,6 +4,32 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
+## RoboCraft 2026-09-11 - The teacher can stop the room
+Yon asked for it before the next lesson: "pause the game for one player or for all and send a
+big text that will appear on his screen." New `classroom/` package.
+- **`/rc pause [player] [text]`** freezes every student (never a teacher) or one named player
+  (anyone - naming yourself is how you see what a student sees): no walking, building, clicking,
+  inventories or non-admin commands; looking around and chat still work. A yellow "⏸ הפסקה" title
+  is pinned to the screen with the teacher's text under it, re-sent before it can fade, paged if
+  long, and the rule table is closed if it was open. A student who joins into a paused room is
+  frozen and told. **`/rc resume [player]`** lifts it with "▶ ממשיכים". A student released by
+  name stays released until the room is resumed.
+- **`/rc say [player] <text>`** is the big text without the freeze. Twenty characters or fewer
+  becomes the big line itself; longer text pages through the subtitle forty characters at a time,
+  because a title does not wrap and a long one runs off the screen with nothing telling the
+  sender. Every big text is echoed to chat as `[המורה] ...` so a student who looked away can
+  still read it. `classroom.teacher-name` and `classroom.page-seconds` in config.yml.
+- All three run from the **console** too, so a laptop at the front can stop the room over RCON
+  without being in the game. Replies are Hebrew to a player, English to a console.
+- **The world is never paused.** Robots tick and a bench run finishes. A robot frozen mid-bench
+  would fail its checks for a reason the student never caused.
+- `PauseListener` is the one listener at `LOWEST` priority: a paused player's event is dead
+  before plot protection or the part listeners - all `ignoreCancelled` - ever see it.
+- `/rc selftest` 149 -> **161/161**: the word-wrap is held to its widths (and cuts a word no line
+  can hold), and the pause state to its one rule - "everyone" never catches a teacher, a name
+  catches anyone. What no test can tell us: whether the title reads on a real screen. Yon walks
+  it on Tair first.
+
 ## RoboCraft 2026-09-11 - Six rungs, seven bonus jobs, and a bench that flickers on purpose
 Step 1 of "The Yard" (`robotics/docs/DESIGN.md` §5): every mission now names the place on the
 student's plot where it will be met, the content ships in full, and the world does not change yet.

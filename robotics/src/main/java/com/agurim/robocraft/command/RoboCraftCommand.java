@@ -58,6 +58,17 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        // The teacher's hand on the room. From the console too: a teacher's laptop may be
+        // driving the server over RCON while the teacher is not in the game at all.
+        if (args.length > 0 && (args[0].equalsIgnoreCase("pause")
+                || args[0].equalsIgnoreCase("resume") || args[0].equalsIgnoreCase("say"))) {
+            if (sender instanceof Player player && !player.hasPermission("robocraft.admin")) {
+                denied(player);
+            } else {
+                classroom(sender, args);
+            }
+            return true;
+        }
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Players only.");
             return true;
@@ -395,6 +406,69 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
                 com.agurim.robocraft.diag.SelfTest.run(plugin, sender, origin));
     }
 
+    // ------------------------------------------------------------ classroom
+
+    /**
+     * {@code pause [player] [text]}, {@code resume [player]}, {@code say [player] <text>}.
+     *
+     * <p>The second word is a player if one of that name is online, or {@code all}; anything
+     * else is the start of the text and the target is the room. That is the one ambiguity here -
+     * a message whose first word is a student's name - and it is accepted, because the
+     * alternative is making a teacher type {@code all} every time.
+     */
+    private void classroom(CommandSender sender, String[] args) {
+        String verb = args[0].toLowerCase();
+        Player one = null;
+        int textFrom = 1;
+        if (args.length >= 2) {
+            Player p = com.agurim.robocraft.ui.Whisper.find(args[1]);
+            if (p != null) { one = p; textFrom = 2; }
+            else if (args[1].equalsIgnoreCase("all") || args[1].equals("כולם")) textFrom = 2;
+        }
+        String text = args.length > textFrom
+                ? String.join(" ", java.util.Arrays.copyOfRange(args, textFrom, args.length)) : null;
+
+        switch (verb) {
+            case "pause" -> {
+                if (one != null) {
+                    plugin.pause().pause(one, text);
+                    reply(sender, "הפסקה: " + one.getName(), "paused " + one.getName());
+                } else {
+                    int n = plugin.pause().pauseAll(text);
+                    reply(sender, "הפסקה לכל הכיתה (" + n + " מחוברים). /rc resume משחרר.",
+                            "paused the room: " + n + " online. /rc resume lifts it.");
+                }
+            }
+            case "resume" -> {
+                if (one != null) {
+                    boolean was = plugin.pause().resume(one);
+                    reply(sender, was ? "שוחרר: " + one.getName() : one.getName() + " לא היה בהפסקה.",
+                            was ? "resumed " + one.getName() : one.getName() + " was not paused");
+                } else {
+                    int n = plugin.pause().resumeAll();
+                    reply(sender, "ההפסקה הסתיימה (" + n + " שוחררו).", "resumed the room: " + n + " released");
+                }
+            }
+            case "say" -> {
+                if (text == null || text.isBlank()) {
+                    reply(sender, "שימוש: /rc say [שם] <טקסט>", "usage: /rc say [player] <text>");
+                    return;
+                }
+                java.util.Collection<? extends Player> targets =
+                        one != null ? List.of(one) : plugin.getServer().getOnlinePlayers();
+                int n = plugin.pause().announce(targets, text);
+                reply(sender, "נשלח ל-" + n + ".", "shown to " + n);
+            }
+            default -> { }
+        }
+    }
+
+    /** Hebrew for a player, English for a console whose terminal will not draw Hebrew anyway. */
+    private void reply(CommandSender sender, String hebrew, String english) {
+        if (sender instanceof Player p) p.sendMessage(Component.text(hebrew, NamedTextColor.GRAY));
+        else sender.sendMessage(english);
+    }
+
     // ---------------------------------------------------------------- admin
 
     private void give(Player player, String[] args) {
@@ -453,8 +527,14 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
                                     "run", "stop", "trace", "charge", "ask", "give", "unlock",
                                     "reset", "reload", "selftest", "progress", "questions",
-                                    "whisper")) {
+                                    "whisper", "pause", "resume", "say")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
+            }
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("pause")
+                || args[0].equalsIgnoreCase("resume") || args[0].equalsIgnoreCase("say"))) {
+            if ("all".startsWith(args[1].toLowerCase())) out.add("all");
+            for (Player p : plugin.getServer().getOnlinePlayers()) {
+                if (p.getName().toLowerCase().startsWith(args[1].toLowerCase())) out.add(p.getName());
             }
         } else if (args.length == 2 && args[0].equalsIgnoreCase("mission")) {
             for (Mission m : plugin.missions().registry().all()) {

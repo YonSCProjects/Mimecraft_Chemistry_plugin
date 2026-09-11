@@ -1,12 +1,14 @@
 package com.agurim.robocraft;
 
 import com.agurim.robocraft.assistant.AskService;
+import com.agurim.robocraft.classroom.PauseService;
 import com.agurim.robocraft.command.RoboCraftCommand;
 import com.agurim.robocraft.data.PlayerStore;
 import com.agurim.robocraft.listener.InteractListener;
 import com.agurim.robocraft.listener.JoinListener;
 import com.agurim.robocraft.listener.MenuListener;
 import com.agurim.robocraft.listener.PartBlockListener;
+import com.agurim.robocraft.listener.PauseListener;
 import com.agurim.robocraft.listener.PlotProtection;
 import com.agurim.robocraft.mission.MissionService;
 import com.agurim.robocraft.part.Part;
@@ -45,6 +47,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     private WorkshopKiosk kiosk;
     private StatusBar statusBar;
     private AskService ask;
+    private PauseService pause;
 
     private NamespacedKey partKey;
     private NamespacedKey tileKey;
@@ -72,7 +75,10 @@ public final class RoboCraftPlugin extends JavaPlugin {
         this.kiosk      = new WorkshopKiosk(this);
         this.statusBar  = new StatusBar(this);
         this.ask        = new AskService(this);
+        this.pause      = new PauseService(this);
 
+        // First, so a paused player's event is dead before any other listener sees it.
+        getServer().getPluginManager().registerEvents(new PauseListener(this), this);
         getServer().getPluginManager().registerEvents(new JoinListener(this), this);
         getServer().getPluginManager().registerEvents(new PlotProtection(this), this);
         getServer().getPluginManager().registerEvents(new PartBlockListener(this), this);
@@ -95,6 +101,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (engine != null)     engine.stop();
+        if (pause != null)      pause.shutdown();
         if (robots != null)     robots.save();
         if (placements != null) placements.save();
         if (store != null)      store.save();
@@ -122,6 +129,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     public WorkshopKiosk kiosk()     { return kiosk; }
     public StatusBar statusBar()     { return statusBar; }
     public AskService ask()          { return ask; }
+    public PauseService pause()      { return pause; }
 
     public NamespacedKey partKey()   { return partKey; }
     public NamespacedKey tileKey()   { return tileKey; }

@@ -1053,6 +1053,72 @@ public final class SelfTest {
 
         trophies(plugin, checks);
         charger(plugin, checks);
+        classroom(plugin, checks);
+    }
+
+    // ------------------------------------------------------- F1b. classroom
+
+    /**
+     * The teacher's pause and the big text, checked without a player - the state and the
+     * word-wrap are both pure.
+     *
+     * <p>A title does not wrap: a long one runs off the screen and nothing tells the sender.
+     * That is [[verified-but-illegible]] again, so the wrap is held to its width here, and the
+     * pause state is held to the one rule that matters in a room - "everyone" never catches a
+     * teacher, a name catches anyone.
+     */
+    private static void classroom(RoboCraftPlugin plugin, List<Check> checks) {
+        String longText = "כללים רצים מלמעלה למטה בכל סיבוב, וכלל מאוחר גובר על כלל מוקדם - זה כל הסוד";
+        List<String> pages = com.agurim.robocraft.classroom.BigText.pages(longText);
+        boolean widths = pages.size() >= 2;
+        boolean nothingLost = String.join(" ", pages).equals(longText);
+        for (String p : pages) {
+            if (p.isBlank() || p.length() > com.agurim.robocraft.classroom.BigText.SUB_MAX) widths = false;
+        }
+        checks.add(new Check("a long announcement is cut into subtitle lines that fit, at word boundaries",
+                widths && nothingLost, pages.size() + " pages: " + pages));
+        checks.add(new Check("a short announcement is the big line by itself",
+                com.agurim.robocraft.classroom.BigText.fitsHead("עצרו רגע והקשיבו")
+                        && !com.agurim.robocraft.classroom.BigText.fitsHead(longText)
+                        && !com.agurim.robocraft.classroom.BigText.fitsHead("   "),
+                "HEAD_MAX=" + com.agurim.robocraft.classroom.BigText.HEAD_MAX));
+        String unbroken = "א".repeat(com.agurim.robocraft.classroom.BigText.SUB_MAX + 5);
+        List<String> cut = com.agurim.robocraft.classroom.BigText.pages(unbroken);
+        checks.add(new Check("a word no line can hold is cut rather than run off the screen",
+                cut.size() == 2 && cut.get(0).length() == com.agurim.robocraft.classroom.BigText.SUB_MAX,
+                cut.size() + " pages"));
+        checks.add(new Check("the default pause line fits the subtitle in one page",
+                com.agurim.robocraft.classroom.BigText.pages(
+                        com.agurim.robocraft.classroom.PauseService.DEFAULT_TEXT).size() == 1, ""));
+
+        com.agurim.robocraft.classroom.PauseState s = new com.agurim.robocraft.classroom.PauseState();
+        java.util.UUID student = java.util.UUID.nameUUIDFromBytes("student".getBytes());
+        java.util.UUID other   = java.util.UUID.nameUUIDFromBytes("other".getBytes());
+        java.util.UUID teacher = java.util.UUID.nameUUIDFromBytes("teacher".getBytes());
+
+        checks.add(new Check("nobody is paused until a teacher says so",
+                !s.anyone() && !s.applies(student, false), ""));
+        s.pauseAll("הסתכלו ללוח");
+        checks.add(new Check("pausing the room catches every student and no teacher",
+                s.applies(student, false) && s.applies(other, false) && !s.applies(teacher, true),
+                ""));
+        checks.add(new Check("and every student reads the room's text",
+                "הסתכלו ללוח".equals(s.textFor(student)), String.valueOf(s.textFor(student))));
+        s.resume(student, false);
+        checks.add(new Check("one student released by name stays released while the room is paused",
+                !s.applies(student, false) && s.applies(other, false) && s.everyone(), ""));
+        s.pause(teacher, "בואו אליי");
+        checks.add(new Check("a name catches anyone, a teacher included, with their own text",
+                s.applies(teacher, true) && "בואו אליי".equals(s.textFor(teacher)), ""));
+        s.resumeAll();
+        checks.add(new Check("resuming the room lifts everything, named pauses included",
+                !s.anyone() && !s.applies(other, false) && !s.applies(teacher, true)
+                        && s.textFor(teacher) == null, ""));
+        s.pause(student, "   ");
+        checks.add(new Check("a named pause with blank text falls back to the default line",
+                s.applies(student, false) && s.textFor(student) == null, ""));
+        checks.add(new Check("resume reports whether there was anything to lift",
+                s.resume(student, false) && !s.resume(student, false), ""));
     }
 
     /**

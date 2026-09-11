@@ -88,6 +88,14 @@ assistant:
   sound: true
   cooldown-seconds: 15
 
+# The teacher's hand on the room: /rc pause [player] [text], /rc resume [player], /rc say [player] <text>.
+# A paused player cannot move, build, click or run commands until resumed; the world keeps going.
+# teacher-name is the label on big text and its chat echo. page-seconds is how long each line of a
+# long message stays on screen before the next.
+classroom:
+  teacher-name: "המורה"
+  page-seconds: 6
+
 # A per-player bossbar carrying the current mission and the robot's battery.
 # While a student is still on the warm-ups the bar counts warm-ups instead, in a different colour -
 # otherwise their first success moves nothing at all, because progress counts the required ladder

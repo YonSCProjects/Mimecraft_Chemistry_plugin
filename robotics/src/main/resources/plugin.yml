@@ -6,9 +6,9 @@ description: Teaches robotics - sense, decide, act - by building mechanisms and 
 commands:
   robocraft:
     description: RoboCraft commands
-    usage: /robocraft guide | kit | tp | board | missions | mission <id> | run | stop | trace | charge | ask <question> | give <part> [n] | unlock <part> | reset | reload | selftest | progress | questions | whisper
+    usage: /robocraft guide | kit | tp | board | missions | mission <id> | run | stop | trace | charge | ask <question> | give <part> [n] | unlock <part> | reset | reload | selftest | progress | questions | whisper | pause [player] [text] | resume [player] | say [player] <text>
     aliases: [rc]
 permissions:
   robocraft.admin:
-    description: Admin/debug RoboCraft commands (give, unlock, reset, reload, selftest, progress)
+    description: Teacher/admin RoboCraft commands (pause, resume, say, progress, questions, give, unlock, reset, reload, selftest)
     default: op

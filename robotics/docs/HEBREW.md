@@ -10,7 +10,8 @@ Latin tokens inside a string - `S1`, `A1`, `ON`, `IF`, `/rc trace` - are deliber
 must stay Latin: a rule row has to read identically in any client.
 
 
-285 strings, plus 280 mission strings and 15 code strings added 2026-09-10 - see the last section.
+285 strings, plus 280 mission strings and 15 code strings added 2026-09-10, and 14 for the
+teacher's pause added 2026-09-11 - see the last two sections.
 
 
 ## Onboarding and the guide
@@ -700,3 +701,25 @@ enforced) and the bench steps. Edit the strings in the YAML itself; this list is
 - quest: { expect: { lamp: on }, because: "בלילה דולקת גם בלי מתג" }
 - quest: { say: "בוקר. אור 14.", env: { light: 14 }, wait: 30 }
 - quest: { expect: { lamp: off }, because: "ביום בלי מתג - כבויה. שתי סיבות להדליק, ולשתיהן צריך כלל שמכבה" }
+
+## Added 2026-09-11 - the teacher's pause. UNPROOFREAD.
+
+What a student sees when the teacher stops the room, and what the teacher is told back.
+The `⏸` and `▶` symbols are deliberate; they draw in Minecraft's font.
+
+| Where | Text |
+|---|---|
+| `PauseService` | ⏸ הפסקה |
+| `PauseService` | עצרו רגע והקשיבו |
+| `PauseService` | ▶ ממשיכים |
+| `PauseService` | ⏸ הפסקה - חכו למורה |
+| `PauseService` | [המורה] <הטקסט של המורה> |
+| `config.yml` | המורה |
+| `RoboCraftCommand` | הפסקה: <שם> |
+| `RoboCraftCommand` | הפסקה לכל הכיתה (12 מחוברים). /rc resume משחרר. |
+| `RoboCraftCommand` | שוחרר: <שם> |
+| `RoboCraftCommand` | <שם> לא היה בהפסקה. |
+| `RoboCraftCommand` | ההפסקה הסתיימה (12 שוחררו). |
+| `RoboCraftCommand` | שימוש: /rc say [שם] <טקסט> |
+| `RoboCraftCommand` | נשלח ל-12. |
+| `RoboCraftCommand` | כולם (accepted in place of `all`) |

@@ -92,8 +92,30 @@ whose point is that students find bugs by reading values, a Socratic nudge is pr
 on, `/rc selftest` to check a server before a lesson, plus `give`, `unlock`, `reset`, `reload`.
 `/rc whisper` is the assistant's delivery channel.
 
-`progress` and `selftest` also run from the **server console**, which is where the class view's
-columns line up and where you want the check to run before anyone has joined.
+**Stopping the room.** A workshop does not stop because someone at the front says "stop"; it
+stops when the screens stop.
+
+```
+/rc pause                         freeze every student; "⏸ הפסקה" pinned on every screen
+/rc pause הסתכלו ללוח              the same, with your words under it
+/rc pause kofiko בוא/י אליי        freeze one student, with a private line
+/rc resume                        lift it (or /rc resume kofiko for one)
+/rc say מי זוכר מה אומר כלל 2?    big text on every screen, nobody frozen
+/rc say kofiko יפה מאוד            big text for one
+```
+
+A paused student cannot walk, build, click, open anything or run commands until you resume
+them. They can still look around and read chat. The world keeps going — robots tick, a bench
+run finishes — because a robot "paused" mid-bench would fail its checks for a reason the
+student never caused. Teachers are never caught by `/rc pause`; naming yourself
+(`/rc pause <your name>`) is, on purpose, the way to see what a student sees.
+
+Short text becomes the big line itself; longer text pages through the subtitle a line at a
+time and is echoed to chat, so a student who looked away can still read it.
+
+`progress`, `selftest`, `pause`, `resume` and `say` also run from the **server console**, which
+is where the class view's columns line up, where you want the check to run before anyone has
+joined, and where a laptop at the front can stop the room without being in the game.
 
 ## Build & run
 

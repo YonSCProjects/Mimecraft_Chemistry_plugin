@@ -65,6 +65,7 @@ public class JoinListener implements Listener {
             Guide.sendProgress(plugin, player);
         }
         plugin.statusBar().update(player);
+        plugin.pause().remindOnJoin(player);   // joining into a paused room: frozen, and told
     }
 
     @EventHandler
