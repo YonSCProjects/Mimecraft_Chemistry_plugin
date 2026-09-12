@@ -769,7 +769,7 @@ The check rows are composed: `<situation>: <outcome>` from the words below.
 - **counter** brief: ספרו כמה פעמים מישהו נכנס - והצג מראה את המספר.
 - **counter** check: אחרי שתי כניסות
 - **flicker** brief: הנורה מאירה את החיישן שלה - תקנו כדי שלא תרצד.
-- **flicker** check: לילה, והנורה מאירה את החיישן
+- **flicker** check: לילה, הנורה מול החיישן
 - **flicker** check: ושוב לילה
 - **thermostat** brief: המחמם דולק כשקר, כבוי כשחם - ובאמצע לא מרצד.
 - **thermostat** check: 45 בדרך למעלה

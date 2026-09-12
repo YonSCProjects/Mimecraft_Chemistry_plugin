@@ -65,7 +65,7 @@ public final class MissionCard {
         List<String> out = new ArrayList<>();
         out.add(header(m, label, done));
         out.addAll(BigText.lines(m.brief(), WIDTH));
-        out.addAll(BigText.lines(partsRow(m, parts, attached, unlocked), WIDTH));
+        out.addAll(partsLines(m, parts, attached, unlocked));
         List<String> rows = checkRows(m, parts);
         int shown = Math.min(rows.size(), MAX_CHECKS);
         for (int i = 0; i < shown; i++) out.addAll(BigText.lines("✓ " + rows.get(i), WIDTH));
@@ -84,6 +84,14 @@ public final class MissionCard {
      * against what is on the student's robot, and honest about a part they cannot draw yet.
      */
     public static String partsRow(Mission m, PartRegistry parts, Set<String> attached, Set<String> unlocked) {
+        return String.join(" ", partsLines(m, parts, attached, unlocked));
+    }
+
+    /**
+     * The parts row, wrapped at item boundaries so a line never ends on a dangling separator -
+     * five parts run past the chat width, and word-wrap would leave "· " hanging at the edge.
+     */
+    public static List<String> partsLines(Mission m, PartRegistry parts, Set<String> attached, Set<String> unlocked) {
         List<String> items = new ArrayList<>();
         for (String id : m.needs()) {
             Part p = parts.get(id);
@@ -92,7 +100,21 @@ public final class MissionCard {
             else if (!unlocked.contains(id)) items.add("✖ " + name + " (נעול)");
             else                             items.add("○ " + name);
         }
-        return "בונים: " + String.join(" · ", items);
+        List<String> lines = new ArrayList<>();
+        StringBuilder line = new StringBuilder("בונים: ");
+        boolean first = true;
+        for (String item : items) {
+            String sep = first ? "" : " · ";
+            if (!first && line.length() + sep.length() + item.length() > WIDTH) {
+                lines.add(line.toString());
+                line = new StringBuilder("   ");
+                sep = "";
+            }
+            line.append(sep).append(item);
+            first = false;
+        }
+        lines.add(line.toString());
+        return lines;
     }
 
     /**
@@ -222,7 +244,7 @@ public final class MissionCard {
                 : m.bonus() ? NamedTextColor.GREEN : NamedTextColor.AQUA;
         player.sendMessage(Component.text(header(m, reg.label(m), done), head));
         for (String l : BigText.lines(m.brief(), WIDTH)) player.sendMessage(Component.text(l, NamedTextColor.WHITE));
-        for (String l : BigText.lines(partsRow(m, plugin.parts(), attached, unlocked), WIDTH)) {
+        for (String l : partsLines(m, plugin.parts(), attached, unlocked)) {
             player.sendMessage(Component.text(l, NamedTextColor.GRAY));
         }
         List<String> rows = checkRows(m, plugin.parts());
