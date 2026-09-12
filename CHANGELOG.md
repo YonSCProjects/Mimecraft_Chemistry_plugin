@@ -4,6 +4,33 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
+## RoboCraft 2026-09-13 - The mission card: the same shape every time, nothing to type
+Yon, going to bed: "the instructions of the missions must be clear; if things are not simple
+and clear the students prefer to play and avoid the missions. Find ways to fix this." Traced
+from first join to first failure, the path was a typed command, a thirty-seven-line list in a
+ten-line chat (what stayed on screen was the tail of the bonus list), names and goals that
+referred to places the yard has not built yet, and three more commands to type. Decision log in
+`robotics/docs/DESIGN.md` §4.9.
+- **`ui/MissionCard`**: every mission as one card, ten lines at most - number and name; the
+  goal; what to build, ticked against the parts on the student's own robot (`✔ בקר · ○ נורה ·
+  ✖ חיישן חום (נעול)`); **the bench's checks written out before the run** (`✓ אור 14: נורה
+  כבויה`), derived from the injected readings so they cannot drift from what is tested, authored
+  (`check:`) only for a deadline, a count or a direction; and `[▶ הרצה] [רמז] [כל המשימות]`.
+- **`/rc missions` is an overview**: three one-line tracks with a mark per mission (✔ ● ○), a
+  legend, then the next mission and its buttons - eight lines. `/rc missions <n>` opens that
+  card instead of running it. `/rc hint [n]` is behind a button so a card spoils nothing.
+- **Every mention of a mission is a click**: the tracks, the first-join line, the join line, the
+  pass line's "next", the failure's "try again", a locked board tile ("נפתח במשימה ..."), and a
+  **lectern button in the rule table** that runs the mission last opened (right-click: its card).
+  A student can go from landing to a passed bench without typing a command.
+- **Briefs rewritten as behaviour, not place**, all sixteen, 48 characters or fewer: "הנורה
+  דולקת כשחשוך, וכבויה כשיש אור." The three warm-ups get hints; they had none, so a
+  first-timer's failure text ended with nothing. Twelve `check:` texts authored.
+- The validator now holds every card to ten lines, every brief to the chat width, every mission
+  to having a hint. `rc missions <id>` from the console prints a card as plain text, so a teacher
+  can read content over RCON. `/rc selftest` 161 -> **170/170**.
+- Deployed to **Tair only**. Yon sees it before a class does.
+
 ## RoboCraft 2026-09-11 - The teacher can stop the room
 Yon asked for it before the next lesson: "pause the game for one player or for all and send a
 big text that will appear on his screen." New `classroom/` package.

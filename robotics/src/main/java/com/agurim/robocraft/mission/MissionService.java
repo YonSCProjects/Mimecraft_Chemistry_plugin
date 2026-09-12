@@ -119,6 +119,24 @@ public class MissionService {
     public Outcome lastOutcome(String robotKey)    { return lastOutcome.get(robotKey); }
     public void abort(String robotKey)             { runs.remove(robotKey); }
 
+    /**
+     * The mission a student is working on: the last card they opened or bench they ran, else the
+     * next one suggested. This is what the rule table's mission button runs, so a student who
+     * opened the thermostat card and then went to write rules is tested on the thermostat, not on
+     * whatever the ladder thinks is next. Session-only; a restart falls back to the ladder.
+     */
+    private final Map<UUID, String> focus = new java.util.HashMap<>();
+
+    public void focus(UUID owner, String missionId) { focus.put(owner, missionId); }
+    public void unfocus(UUID owner)                 { focus.remove(owner); }
+
+    public Mission focusOrNext(UUID owner) {
+        String id = focus.get(owner);
+        Mission m = id == null ? null : registry.byId(id);
+        if (m != null) return m;
+        return registry.nextSuggested(plugin.store().completedMissions(owner));
+    }
+
     public String start(Player player, Robot robot, Mission mission) {
         return start(player, player.getUniqueId(), robot, mission);
     }
@@ -136,6 +154,7 @@ public class MissionService {
 
         runs.put(robot.key(), new Run(mission, sender, owner));
         lastOutcome.remove(robot.key());
+        if (owner != null) focus.put(owner, mission.id());
 
         if (sender instanceof Player player) {
             player.showTitle(Title.title(
@@ -365,10 +384,14 @@ public class MissionService {
             plugin.trophies().award(plot, run.mission);
             if (firstTime) celebrate(run, plot);
 
+            // Passed: the focus moves on with the ladder. A click, not a command to type.
+            focus.remove(run.owner);
             Mission next = registry.nextSuggested(plugin.store().completedMissions(run.owner));
             if (next != null) {
-                run.sender.sendMessage(Component.text(
-                        "הבאה בתור: " + next.name() + " - /rc mission " + next.id(), NamedTextColor.AQUA));
+                run.sender.sendMessage(Component.text("הבאה בתור: ", NamedTextColor.AQUA)
+                        .append(com.agurim.robocraft.ui.MissionCard.openLink(registry, next, NamedTextColor.AQUA))
+                        .append(Component.text("  "))
+                        .append(com.agurim.robocraft.ui.MissionCard.openButton(next)));
             }
             if (run.sender instanceof Player player) plugin.statusBar().update(player);
         }
@@ -439,8 +462,10 @@ public class MissionService {
         if (!run.mission.hint().isEmpty()) {
             run.sender.sendMessage(Component.text("   רמז: " + run.mission.hint(), NamedTextColor.GRAY));
         }
-        run.sender.sendMessage(Component.text("נסו שוב: /rc mission " + run.mission.id(),
-                NamedTextColor.DARK_AQUA));
+        run.sender.sendMessage(com.agurim.robocraft.ui.MissionCard.runButton(run.mission, "▶ נסו שוב")
+                .append(Component.text("  "))
+                .append(com.agurim.robocraft.ui.MissionCard.button("הכרטיס", "/rc missions " + run.mission.id(),
+                        "מה בונים ומה הבוחן בודק", NamedTextColor.YELLOW)));
 
         if (run.owner != null) {
             lastFailure.put(run.owner, run.mission.id() + ": " + detail

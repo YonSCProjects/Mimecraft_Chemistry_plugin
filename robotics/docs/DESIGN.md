@@ -288,6 +288,53 @@ looked away for two seconds has otherwise missed it. The wrap is self-tested at 
 no test can tell us is whether the title *reads* on a real screen at a real GUI scale; that is
 Yon's walk on Tair.
 
+### 4.9 The mission card: the same shape every time, and nothing to type
+
+Yon, 2026-09-12, going to bed: *"the instructions of the missions must be clear. If things are
+not simple and clear the students prefer to play and avoid the missions. Find ways to fix
+this."*
+
+What a student actually met, traced from first join to first failure:
+
+1. First join said "המשימה הראשונה: /rc missions" - a command to type.
+2. `/rc missions` printed thirty-seven lines - sixteen missions, two lines each, three headers,
+   two explanations - into a chat that shows ten. What was on screen afterwards was the tail of
+   the bonus list. The ladder, and the warm-up they should start with, had scrolled off.
+3. Each line was a name and a brief. Since the yard content shipped, the names and briefs named
+   places - "move the lamp to the tunnel ceiling", "the storeroom door" - that do not exist yet.
+4. Running needed another typed command; a missing part was reported one at a time; the retry
+   after a failure was a third command to type; the next mission after a pass, a fourth.
+5. The three warm-ups had no hint, so the failure text for a first-timer ended with nothing.
+
+None of that is wrong. All of it is unclear, and this age group does not push through unclear;
+they go and build something else. Four decisions:
+
+**One card, one shape.** Every mission is shown the same way, ten lines at most so it is on
+screen whole: number and name; the goal in one line; what to build, ticked against the parts on
+the student's own robot (`✔ בקר · ○ נורה · ✖ חיישן חום (נעול)`); what the bench will check; and
+three buttons. The self-test and the enable-time validator both hold all sixteen to that budget.
+
+**The spec before the run.** The check rows are the bench's own steps written out -
+"אור 14: נורה כבויה" - derived from the injected readings so they cannot drift from what is
+tested, and authored (`check:`) only where a reading does not tell the story: a deadline, a
+count, a direction. A student who reads the card knows what "done" means before writing a rule.
+That is not giving the answer; the answer is the rules, and those stay behind the hint button.
+
+**Nothing to type.** Every mention of a mission is a click: the overview's three tracks, the
+join line, the pass line's "next", the failure's "try again", a locked tile on the board, and a
+lectern button in the rule table itself - the bench one click from the rules, which is where a
+student is when they are ready. `/rc missions <n>` opens a card instead of silently doing
+nothing; `/rc hint` is behind a button so a card spoils nothing.
+
+**Briefs name behaviour, not places.** Until the yard is built, the goal line says what the
+robot must do and nothing about where. Names still point at the places to come; the goal does
+not depend on them. The `quest` and `value` text stays dormant for the job posts (§4.8).
+
+Verified: 170/170 self-test, the card budget for all sixteen, and the console can print any
+card as plain text (`rc missions <id>` over RCON) so a teacher can read the content without a
+client. Not verified: whether a twelve-year-old clicks a thing that looks like `[▶ הרצה]`. That
+is the next lesson's job, and the first thing to watch.
+
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do
 
 **Decision (2026-08-25, fork B): the ladder splits in two.** Yon has no redstone experience, so the

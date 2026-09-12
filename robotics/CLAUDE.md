@@ -15,7 +15,7 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 
 > **Status: runs clean on 26.2, and a person has now played it.** Verified on Paper 26.2 build 116
 > (Java 25): enables, writes its content YAML, registers commands, saves its runtime files on
-> disable, zero exceptions, and **`/rc selftest` passes 161/161**. The mission content is
+> disable, zero exceptions, and **`/rc selftest` passes 170/170**. The mission content is
 > separately checked offline (`tools/BenchCheck.java`, 85 checks over all sixteen missions - run
 > it with the **JDK 25** `javac`/`java`, the build classes are version 69). Yon walked the first
 > warm-up end to end on the Tair class server in September 2026; everything he could not
@@ -63,7 +63,10 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
 - `plot/` - `PlotManager` (copied from ChemCraft), `WorkshopKiosk` (the charging pad).
 - `data/PlayerStore` - per-UUID progress (`players.yml`): plot, unlocked parts, completed missions.
 - `ui/` - `ProgramMenu` (the rule-table GUI), `ComponentBoard` (the ghost->lit parts wall),
-  `Guide`, `StatusBar`, `ProgressReport` (the teacher view).
+  `Guide`, `StatusBar`, `ProgressReport` (the teacher view), **`MissionCard`** (one mission as a
+  ten-line card - goal, parts ticked against the robot, the bench's checks written out, buttons -
+  and the overview; `plainLines`/`checkRows` are Bukkit-free and the validator holds every
+  mission to the budget). A step's optional `check:` is the authored situation text for a row.
 - `assistant/AskService` + `ui/Whisper` - the assistant layer. **The plugin never talks to an AI:**
   it captures a question plus the state needed to answer it (the student's rule table, live
   readings, last rule fired, last failed bench check) into `questions.jsonl`, and an external agent
@@ -138,9 +141,13 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 - No rovers and no co-op yet.
 
 ## Commands
-`/rc guide | kit | tp | board | missions | mission <id> | run | stop | charge` for students;
-`ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions | whisper |
-pause | resume | say` for admins. **`whisper` is the assistant's delivery channel and must work
+`/rc guide | kit | tp | board | missions [n] | mission <n> | hint [n] | run | stop | charge` for
+students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
+whisper | pause | resume | say` for admins. **Students are meant to click, not type:** every
+mention of a mission is a clickable component that opens its card (`/rc missions <id>`) or runs
+its bench (`/rc mission <id>`), and the rule table has a lectern button that runs the card last
+opened. `rc missions <id>` from the console prints the card as plain text - the way to read
+content without a client. **`whisper` is the assistant's delivery channel and must work
 from the console.** **`selftest`, `progress`, `pause`, `resume` and `say` also run from the
 console** - the first is what you want before a lesson, the rest during one.
 `pause [player] [text]` freezes the room or one student (movement, building, clicks, inventories,

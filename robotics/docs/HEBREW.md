@@ -11,7 +11,8 @@ must stay Latin: a rule row has to read identically in any client.
 
 
 285 strings, plus 280 mission strings and 15 code strings added 2026-09-10, and 14 for the
-teacher's pause added 2026-09-11 - see the last two sections.
+teacher's pause added 2026-09-11, and the mission card's words plus 31 rewritten or new mission lines
+added 2026-09-13 - see the last three sections.
 
 
 ## Onboarding and the guide
@@ -723,3 +724,66 @@ The `⏸` and `▶` symbols are deliberate; they draw in Minecraft's font.
 | `RoboCraftCommand` | שימוש: /rc say [שם] <טקסט> |
 | `RoboCraftCommand` | נשלח ל-12. |
 | `RoboCraftCommand` | כולם (accepted in place of `all`) |
+
+## Added 2026-09-13 - the mission card. UNPROOFREAD.
+
+What a student reads on a mission card, in the overview, and on every click that leads to one.
+The check rows are composed: `<situation>: <outcome>` from the words below.
+
+| Where | Text |
+|---|---|
+| `MissionCard` | ▶ 4. נורה שלא מרצדת  /  ✔ 1. מנורת החממה - הושלמה  /  (חימום)  /  (בונוס) |
+| `MissionCard` | בונים: ✔ בקר · ✔ סוללה · ○ נורה · ✖ חיישן חום (נעול) |
+| `MissionCard` | ✓ <situation>: <outcome> |
+| `MissionCard` |   ...ועוד 2 |
+| `MissionCard` | [▶ הרצה]  [▶ הרצה שוב]  [▶ נסו שוב]  [רמז]  [כל המשימות]  [פתיחה]  [הכרטיס]  [הכרטיס: מה בונים ומה נבדק] |
+| `MissionCard (hover)` | לחצו - מה בונים ומה נבדק  /  הרובוט עולה על הבוחן  /  עזרה קטנה - לא הפתרון  /  הרשימה  /  מה בונים ומה הבוחן בודק  /  פותח את הכרטיס |
+| `MissionCard (readings)` | אור 14 / חום 45 / מרחק 11 / צבע 13 / אות 15 / מישהו קרוב / אין אף אחד / גשם / יבש / חיה בחוץ / אין חיה |
+| `MissionCard (outcomes)` | נורה דולקת / נורה כבויה / זמזם מצלצל / זמזם שקט / שער פתוח / שער סגור / הצג 2 / M1 = 2 / הרובוט עדיין פועל / הרובוט נעצר / בלי ריצוד |
+| `MissionCard (overview)` | ==== משימות ====  /  חימום:  /  הסולם:  /  בונוס: |
+| `MissionCard (overview)` | ✔ הושלמה · ● הבאה · ○ עוד לא. לחיצה על שם פותחת את הכרטיס. |
+| `MissionCard (overview)` | הבאה בתור: <מספר. שם>  /  כל המשימות הושלמו! בנו מנגנון משלכם. |
+| `RoboCraftCommand` | אין משימה כזו: <קלט> |
+| `RoboCraftCommand` | אין משימה פתוחה. /rc missions |
+| `RoboCraftCommand` | אין רמז ל<שם> - הריצו, והבוחן יגיד מה לא עבד. |
+| `RoboCraftCommand` | רמז (<שם>): <הרמז> |
+| `Guide` | המשימה הראשונה: <מספר. שם> [פתיחה]  /  המדריך: /rc guide  |  שאלה: /rc ask |
+| `ProgramMenu` | המשימה: 4. נורה שלא מרצדת  /  לחיצה: הרובוט עולה על הבוחן  /  ימנית: הכרטיס - מה בונים ומה נבדק |
+| `ProgramMenu` | כל המשימות הושלמו  /  בנו מנגנון משלכם |
+| `MenuListener` | כל המשימות הושלמו! בנו מנגנון משלכם. |
+| `InteractListener` | חיישן חום עדיין נעול - נפתח במשימה <שם> [פתיחה] |
+| `MissionRegistry (log)` | (English only - validator warnings) |
+
+### missions.yml - every brief rewritten (behaviour, not place), three hints added, twelve check texts
+
+- **night_light** brief: הנורה דולקת כשחשוך, וכבויה כשיש אור.
+- **night_light** hint (new): שני כללים: IF S1 < 7 THEN A1 ON, ואחריו IF S1 >= 7 THEN A1 OFF. נורה זוכרת - חייבים כלל שמכבה
+- **alarm** brief: כשמישהו מתקרב - הזמזם מצלצל וגם הנורה נדלקת.
+- **alarm** hint (new): ארבעה כללים: על S1 = 1 - זמזם ON ונורה ON; על S1 = 0 - זמזם OFF ונורה OFF
+- **auto_door** brief: השער נפתח כשמישהו קרוב, ונסגר כשהוא הולך.
+- **auto_door** hint (new): שני כללים: IF S1 = 1 THEN A1 ON, ואחריו IF S1 = 0 THEN A1 OFF
+- **twilight** brief: הנורה דולקת רק בדמדומים: לא ביום, לא בחושך מלא.
+- **timed_door** brief: נפתח כשמישהו מגיע; נסגר 3 שניות אחרי שהלך.
+- **timed_door** check: שנייה אחרי שהלך
+- **timed_door** check: 5 שניות אחרי שהלך
+- **counter** brief: ספרו כמה פעמים מישהו נכנס - והצג מראה את המספר.
+- **counter** check: אחרי שתי כניסות
+- **flicker** brief: הנורה מאירה את החיישן שלה - תקנו כדי שלא תרצד.
+- **flicker** check: לילה, והנורה מאירה את החיישן
+- **flicker** check: ושוב לילה
+- **thermostat** brief: המחמם דולק כשקר, כבוי כשחם - ובאמצע לא מרצד.
+- **thermostat** check: 45 בדרך למעלה
+- **thermostat** check: 45 בדרך למטה
+- **efficiency** brief: נורת לילה עם רבע סוללה בלבד - והרובוט לא נכבה.
+- **efficiency** check: בסוף הלילה
+- **fire_alarm** brief: הצג מראה חום; מעל הסף - זמזם. לפיד לא מצלצל.
+- **tunnel_gauge** brief: הצג מראה את המרחק; חוסם קרוב - הזמזם מצלצל.
+- **pen_guard** brief: חיה יוצאת - הנורה דולקת. הצג סופר כמה פעמים.
+- **pen_guard** check: חזרה, אחרי בריחה אחת
+- **pen_guard** check: אחרי שתי בריחות
+- **rain_vent** brief: פתוח כשיש אור ויבש; סגור בלילה וברגע שיורד גשם.
+- **solar_station** brief: הצג מראה את האור, והרובוט חי מהשמש בלבד.
+- **solar_station** check: 30 שניות של שמש
+- **solar_station** check: 10 שניות של לילה
+- **color_lock** brief: השער נפתח רק כשצמר ירוק (13) מונח מתחת לחיישן.
+- **manual_override** brief: דולקת כשחשוך - וגם כשהמתג למעלה, אפילו ביום.

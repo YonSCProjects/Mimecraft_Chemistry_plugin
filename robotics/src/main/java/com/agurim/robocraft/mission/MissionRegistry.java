@@ -79,7 +79,8 @@ public class MissionRegistry {
                     feedback,
                     raw.get("wait") instanceof Number n ? n.intValue() : 0,
                     expect,
-                    raw.get("because") == null ? "" : String.valueOf(raw.get("because"))));
+                    raw.get("because") == null ? "" : String.valueOf(raw.get("because")),
+                    raw.get("check") == null ? "" : String.valueOf(raw.get("check"))));
         }
         return out;
     }
@@ -87,6 +88,23 @@ public class MissionRegistry {
     public Mission byId(String id)          { return missions.get(id); }
     public java.util.Collection<Mission> all() { return missions.values(); }
     public int size()                       { return missions.size(); }
+
+    /**
+     * "1", "W2", "B3" - a mission's number on its own track, which is how the status bar counts
+     * and therefore how the list, the card and every clickable reference must count too.
+     */
+    public String label(Mission m) {
+        List<Mission> track = m.warmUp() ? warmUps() : m.bonus() ? bonus() : required();
+        String prefix = m.warmUp() ? "W" : m.bonus() ? "B" : "";
+        int i = track.indexOf(m);
+        return prefix + (i + 1);
+    }
+
+    /** The mission whose reward unlocks this part, or null if it is free or unreachable. */
+    public Mission unlocking(String partId) {
+        for (Mission m : missions.values()) if (m.reward().contains(partId)) return m;
+        return null;
+    }
 
     /**
      * The first REQUIRED mission this player has not completed - what progress is counted against.
@@ -227,6 +245,33 @@ public class MissionRegistry {
         if (m.value().length() > width) {
             plugin.getLogger().warning("missions.yml: '" + m.id() + "' value is "
                     + m.value().length() + " chars, wraps past " + width + ".");
+        }
+
+        // The card. A brief is its one-line goal; a check's situation text has to leave room for
+        // the outcome beside it; and the whole card must be on screen at once, or the buttons at
+        // the bottom push the goal at the top off before it is read.
+        if (m.brief().length() > width) {
+            plugin.getLogger().warning("missions.yml: '" + m.id() + "' brief is " + m.brief().length()
+                    + " chars - the card's goal line wraps past " + width + ".");
+        }
+        if (m.hint().isEmpty()) {
+            plugin.getLogger().warning("missions.yml: '" + m.id()
+                    + "' has no hint - the card's [רמז] button and the failure text would say nothing.");
+        }
+        for (Mission.Step step : m.steps()) {
+            if (step.hasCheck() && step.check().length() > com.agurim.robocraft.ui.MissionCard.CHECK_MAX) {
+                plugin.getLogger().warning("missions.yml: '" + m.id() + "' check text is "
+                        + step.check().length() + " chars, over " + com.agurim.robocraft.ui.MissionCard.CHECK_MAX
+                        + ": " + step.check());
+            }
+        }
+        java.util.Set<String> everyPart = new java.util.HashSet<>();
+        for (com.agurim.robocraft.part.Part p : plugin.parts().all()) everyPart.add(p.id());
+        int lines = com.agurim.robocraft.ui.MissionCard.plainLines(m, label(m), plugin.parts(),
+                java.util.Set.of(), everyPart, false).size();
+        if (lines > com.agurim.robocraft.ui.MissionCard.MAX_LINES) {
+            plugin.getLogger().warning("missions.yml: '" + m.id() + "' card is " + lines
+                    + " lines - more than the chat shows at once (" + com.agurim.robocraft.ui.MissionCard.MAX_LINES + ").");
         }
     }
 

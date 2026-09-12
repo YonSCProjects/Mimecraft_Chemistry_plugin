@@ -8,6 +8,7 @@ import com.agurim.robocraft.part.PartItems;
 import com.agurim.robocraft.part.PartStore;
 import com.agurim.robocraft.robot.Robot;
 import com.agurim.robocraft.ui.Guide;
+import com.agurim.robocraft.ui.MissionCard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -69,6 +70,19 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        // A mission's card as plain text, for a teacher reading content over RCON - and for
+        // seeing exactly what a student will see without a client.
+        if (args.length >= 2 && args[0].equalsIgnoreCase("missions") && !(sender instanceof Player)) {
+            Mission m = resolveMission(args[1]);
+            if (m == null) { sender.sendMessage("no such mission: " + args[1]); return true; }
+            java.util.Set<String> every = new java.util.HashSet<>();
+            for (Part p : plugin.parts().all()) every.add(p.id());
+            for (String l : MissionCard.plainLines(m, plugin.missions().registry().label(m),
+                    plugin.parts(), java.util.Set.of(), every, false)) {
+                sender.sendMessage(l);
+            }
+            return true;
+        }
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Players only.");
             return true;
@@ -88,6 +102,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "charge"   -> chargeRobot(player);
             case "trace"    -> traceRobot(player);
             case "ask"      -> askQuestion(player, args);
+            case "hint"     -> hint(player, args);
             case "give"     -> give(player, args);
             case "unlock"   -> unlock(player, args);
             case "reset"    -> reset(player);
@@ -101,66 +116,50 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
 
     // ------------------------------------------------------------- students
 
-    /** The required ladder first, warm-ups after - and the warm-ups say plainly that they are optional. */
     /**
-     * The mission list.
+     * {@code /rc missions} is the overview; {@code /rc missions <mission>} is that mission's card.
      *
-     * <p>{@code /rc missions} and {@code /rc mission} differ by one letter and do entirely
-     * different things - one lists, one runs a bench test. The first person to use the list read
-     * it, thought "mission #1", and typed {@code /rc missions #1}; the argument was silently
-     * dropped, nothing ran, and they believed they had completed it until the trophy stayed grey.
-     * So an argument here is never ignored: it is what they meant to run.
+     * <p>{@code /rc missions} and {@code /rc mission} differ by one letter and do different
+     * things - one shows, one runs a bench test. The first person to use the list typed
+     * {@code /rc missions #1} meaning to run it, and the argument was silently dropped. So an
+     * argument here is never ignored: it opens the card, whose first button runs the bench - one
+     * click from what they meant, and they see what the bench will check on the way.
+     *
+     * <p>The wall this replaces printed thirty-seven lines into a chat that shows ten; what a
+     * student actually saw after typing it was the tail of the bonus list, with the ladder and
+     * the warm-up they should start with scrolled off above. That is the "not simple and clear"
+     * Yon's students were avoiding.
      */
     private void listMissions(Player player, String[] args) {
-        if (args.length >= 2) { runMission(player, args); return; }
-
-        player.sendMessage(Component.text("==== משימות ====", NamedTextColor.AQUA));
-        List<Mission> required = plugin.missions().registry().required();
-        for (int i = 0; i < required.size(); i++) line(player, required.get(i), String.valueOf(i + 1));
-
-        List<Mission> warmUps = plugin.missions().registry().warmUps();
-        if (!warmUps.isEmpty()) {
-            player.sendMessage(Component.text("---- חימום (לא חובה) ----", NamedTextColor.DARK_AQUA));
-            player.sendMessage(Component.text(
-                    "דברים שאפשר לבנות גם באבן אדומה. הם כאן כדי להתרגל לכלים.", NamedTextColor.GRAY));
-            for (int i = 0; i < warmUps.size(); i++) line(player, warmUps.get(i), WARM_UP_PREFIX + (i + 1));
+        if (args.length >= 2) {
+            Mission m = resolveMission(args[1]);
+            if (m == null) {
+                player.sendMessage(Component.text("אין משימה כזו: " + args[1], NamedTextColor.RED));
+                MissionCard.overview(plugin, player);
+                return;
+            }
+            MissionCard.send(plugin, player, m);
+            return;
         }
-
-        List<Mission> bonus = plugin.missions().registry().bonus();
-        if (!bonus.isEmpty()) {
-            boolean ladderDone = plugin.missions().registry().requiredDone(
-                    plugin.store().completedMissions(player.getUniqueId()))
-                    >= plugin.missions().registry().requiredCount();
-            player.sendMessage(Component.text("---- בונוס (אחרי הסולם) ----", NamedTextColor.DARK_GREEN));
-            player.sendMessage(Component.text(ladderDone
-                    ? "עבודות לרכיבים שהסולם פתח. אין פרס - רק מה שהרובוט עושה."
-                    : "נפתחות אחרי שהסולם גמור. אפשר לנסות כבר עכשיו, אבל הרכיבים עוד נעולים.",
-                    NamedTextColor.GRAY));
-            for (int i = 0; i < bonus.size(); i++) line(player, bonus.get(i), BONUS_PREFIX + (i + 1));
-        }
+        MissionCard.overview(plugin, player);
     }
 
-    /**
-     * Warm-ups are numbered W1..Wn and bonus jobs B1..Bn, not carried on from the required ladder.
-     *
-     * <p>The first draft numbered the required five 1-5 and then continued 6-8 into the warm-ups,
-     * which meant night_light was "6" in the list while the status bar called the very same
-     * mission "חימום 1/3" - and it is {@code order: 1} in missions.yml on top of that. Three names
-     * for one thing. The bar counts three separate tracks, so the list counts the same three.
-     */
-    private static final String WARM_UP_PREFIX = "W";
-    private static final String BONUS_PREFIX   = "B";
-
-    private void line(Player player, Mission m, String label) {
-        boolean done = plugin.store().isMissionDone(player.getUniqueId(), m.id());
-        player.sendMessage(Component.text(
-                (done ? "✔ " : label + ". ") + m.name() + " - " + m.brief(),
-                done ? NamedTextColor.GREEN : NamedTextColor.WHITE));
-        if (!done) {
-            // The command that RUNS it, spelled out next to the label they can see.
-            player.sendMessage(Component.text("   /rc mission " + label + "   (" + m.id() + ")",
-                    NamedTextColor.GRAY));
+    /** The hint for a mission - or for the one the student is working on. Behind a click, so a card spoils nothing. */
+    private void hint(Player player, String[] args) {
+        Mission m = args.length >= 2 ? resolveMission(args[1])
+                : plugin.missions().focusOrNext(player.getUniqueId());
+        if (m == null) {
+            player.sendMessage(Component.text("אין משימה פתוחה. /rc missions", NamedTextColor.GRAY));
+            return;
         }
+        if (m.hint().isEmpty()) {
+            player.sendMessage(Component.text("אין רמז ל" + m.name() + " - הריצו, והבוחן יגיד מה לא עבד.",
+                    NamedTextColor.GRAY));
+            return;
+        }
+        player.sendMessage(Component.text("רמז (" + m.name() + "): ", NamedTextColor.GOLD)
+                .append(Component.text(m.hint(), NamedTextColor.WHITE)));
+        player.sendMessage(MissionCard.runButton(m, "▶ הרצה"));
     }
 
     /**
@@ -185,7 +184,12 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         if (robot == null) return;
 
         String why = plugin.missions().start(player, robot, mission);
-        if (why != null) player.sendMessage(Component.text(why, NamedTextColor.RED));
+        if (why != null) {
+            // Could not start - a missing part, no rules. Say why, then show the card: it has the
+            // parts row with the missing one unticked, which is the answer to "so what do I do".
+            player.sendMessage(Component.text(why, NamedTextColor.RED));
+            MissionCard.send(plugin, player, mission);
+        }
     }
 
     /**
@@ -527,8 +531,12 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
                                     "run", "stop", "trace", "charge", "ask", "give", "unlock",
                                     "reset", "reload", "selftest", "progress", "questions",
-                                    "whisper", "pause", "resume", "say")) {
+                                    "whisper", "pause", "resume", "say", "hint")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
+            }
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("missions") || args[0].equalsIgnoreCase("hint"))) {
+            for (Mission m : plugin.missions().registry().all()) {
+                if (m.id().startsWith(args[1])) out.add(m.id());
             }
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("pause")
                 || args[0].equalsIgnoreCase("resume") || args[0].equalsIgnoreCase("say"))) {

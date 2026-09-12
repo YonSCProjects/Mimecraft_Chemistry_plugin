@@ -31,11 +31,13 @@ import java.util.List;
  */
 public class ProgramMenu implements InventoryHolder {
 
-    public static final int SLOT_ADD  = 45;
-    public static final int SLOT_RUN  = 47;
-    public static final int SLOT_STOP = 48;
-    public static final int SLOT_INFO = 50;
-    public static final int SLOT_HELP = 53;
+    public static final int SLOT_ADD     = 45;
+    public static final int SLOT_RUN     = 47;
+    public static final int SLOT_STOP    = 48;
+    public static final int SLOT_INFO    = 50;
+    /** The mission button: the bench, one click from the rules, with nothing to type. */
+    public static final int SLOT_MISSION = 51;
+    public static final int SLOT_HELP    = 53;
 
     private final String robotKey;
     private Inventory inventory;
@@ -183,6 +185,21 @@ public class ProgramMenu implements InventoryHolder {
         put(SLOT_HELP, icon(Material.BOOK, "איך זה עובד", NamedTextColor.AQUA,
                 "כללים רצים מלמעלה למטה בכל סיבוב",
                 "כלל מאוחר גובר על מוקדם | פלט זוכר את מצבו"));
+
+        // The loop closes here: write rules, press the lectern, watch the bench. Until this
+        // button the only way onto the bench was a typed command, and the students who avoided
+        // the missions were avoiding exactly that.
+        com.agurim.robocraft.mission.Mission mission = (robot == null || robot.owner() == null)
+                ? null : plugin.missions().focusOrNext(robot.owner());
+        if (mission == null) {
+            put(SLOT_MISSION, icon(Material.LECTERN, "כל המשימות הושלמו", NamedTextColor.GREEN,
+                    "בנו מנגנון משלכם", ""));
+        } else {
+            String label = plugin.missions().registry().label(mission);
+            put(SLOT_MISSION, icon(Material.LECTERN, "המשימה: " + label + ". " + mission.name(), NamedTextColor.YELLOW,
+                    "לחיצה: הרובוט עולה על הבוחן",
+                    "ימנית: הכרטיס - מה בונים ומה נבדק"));
+        }
     }
 
     // ------------------------------------------------------------------ cells

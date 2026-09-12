@@ -55,12 +55,18 @@ public record Mission(
      * of changing the shared world. {@code feedback} is the loop back from outputs to readings.
      * {@code expect} is checked the moment the step is reached, and {@code because} is what the
      * student is told when it fails: always the reason, never a score.
+     *
+     * <p>{@code check} is how the mission card names this check BEFORE the run - the situation
+     * half of "situation: expected outcome". Usually empty: the card derives it from the injected
+     * readings ("אור 14: נורה כבויה"). It is authored where readings do not tell the story - a
+     * deadline ("שנייה אחרי שהלך"), a count ("אחרי שתי כניסות"), a direction ("45 בדרך למעלה").
      */
     public record Step(String say, Map<String, Integer> env, Map<String, Feedback> feedback,
-                       int waitTicks, Map<String, String> expect, String because) {
+                       int waitTicks, Map<String, String> expect, String because, String check) {
 
         public boolean hasEnv()      { return env != null && !env.isEmpty(); }
         public boolean hasFeedback() { return feedback != null && !feedback.isEmpty(); }
         public boolean hasExpect()   { return expect != null && !expect.isEmpty(); }
+        public boolean hasCheck()    { return check != null && !check.isEmpty(); }
     }
 }

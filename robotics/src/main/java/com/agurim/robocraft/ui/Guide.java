@@ -88,7 +88,17 @@ public final class Guide {
     public static void firstJoin(RoboCraftPlugin plugin, Player player) {
         line(player, "ברוכים הבאים ל-RoboCraft! זו הסדנה שלכם, והקיר שלפניכם הוא מלאי הרכיבים.", NamedTextColor.GREEN);
         line(player, "הניחו בקר, סוללה, חיישן ומפעיל קרוב זה לזה - ואז לחצו על הבקר וכתבו כלל.", NamedTextColor.YELLOW);
-        line(player, "המשימה הראשונה: /rc missions | המדריך: /rc guide | שאלה: /rc ask", NamedTextColor.DARK_AQUA);
+        // The first mission is a click, not a command. A twelve-year-old who has just landed does
+        // not type "/rc missions"; they click the thing that says "first mission".
+        Mission first = plugin.missions().registry().nextSuggested(
+                plugin.store().completedMissions(player.getUniqueId()));
+        Component line = Component.text("המשימה הראשונה: ", NamedTextColor.DARK_AQUA);
+        line = first != null
+                ? line.append(MissionCard.openLink(plugin.missions().registry(), first, NamedTextColor.YELLOW))
+                      .append(Component.text("  ")).append(MissionCard.openButton(first))
+                : line.append(MissionCard.button("רשימה", "/rc missions", "כל המשימות", NamedTextColor.YELLOW));
+        player.sendMessage(line);
+        line(player, "המדריך: /rc guide  |  שאלה: /rc ask", NamedTextColor.DARK_AQUA);
     }
 
     public static void send(RoboCraftPlugin plugin, Player player) {
@@ -123,8 +133,17 @@ public final class Guide {
 
         Mission next = registry.nextSuggested(completed);
         if (next != null) {
-            String text = withBrief ? next.name() + " - " + next.brief() : next.name();
-            player.sendMessage(Component.text("הבאה בתור: " + text, NamedTextColor.YELLOW));
+            // The name is a click that opens the card; the button says so for anyone who would
+            // not think to click a name.
+            player.sendMessage(Component.text("הבאה בתור: ", NamedTextColor.YELLOW)
+                    .append(MissionCard.openLink(registry, next, NamedTextColor.YELLOW))
+                    .append(Component.text("  "))
+                    .append(MissionCard.openButton(next)));
+            if (withBrief) {
+                for (String l : com.agurim.robocraft.classroom.BigText.lines(next.brief(), CHAT_WIDTH)) {
+                    player.sendMessage(Component.text(l, NamedTextColor.WHITE));
+                }
+            }
         }
     }
 

@@ -1054,6 +1054,96 @@ public final class SelfTest {
         trophies(plugin, checks);
         charger(plugin, checks);
         classroom(plugin, checks);
+        cards(plugin, checks);
+    }
+
+    // ---------------------------------------------------------- F1c. cards
+
+    /**
+     * The mission card: every mission on screen at once, in the same shape, with the bench's own
+     * checks written out before the run.
+     *
+     * <p>Yon, 2026-09-12: "if things are not simple and clear the students prefer to play and
+     * avoid the missions." The card is the answer; this is what holds it to its budget - ten
+     * lines, forty-eight wide - for all sixteen missions, and holds the derived check rows to
+     * saying what the bench actually injects.
+     */
+    private static void cards(RoboCraftPlugin plugin, List<Check> checks) {
+        var reg = plugin.missions().registry();
+        java.util.Set<String> everyPart = new java.util.HashSet<>();
+        for (Part p : plugin.parts().all()) everyPart.add(p.id());
+
+        StringBuilder over = new StringBuilder();
+        for (Mission m : reg.all()) {
+            List<String> lines = com.agurim.robocraft.ui.MissionCard.plainLines(
+                    m, reg.label(m), plugin.parts(), java.util.Set.of(), everyPart, false);
+            if (lines.size() > com.agurim.robocraft.ui.MissionCard.MAX_LINES) {
+                over.append(m.id()).append('=').append(lines.size()).append("l ");
+            }
+            for (String l : lines) {
+                if (l.length() > com.agurim.robocraft.ui.MissionCard.WIDTH) {
+                    over.append(m.id()).append(':').append(l.length()).append("w ");
+                }
+            }
+        }
+        checks.add(new Check("every mission's card fits the chat: at most 10 lines, none wider than 48",
+                over.length() == 0, over.toString()));
+
+        Mission nightLight = reg.byId("night_light");
+        List<String> rows = nightLight == null ? List.of()
+                : com.agurim.robocraft.ui.MissionCard.checkRows(nightLight, plugin.parts());
+        checks.add(new Check("the night light's checks read as 'reading: outcome' straight from the bench",
+                rows.size() == 3 && rows.get(0).equals("אור 14: נורה כבויה") && rows.get(1).equals("אור 2: נורה דולקת"),
+                String.valueOf(rows)));
+
+        Mission alarm = reg.byId("alarm");
+        List<String> alarmRows = alarm == null ? List.of()
+                : com.agurim.robocraft.ui.MissionCard.checkRows(alarm, plugin.parts());
+        checks.add(new Check("two checks on the same moment share one row",
+                alarmRows.size() == 3 && alarmRows.get(1).contains("זמזם") && alarmRows.get(1).contains("נורה"),
+                String.valueOf(alarmRows)));
+
+        Mission door = reg.byId("timed_door");
+        List<String> doorRows = door == null ? List.of()
+                : com.agurim.robocraft.ui.MissionCard.checkRows(door, plugin.parts());
+        checks.add(new Check("a deadline the readings cannot show is said in the author's words",
+                doorRows.size() == 4 && doorRows.get(2).startsWith("שנייה") && doorRows.get(2).endsWith("שער פתוח"),
+                String.valueOf(doorRows)));
+
+        Mission flicker = reg.byId("flicker");
+        List<String> flickerRows = flicker == null ? List.of()
+                : com.agurim.robocraft.ui.MissionCard.checkRows(flicker, plugin.parts());
+        checks.add(new Check("a steady check says so, after the state it is steady in",
+                flickerRows.size() == 4 && flickerRows.get(1).endsWith("נורה דולקת, בלי ריצוד"),
+                String.valueOf(flickerRows)));
+
+        Mission thermostat = reg.byId("thermostat");
+        String row = thermostat == null ? "" : com.agurim.robocraft.ui.MissionCard.partsRow(
+                thermostat, plugin.parts(), java.util.Set.of("controller", "battery"),
+                java.util.Set.of("controller", "battery", "lamp", "light_sensor"));
+        checks.add(new Check("the parts row ticks what is attached, and says when a part is still locked",
+                row.contains("✔ בקר") && row.contains("○ נורה") && row.contains("✖ חיישן חום (נעול)"), row));
+
+        checks.add(new Check("labels count each track the way the status bar does: 1, W2, B1",
+                reg.required().size() >= 1 && "1".equals(reg.label(reg.required().get(0)))
+                        && reg.warmUps().size() >= 2 && "W2".equals(reg.label(reg.warmUps().get(1)))
+                        && reg.bonus().size() >= 1 && "B1".equals(reg.label(reg.bonus().get(0))), ""));
+
+        java.util.UUID ghost = java.util.UUID.nameUUIDFromBytes("selftest-focus".getBytes());
+        Mission byLadder = plugin.missions().focusOrNext(ghost);
+        plugin.missions().focus(ghost, "twilight");
+        Mission byFocus = plugin.missions().focusOrNext(ghost);
+        plugin.missions().focus(ghost, "no_such_mission");
+        Mission byBadFocus = plugin.missions().focusOrNext(ghost);
+        plugin.missions().unfocus(ghost);
+        checks.add(new Check("the rule table's button runs the card last opened, else the ladder's next",
+                byLadder != null && "night_light".equals(byLadder.id())
+                        && byFocus != null && "twilight".equals(byFocus.id())
+                        && byBadFocus != null && "night_light".equals(byBadFocus.id()),
+                id(byLadder) + " / " + id(byFocus) + " / " + id(byBadFocus)));
+
+        checks.add(new Check("no mission is without a hint behind the card's button",
+                reg.all().stream().allMatch(m -> !m.hint().isEmpty()), ""));
     }
 
     // ------------------------------------------------------- F1b. classroom

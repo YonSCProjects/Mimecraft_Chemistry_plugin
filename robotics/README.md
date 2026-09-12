@@ -62,6 +62,30 @@ Seven parts are available from the start. **The nine you earn are exactly the on
 equivalent for** — distance, heat, colour, rain and animal sensors, a display, a solar panel, a
 marker, and a redstone bridge for students who want to feed a contraption in.
 
+## Reading a mission
+
+Every mission is a card, the same shape every time, short enough to be on screen whole:
+
+```
+▶ 4. נורה שלא מרצדת                            number and name
+הנורה מאירה את החיישן שלה - תקנו כדי שלא תרצד.   the goal, one line
+בונים: ✔ בקר · ✔ סוללה · ✔ חיישן אור · ○ נורה      what to build, ticked against your robot
+✓ אור 14: נורה כבויה                              what the bench will check
+✓ לילה, והנורה מאירה את החיישן: נורה דולקת, בלי ריצוד
+✓ אור 14: נורה כבויה
+✓ ושוב לילה: נורה דולקת, בלי ריצוד
+[▶ הרצה]  [רמז]  [כל המשימות]                     click; nothing to type
+```
+
+`/rc missions` is the overview — three one-line tracks with a mark per mission, then the next
+one and its buttons. Clicking any name opens its card. The lectern button at the bottom of the
+rule table runs the mission you last opened (right-click shows its card), so the loop is: read
+the card, place the parts, write the rules, press the lectern, watch the bench.
+
+The checks on the card are the bench's own steps, so they cannot disagree with what is tested.
+The rules that pass them are not on the card; `[רמז]` is a nudge, and the failure text names
+the check that failed, why, and what the sensors were reading at that moment.
+
 ## The assistant
 
 Students can ask, in Hebrew, from inside the game:
@@ -85,8 +109,9 @@ whose point is that students find bugs by reading values, a Socratic nudge is pr
 
 ## Commands
 
-**Students** — `/rc guide`, `kit`, `tp`, `board`, `missions`, `mission <id>`, `run`, `stop`,
-`trace`, `charge`, `ask <question>`.
+**Students** — `/rc guide`, `kit`, `tp`, `board`, `missions [n]` (overview, or one card),
+`mission <n>` (run it), `hint [n]`, `run`, `stop`, `trace`, `charge`, `ask <question>`. In
+practice students click; the commands are what the clicks run.
 
 **Teachers** (op) — `/rc progress` for the class view, `/rc questions` for what the class is stuck
 on, `/rc selftest` to check a server before a lesson, plus `give`, `unlock`, `reset`, `reload`.

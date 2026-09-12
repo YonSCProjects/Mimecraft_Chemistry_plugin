@@ -51,7 +51,7 @@ public class MenuListener implements Listener {
         if (robot == null) return;
 
         if (slot >= 45) {
-            controls(player, menu, robot, slot);
+            controls(player, menu, robot, slot, event.getClick().isRightClick());
             return;
         }
 
@@ -99,8 +99,27 @@ public class MenuListener implements Listener {
 
     // ------------------------------------------------------------- controls
 
-    private void controls(Player player, ProgramMenu menu, Robot robot, int slot) {
+    private void controls(Player player, ProgramMenu menu, Robot robot, int slot, boolean right) {
         switch (slot) {
+            case ProgramMenu.SLOT_MISSION -> {
+                // Chat is drawn behind an open chest GUI, so close first or nothing is seen.
+                player.closeInventory();
+                com.agurim.robocraft.mission.Mission mission = plugin.missions().focusOrNext(player.getUniqueId());
+                if (mission == null) {
+                    player.sendMessage(Component.text("כל המשימות הושלמו! בנו מנגנון משלכם.", NamedTextColor.GREEN));
+                    return;
+                }
+                if (right) {
+                    com.agurim.robocraft.ui.MissionCard.send(plugin, player, mission);
+                    return;
+                }
+                String why = plugin.missions().start(player, robot, mission);
+                if (why != null) {
+                    player.sendMessage(Component.text(why, NamedTextColor.RED));
+                    com.agurim.robocraft.ui.MissionCard.send(plugin, player, mission);
+                }
+                return;
+            }
             case ProgramMenu.SLOT_ADD -> {
                 int max = plugin.getConfig().getInt("program.max-rules", 5);
                 if (robot.program().size() >= max) {

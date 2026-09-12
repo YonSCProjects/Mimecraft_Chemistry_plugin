@@ -81,8 +81,21 @@ public class InteractListener implements Listener {
             return;
         }
         if (!plugin.store().isUnlocked(player.getUniqueId(), tile.id())) {
-            player.sendMessage(Component.text(tile.name() + " עדיין נעול - השלימו את המשימה שפותחת אותו.",
-                    NamedTextColor.GRAY));
+            // Name the mission, and make it a click. "Complete the mission that unlocks it" sent
+            // a student to a list they then had to search; the tile's own label names the
+            // mission, and now so does the message, with the card one click away.
+            com.agurim.robocraft.mission.Mission by = plugin.missions().registry().unlocking(tile.id());
+            Component msg = Component.text(tile.name() + " עדיין נעול", NamedTextColor.GRAY);
+            if (by != null) {
+                msg = msg.append(Component.text(" - נפתח במשימה ", NamedTextColor.GRAY))
+                        .append(com.agurim.robocraft.ui.MissionCard.openLink(
+                                plugin.missions().registry(), by, NamedTextColor.YELLOW))
+                        .append(Component.text("  "))
+                        .append(com.agurim.robocraft.ui.MissionCard.openButton(by));
+            } else {
+                msg = msg.append(Component.text(" - השלימו את המשימה שפותחת אותו.", NamedTextColor.GRAY));
+            }
+            player.sendMessage(msg);
             return;
         }
         PartItems.give(plugin, player, tile, 1);
