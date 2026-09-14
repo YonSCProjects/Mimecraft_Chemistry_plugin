@@ -15,11 +15,14 @@
   `rc pads 16` from the console first so no first join waits on it.
 
 .EXAMPLE
-  .\reset-world.ps1 -ServerDir C:\26.2_RoboCraft_Tair -Seed RoboCraft2026
+  .\reset-world.ps1 -ServerDir C:\26.2_RoboCraft_Tair
+  # Seeds surveyed 2026-09-14 for the first 16 plots: Sadna2026 = forests and hills to y=116,
+  # rivers on 3 plots, no ocean (chosen). RoboCraft2026 = gentle plains, rivers on the first
+  # three plots. Agurim = 100-block cliffs. RoboCraftWorkshop = the first plots in the ocean.
 #>
 param(
     [Parameter(Mandatory=$true)][string]$ServerDir,
-    [string]$Seed = 'RoboCraft2026'
+    [string]$Seed = 'Sadna2026'
 )
 $ErrorActionPreference = 'Stop'
 $props = Join-Path $ServerDir 'server.properties'

@@ -499,9 +499,11 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             String biome = plugin.plots().world().getBiome(c.getBlockX() + 8, c.getBlockY(), c.getBlockZ() + 8)
                     .getKey().getKey();
             boolean pad = plugin.plots().isPadBuilt(i);
-            sender.sendMessage(String.format("plot %2d  x=%-5d z=%-5d floor y=%-4d %-20s %s%s",
+            sender.sendMessage(String.format("plot %2d  x=%-5d z=%-5d floor y=%-4d %-20s %s %s%s",
                     i, c.getBlockX(), c.getBlockZ(), c.getBlockY(), biome,
-                    pad ? "pad flat " + com.agurim.robocraft.plot.PadBuilder.flatness(plugin, i) : "no pad",
+                    pad ? "pad flat " + com.agurim.robocraft.plot.PadBuilder.flatness(plugin, i)
+                            + " rim " + com.agurim.robocraft.plot.PadBuilder.rimCount(plugin, i) : "no pad",
+                    com.agurim.robocraft.plot.PadBuilder.edgeDrop(plugin, i),
                     builtNow ? " (carved now)" : ""));
         }
     }

@@ -30,25 +30,60 @@ public final class PadBuilder {
 
     /** Sea level, the floor below which no pad goes - an ocean plot gets a platform, not a dive. */
     private static final int MIN_FLOOR = 62;
-    private static final int CLEAR_ABOVE = 48;
-    private static final int FILL_BELOW = 24;
+    private static final int CLEAR_ABOVE = 96;
+    private static final int FILL_BELOW = 64;
 
     /**
-     * The floor height for a plot, from the land: the highest tree-free surface across the pad,
-     * never below sea level. Reads the terrain (loading its chunks); writes nothing.
+     * The floor height for a plot, from the land. The middle of the tree-free surface heights
+     * sampled across the pad - so a hill is half cut and half filled, and the pad's edges meet
+     * the land rather than hanging over it - but never below any water sampled, or a pond
+     * beside the pad would flow onto it, and never below sea level. Reads the terrain (loading
+     * its chunks); writes nothing.
      */
     public static int survey(PlotManager plots, int index) {
         RoboCraftPlugin plugin = plots.plugin();
         World w = plots.world();
         Location c = plots.plotCornerXZ(index);
         int px = padX(plugin), pz = padZ(plugin);
-        int best = MIN_FLOOR;
+        java.util.List<Integer> heights = new java.util.ArrayList<>();
+        int water = Integer.MIN_VALUE;
         for (int dx = 2; dx < px; dx += 6) {
             for (int dz = 2; dz < pz; dz += 6) {
-                best = Math.max(best, surfaceAt(w, c.getBlockX() + dx, c.getBlockZ() + dz));
+                int x = c.getBlockX() + dx, z = c.getBlockZ() + dz;
+                heights.add(surfaceAt(w, x, z));
+                int top = w.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING);
+                if (w.getBlockAt(x, top, z).getType() == Material.WATER) water = Math.max(water, top + 1);
             }
         }
-        return best;
+        java.util.Collections.sort(heights);
+        int median = heights.isEmpty() ? MIN_FLOOR : heights.get(heights.size() / 2);
+        return Math.max(MIN_FLOOR, Math.max(median, water));
+    }
+
+    /**
+     * How the pad meets the land: the biggest step down and the biggest step up from the pad's
+     * floor to the surface one block outside its edge. For the teacher's survey; a pad with a
+     * forty-block drop on one side is a pad to move a plot away from.
+     */
+    public static String edgeDrop(RoboCraftPlugin plugin, int index) {
+        PlotManager plots = plugin.plots();
+        World w = plots.world();
+        Location c = plots.plotCorner(index);
+        int px = padX(plugin), pz = padZ(plugin), floor = c.getBlockY();
+        int down = 0, up = 0;
+        for (int dx = -1; dx <= px; dx += 3) {
+            for (int dz : new int[] { -1, pz }) {
+                int s = surfaceAt(w, c.getBlockX() + dx, c.getBlockZ() + dz);
+                down = Math.max(down, floor - s); up = Math.max(up, s - floor);
+            }
+        }
+        for (int dz = -1; dz <= pz; dz += 3) {
+            for (int dx : new int[] { -1, px }) {
+                int s = surfaceAt(w, c.getBlockX() + dx, c.getBlockZ() + dz);
+                down = Math.max(down, floor - s); up = Math.max(up, s - floor);
+            }
+        }
+        return "edge -" + down + "/+" + up;
     }
 
     /** The highest block that is not a tree - a log or leaves would put the whole pad in the canopy. */
@@ -108,6 +143,51 @@ public final class PadBuilder {
                 }
             }
         }
+        rim(w, c, floor, px, pz);
+    }
+
+    /** A step this high or more off the pad's edge gets a fence. A hilltop pad is a cliff otherwise. */
+    private static final int RIM_DROP = 4;
+
+    /**
+     * Fence the pad's edge wherever the land outside falls away by {@link #RIM_DROP} or more.
+     * Only there: a pad that meets the land level has no rail, so the workshop opens onto the
+     * plot rather than being boxed in.
+     */
+    private static void rim(World w, Location c, int floor, int px, int pz) {
+        for (int dx = 0; dx < px; dx++) {
+            rimAt(w, c.getBlockX() + dx, c.getBlockZ(), c.getBlockX() + dx, c.getBlockZ() - 1, floor);
+            rimAt(w, c.getBlockX() + dx, c.getBlockZ() + pz - 1, c.getBlockX() + dx, c.getBlockZ() + pz, floor);
+        }
+        for (int dz = 0; dz < pz; dz++) {
+            rimAt(w, c.getBlockX(), c.getBlockZ() + dz, c.getBlockX() - 1, c.getBlockZ() + dz, floor);
+            rimAt(w, c.getBlockX() + px - 1, c.getBlockZ() + dz, c.getBlockX() + px, c.getBlockZ() + dz, floor);
+        }
+    }
+
+    private static void rimAt(World w, int x, int z, int outX, int outZ, int floor) {
+        int outside = surfaceAt(w, outX, outZ);
+        if (floor - outside >= RIM_DROP) {
+            Block b = w.getBlockAt(x, floor + 1, z);
+            if (b.getType().isAir()) b.setType(Material.OAK_FENCE, false);
+        }
+    }
+
+    /** Fence posts on the pad's edge - how much of it needed a rail. */
+    public static int rimCount(RoboCraftPlugin plugin, int index) {
+        PlotManager plots = plugin.plots();
+        World w = plots.world();
+        Location c = plots.plotCorner(index);
+        int px = padX(plugin), pz = padZ(plugin), y = c.getBlockY() + 1, n = 0;
+        for (int dx = 0; dx < px; dx++) {
+            if (w.getBlockAt(c.getBlockX() + dx, y, c.getBlockZ()).getType() == Material.OAK_FENCE) n++;
+            if (w.getBlockAt(c.getBlockX() + dx, y, c.getBlockZ() + pz - 1).getType() == Material.OAK_FENCE) n++;
+        }
+        for (int dz = 1; dz < pz - 1; dz++) {
+            if (w.getBlockAt(c.getBlockX(), y, c.getBlockZ() + dz).getType() == Material.OAK_FENCE) n++;
+            if (w.getBlockAt(c.getBlockX() + px - 1, y, c.getBlockZ() + dz).getType() == Material.OAK_FENCE) n++;
+        }
+        return n;
     }
 
     /**
@@ -146,8 +226,9 @@ public final class PadBuilder {
         for (int dx = 0; dx < px; dx++) {
             for (int dz = 0; dz < pz; dz++) {
                 int x = c.getBlockX() + dx, z = c.getBlockZ() + dz, y = c.getBlockY();
+                Material above = w.getBlockAt(x, y + 1, z).getType();
                 if (w.getBlockAt(x, y, z).getType() == Material.GRASS_BLOCK
-                        && w.getBlockAt(x, y + 1, z).getType().isAir()
+                        && (above.isAir() || above == Material.OAK_FENCE)
                         && w.getBlockAt(x, y + 2, z).getType().isAir()) ok++;
             }
         }
