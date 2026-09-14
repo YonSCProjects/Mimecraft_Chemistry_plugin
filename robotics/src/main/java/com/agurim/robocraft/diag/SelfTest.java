@@ -1055,6 +1055,48 @@ public final class SelfTest {
         charger(plugin, checks);
         classroom(plugin, checks);
         cards(plugin, checks);
+        explore(plugin, checks);
+    }
+
+    // -------------------------------------------------------- F1d. explore
+
+    /**
+     * The regular world next to the workshop: it exists, it is not the workshop, its door is the
+     * rung config names, and nothing robotic leaks into it.
+     */
+    private static void explore(RoboCraftPlugin plugin, List<Check> checks) {
+        var ex = plugin.explore();
+        var reg = plugin.missions().registry();
+        if (!ex.enabled()) {
+            checks.add(new Check("explore world is disabled by config (nothing to check)", true, ""));
+            return;
+        }
+        checks.add(new Check("the explore world exists and is not the workshop",
+                ex.ready() && !ex.isWorkshop(ex.world()) && ex.isExplore(ex.world()),
+                ex.ready() ? ex.world().getName() : "not created"));
+        checks.add(new Check("the workshop world is still the workshop",
+                ex.isWorkshop(plugin.plots().world()) && !ex.isExplore(plugin.plots().world()), ""));
+        if (ex.ready()) {
+            checks.add(new Check("the explore world has a border, so a class cannot generate terrain to the horizon",
+                    plugin.getConfig().getInt("explore.border", 2000) <= 0
+                            || ex.world().getWorldBorder().getSize() <= plugin.getConfig().getInt("explore.border", 2000) + 1,
+                    "border " + ex.world().getWorldBorder().getSize()));
+            checks.add(new Check("the workshop's difficulty is untouched by the explore world's",
+                    plugin.plots().world().getDifficulty() == org.bukkit.Difficulty.PEACEFUL
+                            || !plugin.getServer().getWorlds().get(0).equals(plugin.plots().world()),
+                    String.valueOf(plugin.plots().world().getDifficulty())));
+        }
+        java.util.Set<String> none = java.util.Set.of();
+        java.util.Set<String> passed = java.util.Set.of("night_light", "twilight");
+        checks.add(new Check("the door is shut until the named rung is passed, then open",
+                com.agurim.robocraft.world.ExploreWorld.gate(none, "twilight", reg) != null
+                        && "twilight".equals(id(com.agurim.robocraft.world.ExploreWorld.gate(none, "twilight", reg)))
+                        && com.agurim.robocraft.world.ExploreWorld.gate(passed, "twilight", reg) == null, ""));
+        checks.add(new Check("an empty unlock-after opens the door to everyone",
+                com.agurim.robocraft.world.ExploreWorld.gate(none, "", reg) == null
+                        && com.agurim.robocraft.world.ExploreWorld.gate(none, null, reg) == null, ""));
+        checks.add(new Check("a plot index is never found in the explore world",
+                !ex.ready() || plugin.plots().plotIndexAt(new Location(ex.world(), 8, 64, 4)) < 0, ""));
     }
 
     // ---------------------------------------------------------- F1c. cards

@@ -384,6 +384,12 @@ public class MissionService {
             plugin.trophies().award(plot, run.mission);
             if (firstTime) celebrate(run, plot);
 
+            // The door to the regular world opens on the rung config names - say so, once.
+            if (firstTime && plugin.explore().ready()
+                    && run.mission.id().equals(plugin.explore().unlockAfter())) {
+                run.sender.sendMessage(Component.text("העולם הגדול נפתח לכם!  ", NamedTextColor.GREEN)
+                        .append(plugin.explore().invitation()));
+            }
             // Passed: the focus moves on with the ladder. A click, not a command to type.
             focus.remove(run.owner);
             Mission next = registry.nextSuggested(plugin.store().completedMissions(run.owner));

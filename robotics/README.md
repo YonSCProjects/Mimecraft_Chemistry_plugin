@@ -62,6 +62,17 @@ Seven parts are available from the start. **The nine you earn are exactly the on
 equivalent for** — distance, heat, colour, rain and animal sensors, a display, a solar panel, a
 marker, and a redstone bridge for students who want to feed a contraption in.
 
+## The regular world
+
+The workshop is flat on purpose: every wall, shelf, charging pad and, soon, every yard site sits
+at one ground height. The students' first request was hills. So there are two worlds. The
+workshop, where robots work; and next to it a regular one — hills, caves, rivers, villages,
+animals — reached with `/rc explore` and left with `/rc tp`. A part placed out there is refused
+with the way back. The door opens on the first rung of the ladder (`explore.unlock-after`; set
+it empty to open it from the first join), and once open it is a click on every join. The
+explore world has its own difficulty and a world border, so a class cannot generate terrain to
+the horizon; the workshop stays peaceful whatever the explore world is set to.
+
 ## Reading a mission
 
 Every mission is a card, the same shape every time, short enough to be on screen whole:
@@ -109,9 +120,9 @@ whose point is that students find bugs by reading values, a Socratic nudge is pr
 
 ## Commands
 
-**Students** — `/rc guide`, `kit`, `tp`, `board`, `missions [n]` (overview, or one card),
-`mission <n>` (run it), `hint [n]`, `run`, `stop`, `trace`, `charge`, `ask <question>`. In
-practice students click; the commands are what the clicks run.
+**Students** — `/rc guide`, `kit`, `tp`, `explore`, `board`, `missions [n]` (overview, or one
+card), `mission <n>` (run it), `hint [n]`, `run`, `stop`, `trace`, `charge`, `ask <question>`.
+In practice students click; the commands are what the clicks run.
 
 **Teachers** (op) — `/rc progress` for the class view, `/rc questions` for what the class is stuck
 on, `/rc selftest` to check a server before a lesson, plus `give`, `unlock`, `reset`, `reload`.

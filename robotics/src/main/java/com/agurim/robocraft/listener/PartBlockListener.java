@@ -43,6 +43,15 @@ public class PartBlockListener implements Listener {
         Player player = event.getPlayer();
         Location loc = event.getBlock().getLocation();
 
+        // Robots live in the workshop. Out in the explore world there is no plot grid, no board,
+        // no bench - a part placed there would be a block with a label and nothing behind it.
+        if (!plugin.explore().isWorkshop(loc.getWorld())) {
+            event.setCancelled(true);
+            player.sendMessage(Component.text("רכיבים עובדים רק בסדנה. ", NamedTextColor.YELLOW)
+                    .append(com.agurim.robocraft.ui.MissionCard.button("חזרה לסדנה", "/rc tp", "בחזרה לחלקה שלכם", NamedTextColor.AQUA)));
+            return;
+        }
+
         Attachment.Result result = Attachment.place(plugin, loc, part, player.getFacing());
         PartLabels.refresh(plugin, loc);
 

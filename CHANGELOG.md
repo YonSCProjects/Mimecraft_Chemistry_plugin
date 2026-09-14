@@ -4,6 +4,31 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
+## RoboCraft 2026-09-14 - The regular world, next to the workshop
+The students' first request, 2026-09-03: "more fun if the world were not flat but with all the
+regular things." Yon chose "plains plots plus a normal world to explore"; the plains half
+shipped and the other half sat in a plan until he asked again today. New `world/ExploreWorld`.
+- **`/rc explore`** puts a student in `world_explore` - a normal world with hills, caves,
+  rivers, villages and animals, created on the plugin's first enable - and **`/rc tp`** brings
+  them back to their plot. Both are clicks: a green button on every join once the door is open,
+  and on the pass that opens it.
+- **The door is a reward.** `explore.unlock-after: twilight` - the first rung - opens it; empty
+  opens it to everyone from the first join. The join line says which mission is the key, with
+  its card one click away.
+- **Robots stay in the workshop.** A part placed in the explore world is refused with the way
+  back. Plot protection, the bench, the board and every label already assume the plot grid, and
+  now nothing can leak out of it.
+- Own difficulty (`explore.difficulty`, default normal; the workshop stays peaceful),
+  `keepInventory` on so nobody loses their parts to lava, and a 2000-block world border so a
+  class cannot generate terrain to the horizon. `spawn-monsters=false` in the class servers'
+  `server.properties` keeps monsters out of every world until the teacher flips it.
+- **Why not plots in real terrain:** everything built on a plot sits at `plot.ground-y`, and
+  three class servers hold student work that regenerating the world would destroy - it did, on
+  2026-09-03. Two worlds, one command each way.
+- Validator warns if the world failed to come up, if `unlock-after` names no mission, or if it
+  is the workshop itself. Self-test 170 -> **177/177**, run on the dev server because Tair had a
+  class on it.
+
 ## RoboCraft 2026-09-13 - The mission card: the same shape every time, nothing to type
 Yon, going to bed: "the instructions of the missions must be clear; if things are not simple
 and clear the students prefer to play and avoid the missions. Find ways to fix this." Traced

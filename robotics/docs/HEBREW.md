@@ -754,6 +754,20 @@ The check rows are composed: `<situation>: <outcome>` from the words below.
 | `InteractListener` | חיישן חום עדיין נעול - נפתח במשימה <שם> [פתיחה] |
 | `MissionRegistry (log)` | (English only - validator warnings) |
 
+### The regular world (2026-09-14). UNPROOFREAD.
+
+| Where | Text |
+|---|---|
+| `ExploreWorld` | העולם הגדול לא פתוח בשרת הזה. |
+| `ExploreWorld` | העולם הגדול נפתח אחרי המשימה <שם> [פתיחה] |
+| `ExploreWorld` | העולם הגדול (title) / /rc tp מחזיר לסדנה (subtitle) |
+| `ExploreWorld` | יצאתם לטיול. הרובוטים עובדים רק בסדנה - [חזרה לסדנה] |
+| `ExploreWorld` | [יציאה לעולם הגדול] (hover: הרים, מערות, כפרים - /rc tp מחזיר) |
+| `ExploreWorld` | [חזרה לסדנה] (hover: בחזרה לחלקה שלכם) |
+| `MissionService` | העולם הגדול נפתח לכם! |
+| `Guide` | אתם בעולם הגדול. [חזרה לסדנה]  /  העולם הגדול פתוח: [יציאה לעולם הגדול] |
+| `PartBlockListener` | רכיבים עובדים רק בסדנה. [חזרה לסדנה] |
+
 ### missions.yml - every brief rewritten (behaviour, not place), three hints added, twelve check texts
 
 - **night_light** brief: הנורה דולקת כשחשוך, וכבויה כשיש אור.

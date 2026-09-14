@@ -22,6 +22,7 @@ import com.agurim.robocraft.robot.RobotStore;
 import com.agurim.robocraft.ui.ComponentBoard;
 import com.agurim.robocraft.ui.StatusBar;
 import com.agurim.robocraft.ui.TrophyShelf;
+import com.agurim.robocraft.world.ExploreWorld;
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -48,6 +49,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     private StatusBar statusBar;
     private AskService ask;
     private PauseService pause;
+    private ExploreWorld explore;
 
     private NamespacedKey partKey;
     private NamespacedKey tileKey;
@@ -76,6 +78,8 @@ public final class RoboCraftPlugin extends JavaPlugin {
         this.statusBar  = new StatusBar(this);
         this.ask        = new AskService(this);
         this.pause      = new PauseService(this);
+        this.explore    = new ExploreWorld(this);
+        explore.load();   // before listeners: the part listener asks it which world is the workshop
 
         // First, so a paused player's event is dead before any other listener sees it.
         getServer().getPluginManager().registerEvents(new PauseListener(this), this);
@@ -130,6 +134,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     public StatusBar statusBar()     { return statusBar; }
     public AskService ask()          { return ask; }
     public PauseService pause()      { return pause; }
+    public ExploreWorld explore()    { return explore; }
 
     public NamespacedKey partKey()   { return partKey; }
     public NamespacedKey tileKey()   { return tileKey; }

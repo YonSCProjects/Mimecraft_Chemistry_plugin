@@ -103,12 +103,13 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "trace"    -> traceRobot(player);
             case "ask"      -> askQuestion(player, args);
             case "hint"     -> hint(player, args);
+            case "explore"  -> plugin.explore().go(player);
             case "give"     -> give(player, args);
             case "unlock"   -> unlock(player, args);
             case "reset"    -> reset(player);
             case "reload"   -> reload(player);
             default         -> player.sendMessage(Component.text(
-                                    "/rc guide | kit | tp | board | missions | mission <id> | run | stop | trace | charge | ask <שאלה>",
+                                    "/rc guide | kit | tp | explore | board | missions [n] | mission <n> | hint | run | stop | trace | charge | ask <שאלה>",
                                     NamedTextColor.GRAY));
         }
         return true;
@@ -531,7 +532,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
                                     "run", "stop", "trace", "charge", "ask", "give", "unlock",
                                     "reset", "reload", "selftest", "progress", "questions",
-                                    "whisper", "pause", "resume", "say", "hint")) {
+                                    "whisper", "pause", "resume", "say", "hint", "explore")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("missions") || args[0].equalsIgnoreCase("hint"))) {

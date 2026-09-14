@@ -335,6 +335,31 @@ card as plain text (`rc missions <id>` over RCON) so a teacher can read the cont
 client. Not verified: whether a twelve-year-old clicks a thing that looks like `[▶ הרצה]`. That
 is the next lesson's job, and the first thing to watch.
 
+### 4.10 The regular world, next to the workshop - not under it
+
+The students' first request (2026-09-03): *"more fun if the world were not flat but with all
+the regular things."* Yon chose "plains plots plus a normal world to explore". The plains half
+shipped to all seven servers; the other half sat in a plan for eleven days until he asked
+again, and rightly. Built 2026-09-14.
+
+**Decision: two worlds, one command each way.** The workshop is flat because every fixture on a
+plot - board, shelf, charging pad, the yard's sites to come - sits at one ground height, and
+because three class servers hold student work that regenerating the world would destroy (it
+did, once). So `/rc explore` goes to `world_explore`, a normal world with everything the
+students asked for, and `/rc tp` comes back. Both are clicks. A part placed out there is refused
+with the way back: robots, the bench, the board and every label assume the plot grid.
+
+**Decision: the door is a reward, and a cheap one.** `explore.unlock-after` names the rung that
+opens it - the first, by default. A student who has not passed it is told which mission is the
+key, with the card one click away. It costs no part and gates nothing on the ladder, so §6's
+rule holds; it makes the first rung worth something a student wants. Empty opens the world to
+all from the first join, if a teacher would rather.
+
+**What is not decided:** whether the workshop itself should one day sit in real terrain, with a
+flat pad carved per plot. That is a new-term, new-world change; it cannot be done to a server
+holding student work. If the yard's sites make plots feel like places, the question may answer
+itself.
+
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do
 
 **Decision (2026-08-25, fork B): the ladder splits in two.** Yon has no redstone experience, so the

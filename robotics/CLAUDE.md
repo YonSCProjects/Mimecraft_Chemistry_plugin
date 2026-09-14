@@ -71,6 +71,13 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   it captures a question plus the state needed to answer it (the student's rule table, live
   readings, last rule fired, last failed bench check) into `questions.jsonl`, and an external agent
   replies via `/rc whisper`. See docs/DESIGN.md 4.7.
+- `world/ExploreWorld` - the regular world next to the flat workshop (`world_explore`, created
+  on enable): `/rc explore` in, `/rc tp` back, parts refused outside the workshop, door gated on
+  `explore.unlock-after` (a rung id; empty = open), own difficulty, `keepInventory`, a world
+  border. `gate()` is pure and self-tested. Paper 26.2 stores it under
+  `world/dimensions/minecraft/world_explore/`, not as a sibling folder - a world reset that
+  deletes `world/` deletes it too. **Never put plots in real terrain** - every plot
+  fixture assumes `plot.ground-y`, and regenerating a class world destroys student work.
 - `classroom/` - the teacher's hand on the room. `PauseState` (who is paused, what they were
   told - no Bukkit, self-tested), `PauseService` (freeze, pinned title, resume, `announce`),
   `BigText` (word-wrap for a title that does not wrap by itself: 20 chars on the big line, 40 on
@@ -141,8 +148,8 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 - No rovers and no co-op yet.
 
 ## Commands
-`/rc guide | kit | tp | board | missions [n] | mission <n> | hint [n] | run | stop | charge` for
-students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
+`/rc guide | kit | tp | explore | board | missions [n] | mission <n> | hint [n] | run | stop | charge`
+for students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
 whisper | pause | resume | say` for admins. **Students are meant to click, not type:** every
 mention of a mission is a clickable component that opens its card (`/rc missions <id>`) or runs
 its bench (`/rc mission <id>`), and the rule table has a lectern button that runs the card last
@@ -162,8 +169,9 @@ student never caused. Second word is a player if one of that name is online, els
   ships with zero world change. Step 2 builds the sites; step 3 wires the posts. Design and the
   five decisions Yon took are in `docs/DESIGN.md` §5 and
   `C:\Users\Admin\.claude\plans\yard-design-draft\`.
-- **Explore world and boss arena** (approved, unbuilt): `C:\Users\Admin\.claude\plans\lets-plan-a-way-pure-quasar.md`
-  layers 3-4. `pvp=false` on every class server before any gear ships.
+- **Boss arena** (approved, unbuilt): `C:\Users\Admin\.claude\plans\lets-plan-a-way-pure-quasar.md`
+  layer 4. Layer 3, the explore world, shipped 2026-09-14. `pvp=false` on every class server
+  before any gear ships.
 - **Watch a real student use it.** Yon has; a class has not. What is not checked is whether the
   rule table is *learnable* by a twelve-year-old, and that needs thirty of them, not a test.
 - **Rovers** (Phase 2): a config-capped chassis that shifts a block per move step, carrying its

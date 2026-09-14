@@ -96,6 +96,23 @@ classroom:
   teacher-name: "המורה"
   page-seconds: 6
 
+# The regular world - hills, caves, rivers, villages, animals - next to the flat workshop, not
+# under it. /rc explore goes there, /rc tp comes back. Parts only work in the workshop world.
+# Created on first enable (a few seconds of terrain generation); after that it is loaded.
+explore:
+  enabled: true
+  world: world_explore
+  # The mission whose first pass opens the door. Empty ("") opens it to everyone from the start.
+  unlock-after: twilight
+  # peaceful | easy | normal | hard. Only this world - the workshop stays peaceful. Note that
+  # spawn-monsters=false in server.properties (the class servers' setting) stops monsters in
+  # every world regardless.
+  difficulty: normal
+  keep-inventory: true
+  # World border diameter in blocks, centred on spawn. Keeps a class from generating terrain
+  # to the horizon. 0 = no border.
+  border: 2000
+
 # A per-player bossbar carrying the current mission and the robot's battery.
 # While a student is still on the warm-ups the bar counts warm-ups instead, in a different colour -
 # otherwise their first success moves nothing at all, because progress counts the required ladder

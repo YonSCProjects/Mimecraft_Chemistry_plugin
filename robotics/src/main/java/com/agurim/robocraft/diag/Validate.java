@@ -33,6 +33,7 @@ public final class Validate {
 
         world(plugin, problems);
         difficulty(plugin, problems);
+        explore(plugin, problems);
         parts(plugin, problems);
         blocks(plugin, problems);
         board(plugin, problems);
@@ -70,6 +71,25 @@ public final class Validate {
             problems.add("world '" + world.getName() + "' is on difficulty " + world.getDifficulty()
                     + " - students get attacked while building. Set  difficulty=peaceful  in"
                     + " server.properties and restart. This is a server setting, not a plugin one.");
+        }
+    }
+
+    /**
+     * The explore world's door must be a real mission, or the gate silently never closes - and
+     * the world must have come up, or /rc explore silently does nothing.
+     */
+    private static void explore(RoboCraftPlugin plugin, List<String> problems) {
+        var ex = plugin.explore();
+        if (ex == null || !ex.enabled()) return;
+        if (!ex.ready()) {
+            problems.add("explore.enabled is true but world '" + ex.worldName() + "' could not be created - /rc explore is off.");
+        }
+        String key = ex.unlockAfter();
+        if (key != null && !key.isBlank() && plugin.missions().registry().byId(key) == null) {
+            problems.add("explore.unlock-after names mission '" + key + "' which does not exist - the door is open to everyone.");
+        }
+        if (ex.ready() && ex.isWorkshop(ex.world())) {
+            problems.add("explore.world is the same as the workshop world - parts would be refused everywhere.");
         }
     }
 
