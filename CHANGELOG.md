@@ -4,7 +4,29 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
-## RoboCraft 2026-09-14 - The regular world, next to the workshop
+## RoboCraft 2026-09-14 (later) - The workshop moves into the regular world
+Yon, on seeing the two-world version: "let's go with the second option, and you can delete the
+stuff that was built." One world, real terrain, each plot a flat pad carved into it. The
+explore world below is superseded and removed the same day.
+- **Plots in real terrain.** `plot.ground-y: auto`: a plot's floor height is read from the land
+  the first time the plot is looked at (the highest tree-free surface across its pad, never
+  below sea level), remembered in `plots.yml`, and `PadBuilder` carves a 44x24 grass pad at the
+  corner - cleared to the sky above, dirt and stone into any cave or water below. Board, shelf,
+  charging pad and arrival spot all sit on it; the validator and the self-test both check they
+  do. The rest of the plot stays as the world made it.
+- **`board.offset-y` is blocks above the plot floor now**, not an absolute height. Validate
+  warns when a config still carries the flat term's absolute value.
+- A number in `plot.ground-y` is the old flat mode, unchanged. A world border (`plot.border`,
+  2400) keeps a class near the workshop in terrain mode.
+- Console **`rc survey [n]`** lists plot floors, biomes and pads; **`rc pads [n]`** carves
+  them before a lesson so no first join waits. **`tools/reset-world.ps1`** moves a server from
+  flat to terrain: world folder and every student file moved aside, never deleted; level-type
+  normal with a shared seed; the two config keys rewritten.
+- The explore world (`/rc explore`, `world/ExploreWorld`) is removed: with one regular world
+  there is nothing to explore *to*.
+- Self-test 175/175 on a freshly generated normal world (the dev server, reset with the script).
+
+## RoboCraft 2026-09-14 - The regular world, next to the workshop (superseded the same day)
 The students' first request, 2026-09-03: "more fun if the world were not flat but with all the
 regular things." Yon chose "plains plots plus a normal world to explore"; the plains half
 shipped and the other half sat in a plan until he asked again today. New `world/ExploreWorld`.

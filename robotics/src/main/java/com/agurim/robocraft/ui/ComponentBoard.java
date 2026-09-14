@@ -41,7 +41,9 @@ public class ComponentBoard {
     public Location tileLocation(int plotIndex, int i) {
         Location corner = plugin.plots().plotCorner(plotIndex);
         int ox = plugin.getConfig().getInt("board.offset-x", 8);
-        int oy = plugin.getConfig().getInt("board.offset-y", 65);
+        // Above the plot's own floor, not an absolute height: plots sit at different heights
+        // in real terrain (2026-09-14). The bottom row is offset-y blocks up from the floor.
+        int oy = corner.getBlockY() + plugin.getConfig().getInt("board.offset-y", 1);
         int oz = plugin.getConfig().getInt("board.offset-z", 4);
         int rows = (int) Math.ceil(parts().size() / (double) perRow());
         int col = i % perRow();

@@ -1,19 +1,31 @@
 world: world
 
+# Plots are a grid in one world. The world is REAL TERRAIN (a normal level-type in
+# server.properties): each plot's floor height is read from the land the first time the plot is
+# looked at, remembered in plots.yml, and a flat grass pad (pad-x by pad-z, from the plot corner)
+# is carved for the board, the shelf, the charging pad and the spot a student lands on. The rest
+# of the plot stays as the world made it - the student's to build on.
+# ground-y: auto   -> terrain mode, as above.
+# ground-y: <int>  -> flat mode: every plot pinned to that height (the first term's superflat).
 plot:
   size: 96
   gap: 8
   origin-x: 0
   origin-z: 0
-  ground-y: 64
+  ground-y: auto
   per-row: 8
+  pad-x: 44
+  pad-z: 24
+  # World border diameter around the grid (terrain mode only). 0 = none.
+  border: 2400
 
 # The Component Board: a per-plot ghost->lit wall, one tile per part (see parts.yml).
 # Same idea as ChemCraft's periodic-table wall - it answers "what can I build with?" and
 # "what am I working towards?" in one glance.
+# offset-y is blocks ABOVE THE PLOT FLOOR (since 2026-09-14), not an absolute height.
 board:
   offset-x: 8
-  offset-y: 65
+  offset-y: 1
   offset-z: 4
   tile-spacing: 2
   per-row: 6
@@ -95,23 +107,6 @@ assistant:
 classroom:
   teacher-name: "המורה"
   page-seconds: 6
-
-# The regular world - hills, caves, rivers, villages, animals - next to the flat workshop, not
-# under it. /rc explore goes there, /rc tp comes back. Parts only work in the workshop world.
-# Created on first enable (a few seconds of terrain generation); after that it is loaded.
-explore:
-  enabled: true
-  world: world_explore
-  # The mission whose first pass opens the door. Empty ("") opens it to everyone from the start.
-  unlock-after: twilight
-  # peaceful | easy | normal | hard. Only this world - the workshop stays peaceful. Note that
-  # spawn-monsters=false in server.properties (the class servers' setting) stops monsters in
-  # every world regardless.
-  difficulty: normal
-  keep-inventory: true
-  # World border diameter in blocks, centred on spawn. Keeps a class from generating terrain
-  # to the horizon. 0 = no border.
-  border: 2000
 
 # A per-player bossbar carrying the current mission and the robot's battery.
 # While a student is still on the warm-ups the bar counts warm-ups instead, in a different colour -

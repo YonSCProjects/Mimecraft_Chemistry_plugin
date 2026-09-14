@@ -33,7 +33,7 @@ public final class Validate {
 
         world(plugin, problems);
         difficulty(plugin, problems);
-        explore(plugin, problems);
+        pads(plugin, problems);
         parts(plugin, problems);
         blocks(plugin, problems);
         board(plugin, problems);
@@ -75,21 +75,20 @@ public final class Validate {
     }
 
     /**
-     * The explore world's door must be a real mission, or the gate silently never closes - and
-     * the world must have come up, or /rc explore silently does nothing.
+     * Real terrain: every fixture has to sit on the carved pad, or a shelf hangs over a
+     * hillside. And board.offset-y is now measured from the plot's floor - a config carried over
+     * from the flat term with the old absolute value would put the board sixty blocks underground.
      */
-    private static void explore(RoboCraftPlugin plugin, List<String> problems) {
-        var ex = plugin.explore();
-        if (ex == null || !ex.enabled()) return;
-        if (!ex.ready()) {
-            problems.add("explore.enabled is true but world '" + ex.worldName() + "' could not be created - /rc explore is off.");
+    private static void pads(RoboCraftPlugin plugin, List<String> problems) {
+        int offsetY = plugin.getConfig().getInt("board.offset-y", 1);
+        if (offsetY < 0 || offsetY > 8) {
+            problems.add("board.offset-y is " + offsetY + " - since 2026-09-14 it is blocks ABOVE the plot floor, not"
+                    + " an absolute height. 1 is the normal value.");
         }
-        String key = ex.unlockAfter();
-        if (key != null && !key.isBlank() && plugin.missions().registry().byId(key) == null) {
-            problems.add("explore.unlock-after names mission '" + key + "' which does not exist - the door is open to everyone.");
-        }
-        if (ex.ready() && ex.isWorkshop(ex.world())) {
-            problems.add("explore.world is the same as the workshop world - parts would be refused everywhere.");
+        if (plugin.plots().fixedGround()) return;
+        String outside = com.agurim.robocraft.plot.PadBuilder.fixturesOutsidePad(plugin);
+        if (!outside.isEmpty()) {
+            problems.add("plot.pad-x/pad-z too small for the fixtures: " + outside);
         }
     }
 

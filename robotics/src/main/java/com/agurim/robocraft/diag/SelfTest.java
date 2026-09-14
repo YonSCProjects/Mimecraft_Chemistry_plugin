@@ -1055,48 +1055,42 @@ public final class SelfTest {
         charger(plugin, checks);
         classroom(plugin, checks);
         cards(plugin, checks);
-        explore(plugin, checks);
+        pads(plugin, checks);
     }
 
-    // -------------------------------------------------------- F1d. explore
+    // ----------------------------------------------------------- F1d. pads
 
     /**
-     * The regular world next to the workshop: it exists, it is not the workshop, its door is the
-     * rung config names, and nothing robotic leaks into it.
+     * Plots in real terrain: every fixture fits on the carved pad, a plot's floor is read from
+     * the land once and then remembered, and the flat mode still means what it meant.
      */
-    private static void explore(RoboCraftPlugin plugin, List<Check> checks) {
-        var ex = plugin.explore();
-        var reg = plugin.missions().registry();
-        if (!ex.enabled()) {
-            checks.add(new Check("explore world is disabled by config (nothing to check)", true, ""));
-            return;
+    private static void pads(RoboCraftPlugin plugin, List<Check> checks) {
+        var plots = plugin.plots();
+        String outside = com.agurim.robocraft.plot.PadBuilder.fixturesOutsidePad(plugin);
+        checks.add(new Check("the board, the shelf, the charging pad and the arrival spot all sit on the pad",
+                outside.isEmpty(), outside.isEmpty() ? com.agurim.robocraft.plot.PadBuilder.padX(plugin) + "x"
+                        + com.agurim.robocraft.plot.PadBuilder.padZ(plugin) : outside));
+        Location a = plots.plotCornerXZ(5), b = plots.plotCorner(5);
+        checks.add(new Check("a plot's x/z never depend on its floor height",
+                a.getBlockX() == b.getBlockX() && a.getBlockZ() == b.getBlockZ(), ""));
+        checks.add(new Check("board.offset-y is a small number of blocks above the floor",
+                plugin.getConfig().getInt("board.offset-y", 1) >= 0 && plugin.getConfig().getInt("board.offset-y", 1) <= 8,
+                String.valueOf(plugin.getConfig().getInt("board.offset-y", 1))));
+        if (plots.fixedGround()) {
+            checks.add(new Check("flat mode: every plot's floor is the configured height",
+                    plots.groundY(0) == plugin.getConfig().getInt("plot.ground-y")
+                            && plots.groundY(63) == plugin.getConfig().getInt("plot.ground-y"),
+                    "ground-y " + plugin.getConfig().getInt("plot.ground-y")));
+        } else {
+            int y1 = plots.groundY(63), y2 = plots.groundY(63);
+            org.bukkit.World w = plots.world();
+            checks.add(new Check("terrain mode: a plot's floor is surveyed once, remembered, and above sea level",
+                    y1 == y2 && y1 >= 62 && y1 < w.getMaxHeight(), "plot 63 floor y=" + y1));
+            checks.add(new Check("terrain mode: the world border is set around the grid",
+                    plugin.getConfig().getInt("plot.border", 2400) <= 0
+                            || w.getWorldBorder().getSize() <= plugin.getConfig().getInt("plot.border", 2400) + 1,
+                    "border " + w.getWorldBorder().getSize()));
         }
-        checks.add(new Check("the explore world exists and is not the workshop",
-                ex.ready() && !ex.isWorkshop(ex.world()) && ex.isExplore(ex.world()),
-                ex.ready() ? ex.world().getName() : "not created"));
-        checks.add(new Check("the workshop world is still the workshop",
-                ex.isWorkshop(plugin.plots().world()) && !ex.isExplore(plugin.plots().world()), ""));
-        if (ex.ready()) {
-            checks.add(new Check("the explore world has a border, so a class cannot generate terrain to the horizon",
-                    plugin.getConfig().getInt("explore.border", 2000) <= 0
-                            || ex.world().getWorldBorder().getSize() <= plugin.getConfig().getInt("explore.border", 2000) + 1,
-                    "border " + ex.world().getWorldBorder().getSize()));
-            checks.add(new Check("the workshop's difficulty is untouched by the explore world's",
-                    plugin.plots().world().getDifficulty() == org.bukkit.Difficulty.PEACEFUL
-                            || !plugin.getServer().getWorlds().get(0).equals(plugin.plots().world()),
-                    String.valueOf(plugin.plots().world().getDifficulty())));
-        }
-        java.util.Set<String> none = java.util.Set.of();
-        java.util.Set<String> passed = java.util.Set.of("night_light", "twilight");
-        checks.add(new Check("the door is shut until the named rung is passed, then open",
-                com.agurim.robocraft.world.ExploreWorld.gate(none, "twilight", reg) != null
-                        && "twilight".equals(id(com.agurim.robocraft.world.ExploreWorld.gate(none, "twilight", reg)))
-                        && com.agurim.robocraft.world.ExploreWorld.gate(passed, "twilight", reg) == null, ""));
-        checks.add(new Check("an empty unlock-after opens the door to everyone",
-                com.agurim.robocraft.world.ExploreWorld.gate(none, "", reg) == null
-                        && com.agurim.robocraft.world.ExploreWorld.gate(none, null, reg) == null, ""));
-        checks.add(new Check("a plot index is never found in the explore world",
-                !ex.ready() || plugin.plots().plotIndexAt(new Location(ex.world(), 8, 64, 4)) < 0, ""));
     }
 
     // ---------------------------------------------------------- F1c. cards

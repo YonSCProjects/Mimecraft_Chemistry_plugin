@@ -145,17 +145,6 @@ public final class Guide {
                 }
             }
         }
-        // The regular world, once earned, is one click away on every join - and a student who
-        // logged out in it is told the way back.
-        if (plugin.explore().ready()) {
-            if (plugin.explore().isExplore(player.getWorld())) {
-                player.sendMessage(Component.text("אתם בעולם הגדול.  ", NamedTextColor.GREEN)
-                        .append(MissionCard.button("חזרה לסדנה", "/rc tp", "בחזרה לחלקה שלכם", NamedTextColor.AQUA)));
-            } else if (plugin.explore().open(player)) {
-                player.sendMessage(Component.text("העולם הגדול פתוח:  ", NamedTextColor.GREEN)
-                        .append(plugin.explore().invitation()));
-            }
-        }
     }
 
     private static void line(Player player, String text, NamedTextColor color) {

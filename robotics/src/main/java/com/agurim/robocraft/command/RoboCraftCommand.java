@@ -70,6 +70,16 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        // The plot grid in real terrain: survey says where each plot's floor is and what is
+        // there; pads carves the floors now, before a lesson, so no first join waits on it.
+        if (args.length > 0 && (args[0].equalsIgnoreCase("survey") || args[0].equalsIgnoreCase("pads"))) {
+            if (sender instanceof Player player && !player.hasPermission("robocraft.admin")) {
+                denied(player);
+            } else {
+                plots(sender, args);
+            }
+            return true;
+        }
         // A mission's card as plain text, for a teacher reading content over RCON - and for
         // seeing exactly what a student will see without a client.
         if (args.length >= 2 && args[0].equalsIgnoreCase("missions") && !(sender instanceof Player)) {
@@ -103,13 +113,12 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "trace"    -> traceRobot(player);
             case "ask"      -> askQuestion(player, args);
             case "hint"     -> hint(player, args);
-            case "explore"  -> plugin.explore().go(player);
             case "give"     -> give(player, args);
             case "unlock"   -> unlock(player, args);
             case "reset"    -> reset(player);
             case "reload"   -> reload(player);
             default         -> player.sendMessage(Component.text(
-                                    "/rc guide | kit | tp | explore | board | missions [n] | mission <n> | hint | run | stop | trace | charge | ask <שאלה>",
+                                    "/rc guide | kit | tp | board | missions [n] | mission <n> | hint | run | stop | trace | charge | ask <שאלה>",
                                     NamedTextColor.GRAY));
         }
         return true;
@@ -289,6 +298,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
      */
     private void rebuildBoard(Player player) {
         int plot = plugin.store().getOrAssignPlotIndex(player.getUniqueId());
+        com.agurim.robocraft.plot.PadBuilder.ensure(plugin, plot);
         plugin.board().build(plot, player.getUniqueId());
         plugin.trophies().build(plot, player.getUniqueId());
         plugin.kiosk().build(plot);
@@ -468,6 +478,34 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    /**
+     * {@code survey [n]}: the first n plots - floor height, biome, whether the pad is carved and
+     * how flat it is. {@code pads [n]}: carve them now. Console output, English: this is the
+     * teacher checking a seed before a term, or pre-building pads before a lesson.
+     */
+    private void plots(CommandSender sender, String[] args) {
+        int n = 8;
+        if (args.length >= 2) { try { n = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) { } }
+        n = Math.max(1, Math.min(64, n));
+        boolean build = args[0].equalsIgnoreCase("pads");
+        if (plugin.plots().fixedGround()) {
+            sender.sendMessage("plot.ground-y is fixed at " + plugin.getConfig().getInt("plot.ground-y")
+                    + " (flat mode) - there are no pads to survey or carve.");
+            return;
+        }
+        for (int i = 0; i < n; i++) {
+            boolean builtNow = build && com.agurim.robocraft.plot.PadBuilder.ensure(plugin, i);
+            Location c = plugin.plots().plotCorner(i);
+            String biome = plugin.plots().world().getBiome(c.getBlockX() + 8, c.getBlockY(), c.getBlockZ() + 8)
+                    .getKey().getKey();
+            boolean pad = plugin.plots().isPadBuilt(i);
+            sender.sendMessage(String.format("plot %2d  x=%-5d z=%-5d floor y=%-4d %-20s %s%s",
+                    i, c.getBlockX(), c.getBlockZ(), c.getBlockY(), biome,
+                    pad ? "pad flat " + com.agurim.robocraft.plot.PadBuilder.flatness(plugin, i) : "no pad",
+                    builtNow ? " (carved now)" : ""));
+        }
+    }
+
     /** Hebrew for a player, English for a console whose terminal will not draw Hebrew anyway. */
     private void reply(CommandSender sender, String hebrew, String english) {
         if (sender instanceof Player p) p.sendMessage(Component.text(hebrew, NamedTextColor.GRAY));
@@ -532,7 +570,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
                                     "run", "stop", "trace", "charge", "ask", "give", "unlock",
                                     "reset", "reload", "selftest", "progress", "questions",
-                                    "whisper", "pause", "resume", "say", "hint", "explore")) {
+                                    "whisper", "pause", "resume", "say", "hint", "pads", "survey")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("missions") || args[0].equalsIgnoreCase("hint"))) {

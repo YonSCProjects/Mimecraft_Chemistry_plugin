@@ -335,30 +335,39 @@ card as plain text (`rc missions <id>` over RCON) so a teacher can read the cont
 client. Not verified: whether a twelve-year-old clicks a thing that looks like `[▶ הרצה]`. That
 is the next lesson's job, and the first thing to watch.
 
-### 4.10 The regular world, next to the workshop - not under it
+### 4.10 The workshop in the regular world
 
 The students' first request (2026-09-03): *"more fun if the world were not flat but with all
 the regular things."* Yon chose "plains plots plus a normal world to explore". The plains half
-shipped to all seven servers; the other half sat in a plan for eleven days until he asked
-again, and rightly. Built 2026-09-14.
+shipped to all seven servers; the other half sat in a plan for eleven days. On 2026-09-14 it
+was built as a second world with `/rc explore`, Yon walked it, and said what he had meant all
+along: *"a regular world plus the robocraft stuff"* - one world. *"Let's go with the second
+option, and you can delete the stuff that was built."*
 
-**Decision: two worlds, one command each way.** The workshop is flat because every fixture on a
-plot - board, shelf, charging pad, the yard's sites to come - sits at one ground height, and
-because three class servers hold student work that regenerating the world would destroy (it
-did, once). So `/rc explore` goes to `world_explore`, a normal world with everything the
-students asked for, and `/rc tp` comes back. Both are clicks. A part placed out there is refused
-with the way back: robots, the bench, the board and every label assume the plot grid.
+**Decision: one world, real terrain, a pad per plot.** The grid is unchanged. Each plot's floor
+height is read from the land the first time the plot is looked at - the highest tree-free
+surface across its pad, never below sea level, so a pond beside it cannot flow in - and
+remembered in `plots.yml`, so a student who digs the hill away does not move their wall.
+`PadBuilder` carves a 44x24 grass pad at the corner: sky above, dirt and stone into any cave or
+water below. Everything the plugin builds positions itself from the plot corner, so the board,
+the shelf, the charging pad and the arrival spot moved onto the pad without learning about
+hills; the validator and the self-test check that they fit. The other 90% of the plot is the
+land as the world made it, the student's to build on.
 
-**Decision: the door is a reward, and a cheap one.** `explore.unlock-after` names the rung that
-opens it - the first, by default. A student who has not passed it is told which mission is the
-key, with the card one click away. It costs no part and gates nothing on the ladder, so §6's
-rule holds; it makes the first rung worth something a student wants. Empty opens the world to
-all from the first join, if a teacher would rather.
+**What it costs, said plainly to Yon and accepted:** it is a new world. Every class server's
+flat world is moved aside (never deleted - `tools/reset-world.ps1` moves `world/` and every
+student file into dated backups) and every student starts again. No student on any server had
+passed a required mission, which is why this was possible mid-term at all. The same seed goes on
+every server, so every class sees the same land and the teacher learns one map.
 
-**What is not decided:** whether the workshop itself should one day sit in real terrain, with a
-flat pad carved per plot. That is a new-term, new-world change; it cannot be done to a server
-holding student work. If the yard's sites make plots feel like places, the question may answer
-itself.
+**Decision: the flat mode stays.** A number in `plot.ground-y` pins every plot to one height, as
+the first term ran. It costs nothing to keep and it is how the self-test can still run on a flat
+throwaway world. `board.offset-y` changed meaning - blocks above the plot floor, not absolute -
+and the validator names a config that still carries the old value.
+
+**Open, and it decides the next step:** the Yard. Seven sites per plot were designed for flat
+ground. On terrain each needs its own small pad or a builder that follows the land, and none of
+them fit on the 44x24 workshop pad. That is the first question for step 2.
 
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do
 

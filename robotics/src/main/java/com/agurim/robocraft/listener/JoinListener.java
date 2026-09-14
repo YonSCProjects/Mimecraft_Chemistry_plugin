@@ -42,6 +42,8 @@ public class JoinListener implements Listener {
         int missions = plugin.missions().registry().all().size();
 
         if (!plugin.store().isBoardBuilt(id)) {
+            // Real terrain: carve the workshop floor first, then put the furniture on it.
+            com.agurim.robocraft.plot.PadBuilder.ensure(plugin, plot);
             plugin.board().build(plot, id);
             plugin.trophies().build(plot, id);
             plugin.kiosk().build(plot);

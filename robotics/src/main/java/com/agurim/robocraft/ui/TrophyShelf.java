@@ -63,7 +63,8 @@ public class TrophyShelf {
      * the class servers run {@code board.offset-y: -60} against a shipped default of 65. Deriving
      * it means the shelf lands correctly beside whatever wall a server actually has.
      */
-    private int boardOffsetY()   { return plugin.getConfig().getInt("board.offset-y", 65); }
+    /** Blocks above the plot's own floor - the same number the board uses, so the two stay level. */
+    private int boardOffsetY()   { return plugin.getConfig().getInt("board.offset-y", 1); }
     private int boardSpacing()   { return Math.max(1, plugin.getConfig().getInt("board.tile-spacing", 2)); }
     private int boardPerRow()    { return Math.max(1, plugin.getConfig().getInt("board.per-row", 6)); }
 
@@ -85,7 +86,7 @@ public class TrophyShelf {
         return new Location(world(),
                 corner.getBlockX() + startX() + col * spacing(),
                 // Bottom row level with the board's bottom row, so the whole shelf is at eye height.
-                boardOffsetY() + (rows - 1 - row) * boardSpacing(),
+                corner.getBlockY() + boardOffsetY() + (rows - 1 - row) * boardSpacing(),
                 corner.getBlockZ() + oz);
     }
 

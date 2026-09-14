@@ -23,8 +23,10 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 >
 > **Seven per-class servers are live** (`C:\26.2_RoboCraft_<Class>`, ports 25567-25573) and
 > three hold real student work. A bundled YAML is copied to a server **only if absent**, so a
-> content change ships by copying `missions.yml`/`parts.yml` explicitly, never `config.yml`
-> (theirs carry `plot.ground-y: -61`, and the bundled 64 builds the plot in the sky).
+> content change ships by copying `missions.yml`/`parts.yml` explicitly, never `config.yml`.
+> Since 2026-09-14 the world is real terrain (`plot.ground-y: auto`); a server still on the
+> flat first-term world carries `plot.ground-y: -61` and must go through `tools/reset-world.ps1`
+> before it gets the new build, or its `board.offset-y: -60` buries the board.
 
 ## The two decisions everything rests on
 1. **Redstone teaches wiring; we teach the program.** Minecraft already ships sensor -> logic ->
@@ -60,7 +62,6 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   (an actuator that is ON raises an injected reading next tick - the lamp lighting its own
   sensor) and an expect may carry `steady:` (at most one switch during the wait) - that pair is
   how the flicker rung fails a single threshold in fifteen seconds. See docs/DESIGN.md 4.4, 5.
-- `plot/` - `PlotManager` (copied from ChemCraft), `WorkshopKiosk` (the charging pad).
 - `data/PlayerStore` - per-UUID progress (`players.yml`): plot, unlocked parts, completed missions.
 - `ui/` - `ProgramMenu` (the rule-table GUI), `ComponentBoard` (the ghost->lit parts wall),
   `Guide`, `StatusBar`, `ProgressReport` (the teacher view), **`MissionCard`** (one mission as a
@@ -71,13 +72,14 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   it captures a question plus the state needed to answer it (the student's rule table, live
   readings, last rule fired, last failed bench check) into `questions.jsonl`, and an external agent
   replies via `/rc whisper`. See docs/DESIGN.md 4.7.
-- `world/ExploreWorld` - the regular world next to the flat workshop (`world_explore`, created
-  on enable): `/rc explore` in, `/rc tp` back, parts refused outside the workshop, door gated on
-  `explore.unlock-after` (a rung id; empty = open), own difficulty, `keepInventory`, a world
-  border. `gate()` is pure and self-tested. Paper 26.2 stores it under
-  `world/dimensions/minecraft/world_explore/`, not as a sibling folder - a world reset that
-  deletes `world/` deletes it too. **Never put plots in real terrain** - every plot
-  fixture assumes `plot.ground-y`, and regenerating a class world destroys student work.
+- `plot/` - `PlotManager` (grid; **per-plot floor height** since 2026-09-14: `plot.ground-y:
+  auto` surveys the terrain once per plot and remembers it in `plots.yml`; a number pins every
+  plot to one height, the first term's flat mode), `PadBuilder` (carves the 44x24 grass pad at
+  the plot corner for the fixtures; `survey`, `ensure`, `build`, `flatness`,
+  `fixturesOutsidePad`), `WorkshopKiosk` (the charging pad). `board.offset-y` is blocks ABOVE
+  the plot floor now, not absolute - an old config's `-60` would bury the board, and Validate
+  says so. Console `rc survey [n]` / `rc pads [n]` read and carve plots before a lesson;
+  `tools/reset-world.ps1` moves a server from flat to terrain with everything backed up.
 - `classroom/` - the teacher's hand on the room. `PauseState` (who is paused, what they were
   told - no Bukkit, self-tested), `PauseService` (freeze, pinned title, resume, `announce`),
   `BigText` (word-wrap for a title that does not wrap by itself: 20 chars on the big line, 40 on
@@ -148,7 +150,7 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 - No rovers and no co-op yet.
 
 ## Commands
-`/rc guide | kit | tp | explore | board | missions [n] | mission <n> | hint [n] | run | stop | charge`
+`/rc guide | kit | tp | board | missions [n] | mission <n> | hint [n] | run | stop | charge`
 for students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
 whisper | pause | resume | say` for admins. **Students are meant to click, not type:** every
 mention of a mission is a clickable component that opens its card (`/rc missions <id>`) or runs
@@ -170,8 +172,11 @@ student never caused. Second word is a player if one of that name is online, els
   five decisions Yon took are in `docs/DESIGN.md` §5 and
   `C:\Users\Admin\.claude\plans\yard-design-draft\`.
 - **Boss arena** (approved, unbuilt): `C:\Users\Admin\.claude\plans\lets-plan-a-way-pure-quasar.md`
-  layer 4. Layer 3, the explore world, shipped 2026-09-14. `pvp=false` on every class server
-  before any gear ships.
+  layer 4. Layer 3 became "the whole world is regular" on 2026-09-14 (docs/DESIGN.md 4.10).
+  `pvp=false` on every class server before any gear ships.
+- **The Yard on terrain.** The seven sites were designed for a flat 96x96 plot. On terrain
+  they need either their own small pads or a terrain-following builder; the workshop pad is
+  44x24 and the sites do not fit on it. Decide before step 2.
 - **Watch a real student use it.** Yon has; a class has not. What is not checked is whether the
   rule table is *learnable* by a twelve-year-old, and that needs thirty of them, not a test.
 - **Rovers** (Phase 2): a config-capped chassis that shifts a block per move step, carrying its

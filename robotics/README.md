@@ -62,16 +62,19 @@ Seven parts are available from the start. **The nine you earn are exactly the on
 equivalent for** — distance, heat, colour, rain and animal sensors, a display, a solar panel, a
 marker, and a redstone bridge for students who want to feed a contraption in.
 
-## The regular world
+## The world
 
-The workshop is flat on purpose: every wall, shelf, charging pad and, soon, every yard site sits
-at one ground height. The students' first request was hills. So there are two worlds. The
-workshop, where robots work; and next to it a regular one — hills, caves, rivers, villages,
-animals — reached with `/rc explore` and left with `/rc tp`. A part placed out there is refused
-with the way back. The door opens on the first rung of the ladder (`explore.unlock-after`; set
-it empty to open it from the first join), and once open it is a click on every join. The
-explore world has its own difficulty and a world border, so a class cannot generate terrain to
-the horizon; the workshop stays peaceful whatever the explore world is set to.
+A regular world — hills, caves, rivers, villages, animals — with the workshop in it. Each
+student's plot is a 96×96 square of that terrain; at its corner the plugin carves a flat grass
+pad, 44×24, and puts the board, the trophy shelf and the charging pad on it. The rest of the
+plot is the land as the world made it, theirs to build on. The pad's height comes from the land
+the first time the plot is looked at and is remembered, so a student who digs the hill away does
+not move their wall. A world border keeps the class within reach of the workshop.
+
+Teachers: `rc survey 16` from the console lists the first sixteen plots' floor heights, biomes
+and pads; `rc pads 16` carves them before a lesson so no first join waits on it. The first term
+ran on a superflat world; `plot.ground-y: <number>` in config.yml still gives that flat mode,
+and `tools/reset-world.ps1` moves a server from flat to terrain with everything backed up.
 
 ## Reading a mission
 
@@ -120,9 +123,9 @@ whose point is that students find bugs by reading values, a Socratic nudge is pr
 
 ## Commands
 
-**Students** — `/rc guide`, `kit`, `tp`, `explore`, `board`, `missions [n]` (overview, or one
-card), `mission <n>` (run it), `hint [n]`, `run`, `stop`, `trace`, `charge`, `ask <question>`.
-In practice students click; the commands are what the clicks run.
+**Students** — `/rc guide`, `kit`, `tp`, `board`, `missions [n]` (overview, or one card),
+`mission <n>` (run it), `hint [n]`, `run`, `stop`, `trace`, `charge`, `ask <question>`. In
+practice students click; the commands are what the clicks run.
 
 **Teachers** (op) — `/rc progress` for the class view, `/rc questions` for what the class is stuck
 on, `/rc selftest` to check a server before a lesson, plus `give`, `unlock`, `reset`, `reload`.

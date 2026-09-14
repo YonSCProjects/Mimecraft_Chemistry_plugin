@@ -754,7 +754,7 @@ The check rows are composed: `<situation>: <outcome>` from the words below.
 | `InteractListener` | חיישן חום עדיין נעול - נפתח במשימה <שם> [פתיחה] |
 | `MissionRegistry (log)` | (English only - validator warnings) |
 
-### The regular world (2026-09-14). UNPROOFREAD.
+### The regular world (2026-09-14). REMOVED the same day - the whole world is regular now; none of these strings ship.
 
 | Where | Text |
 |---|---|
