@@ -105,10 +105,14 @@ public class ExploreWorld {
         return m;   // null if config names a mission that does not exist: then no gate, and Validate says so
     }
 
-    public boolean open(Player player) {
-        Set<String> done = plugin.store().completedMissions(player.getUniqueId());
-        return gate(done, unlockAfter(), plugin.missions().registry()) == null;
+    /** Teachers walk through any door; the gate is for students. */
+    private Mission gateFor(Player player) {
+        if (player.hasPermission("robocraft.admin")) return null;
+        return gate(plugin.store().completedMissions(player.getUniqueId()), unlockAfter(),
+                plugin.missions().registry());
     }
+
+    public boolean open(Player player) { return gateFor(player) == null; }
 
     // ------------------------------------------------------------- commands
 
@@ -118,8 +122,7 @@ public class ExploreWorld {
             player.sendMessage(Component.text("העולם הגדול לא פתוח בשרת הזה.", NamedTextColor.GRAY));
             return;
         }
-        Mission key = gate(plugin.store().completedMissions(player.getUniqueId()), unlockAfter(),
-                plugin.missions().registry());
+        Mission key = gateFor(player);
         if (key != null) {
             player.sendMessage(Component.text("העולם הגדול נפתח אחרי המשימה ", NamedTextColor.YELLOW)
                     .append(com.agurim.robocraft.ui.MissionCard.openLink(plugin.missions().registry(), key, NamedTextColor.YELLOW))
