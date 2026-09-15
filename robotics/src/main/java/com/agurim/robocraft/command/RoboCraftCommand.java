@@ -80,6 +80,23 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        // Open land from the console: where would /rc wild send students? Picks, never saves.
+        if (args.length > 0 && args[0].equalsIgnoreCase("wild") && !(sender instanceof Player)) {
+            int n = 6;
+            if (args.length >= 2) { try { n = Math.max(1, Math.min(20, Integer.parseInt(args[1]))); } catch (NumberFormatException ignored) { } }
+            java.util.List<Location> taken = new ArrayList<>(plugin.store().wildSpots(plugin.plots().world()));
+            java.util.Random rng = new java.util.Random();
+            for (int i = 0; i < n; i++) {
+                Location s = com.agurim.robocraft.plot.Commons.pick(plugin, taken, rng);
+                if (s == null) { sender.sendMessage("wild " + i + ": nothing found in " + com.agurim.robocraft.plot.Commons.ATTEMPTS + " tries"); continue; }
+                taken.add(s);
+                sender.sendMessage(String.format("wild %d: x=%-6d y=%-4d z=%-6d %-22s plot=%d ground=%s", i,
+                        s.getBlockX(), s.getBlockY(), s.getBlockZ(),
+                        s.getWorld().getBiome(s.getBlockX(), s.getBlockY(), s.getBlockZ()).getKey().getKey(),
+                        plugin.plots().plotIndexAt(s), s.clone().add(0, -1, 0).getBlock().getType()));
+            }
+            return true;
+        }
         // A mission's card as plain text, for a teacher reading content over RCON - and for
         // seeing exactly what a student will see without a client.
         if (args.length >= 2 && args[0].equalsIgnoreCase("missions") && !(sender instanceof Player)) {
@@ -113,6 +130,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "trace"    -> traceRobot(player);
             case "ask"      -> askQuestion(player, args);
             case "hint"     -> hint(player, args);
+            case "wild"     -> wild(player, args);
             case "give"     -> give(player, args);
             case "unlock"   -> unlock(player, args);
             case "reset"    -> reset(player);
@@ -152,6 +170,48 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             return;
         }
         MissionCard.overview(plugin, player);
+    }
+
+    /**
+     * {@code /rc wild}: to the student's own spot on open land - chosen the first time and
+     * remembered, because a student who builds something there has to be able to come back to
+     * it. {@code /rc wild new} chooses another.
+     */
+    private void wild(Player player, String[] args) {
+        java.util.UUID id = player.getUniqueId();
+        org.bukkit.World world = plugin.plots().world();
+        boolean fresh = args.length >= 2 && (args[1].equalsIgnoreCase("new") || args[1].equals("חדש"));
+
+        Location spot = null;
+        int[] saved = fresh ? null : plugin.store().wildSpot(id);
+        if (saved != null) spot = com.agurim.robocraft.plot.Commons.standAt(world, saved[0], saved[1]);
+        if (saved != null && spot == null) {
+            // Their spot has something odd on it now - water, lava, a roof with no head room.
+            // Stand on top of the highest block rather than refuse: it is still their place.
+            int y = world.getHighestBlockYAt(saved[0], saved[1]);
+            spot = new Location(world, saved[0] + 0.5, y + 1, saved[1] + 0.5);
+        }
+        if (spot == null) {
+            java.util.List<Location> taken = plugin.store().wildSpots(world);
+            if (saved != null) taken.removeIf(l -> l.getBlockX() == saved[0] && l.getBlockZ() == saved[1]);
+            spot = com.agurim.robocraft.plot.Commons.pick(plugin, taken, new java.util.Random());
+            if (spot == null) {
+                player.sendMessage(Component.text("לא מצאתי מקום פנוי הפעם. נסו שוב.  ", NamedTextColor.YELLOW)
+                        .append(MissionCard.button("שוב", "/rc wild new", "חיפוש מקום אחר", NamedTextColor.GREEN)));
+                return;
+            }
+            plugin.store().setWildSpot(id, spot);
+        }
+
+        spot.setYaw(player.getLocation().getYaw());
+        spot.setPitch(0f);
+        player.teleport(spot);
+        player.playSound(spot, org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.3f);
+        player.sendMessage(Component.text("שטח פתוח: בונים כאן חופשי, ומה שתבנו מוגן.", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("/rc wild יחזיר אתכם לכאן.  ", NamedTextColor.GRAY)
+                .append(MissionCard.button("לחלקה שלי", "/rc tp", "חזרה לחלקה ולסדנה", NamedTextColor.AQUA))
+                .append(Component.text(" "))
+                .append(MissionCard.button("מקום אחר", "/rc wild new", "מקום פתוח חדש - הקודם נשאר במקומו", NamedTextColor.YELLOW)));
     }
 
     /** The hint for a mission - or for the one the student is working on. Behind a click, so a card spoils nothing. */
@@ -572,7 +632,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
                                     "run", "stop", "trace", "charge", "ask", "give", "unlock",
                                     "reset", "reload", "selftest", "progress", "questions",
-                                    "whisper", "pause", "resume", "say", "hint", "pads", "survey")) {
+                                    "whisper", "pause", "resume", "say", "hint", "pads", "survey", "wild")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("missions") || args[0].equalsIgnoreCase("hint"))) {

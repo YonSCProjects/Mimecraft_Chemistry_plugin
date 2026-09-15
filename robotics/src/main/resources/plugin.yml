@@ -6,7 +6,7 @@ description: Teaches robotics - sense, decide, act - by building mechanisms and 
 commands:
   robocraft:
     description: RoboCraft commands
-    usage: /robocraft guide | kit | tp | board | missions [n] | mission <n> | hint [n] | run | stop | trace | charge | ask <question> | give <part> [n] | unlock <part> | reset | reload | selftest | progress | questions | whisper | pause [player] [text] | resume [player] | say [player] <text> | survey [n] | pads [n]
+    usage: /robocraft guide | kit | tp | wild [new] | board | missions [n] | mission <n> | hint [n] | run | stop | trace | charge | ask <question> | give <part> [n] | unlock <part> | reset | reload | selftest | progress | questions | whisper | pause [player] [text] | resume [player] | say [player] <text> | survey [n] | pads [n]
     aliases: [rc]
 permissions:
   robocraft.admin:

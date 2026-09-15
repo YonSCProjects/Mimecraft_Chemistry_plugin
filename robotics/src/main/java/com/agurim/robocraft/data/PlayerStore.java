@@ -2,6 +2,7 @@ package com.agurim.robocraft.data;
 
 import com.agurim.robocraft.RoboCraftPlugin;
 import com.agurim.robocraft.part.Part;
+import org.bukkit.Location;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -161,6 +162,33 @@ public class PlayerStore {
 
     public void cacheName(UUID id, String name) { yml.set(id + ".name", name); save(); }
     public String getName(UUID id)              { return yml.getString(id + ".name", "?"); }
+
+    // ---- open land ---------------------------------------------------------
+
+    /**
+     * The student's own spot on open land, x/z only. Height is read from the world on every
+     * visit, so a house built on the spot puts them on the roof rather than inside the walls.
+     */
+    public int[] wildSpot(UUID id) {
+        if (!yml.contains(id + ".wild.x")) return null;
+        return new int[] { yml.getInt(id + ".wild.x"), yml.getInt(id + ".wild.z") };
+    }
+
+    public void setWildSpot(UUID id, Location spot) {
+        yml.set(id + ".wild.x", spot.getBlockX());
+        yml.set(id + ".wild.z", spot.getBlockZ());
+        save();
+    }
+
+    /** Every student's spot, so a new one is not chosen on top of somebody else's. */
+    public java.util.List<Location> wildSpots(org.bukkit.World world) {
+        java.util.List<Location> out = new ArrayList<>();
+        for (UUID id : allPlayers()) {
+            int[] s = wildSpot(id);
+            if (s != null) out.add(new Location(world, s[0] + 0.5, 64, s[1] + 0.5));
+        }
+        return out;
+    }
 
     /** Drop every record of this id. For the self-test's throwaway players; never for a student. */
     public void forget(UUID id) { yml.set(id.toString(), null); save(); }

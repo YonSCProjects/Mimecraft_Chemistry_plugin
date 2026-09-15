@@ -812,3 +812,15 @@ The check rows are composed: `<situation>: <outcome>` from the words below.
 | `PlotProtection` | בחלקה של מישהו אחר אפשר לחפור - אבל לא לבנות. |
 | `PlotProtection` | זה חלק מהסדנה - אי אפשר לפרק אותו. (unchanged) |
 | `PlotProtection` | זו הסדנה של מישהו אחר. /rc tp מחזיר אתכם לשלכם. (unchanged, now only when dig-natural is off) |
+
+### Open land, /rc wild (2026-09-15). UNPROOFREAD.
+
+| Where | Text |
+|---|---|
+| `RoboCraftCommand` | שטח פתוח: בונים כאן חופשי, ומה שתבנו מוגן. |
+| `RoboCraftCommand` | /rc wild יחזיר אתכם לכאן.  [לחלקה שלי] [מקום אחר] |
+| `RoboCraftCommand` | לא מצאתי מקום פנוי הפעם. נסו שוב.  [שוב] |
+| `RoboCraftCommand` (hover) | חזרה לחלקה ולסדנה / מקום פתוח חדש - הקודם נשאר במקומו / חיפוש מקום אחר |
+| `PlotProtection` | מישהו אחר בנה את זה. בנו לידו. |
+| `PlotProtection` | בחלקה של מישהו אחר אפשר לחפור - לא לבנות.  [שטח פתוח] [לחלקה שלי] |
+| `PlotProtection` (hover) | מקום שאינו חלקה של אף אחד - בונים שם חופשי |

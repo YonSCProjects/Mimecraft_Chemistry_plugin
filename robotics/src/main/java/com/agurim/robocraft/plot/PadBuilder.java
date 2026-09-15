@@ -87,7 +87,7 @@ public final class PadBuilder {
     }
 
     /** The highest block that is not a tree - a log or leaves would put the whole pad in the canopy. */
-    private static int surfaceAt(World w, int x, int z) {
+    public static int surfaceAt(World w, int x, int z) {
         int y = w.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
         while (y > w.getMinHeight()) {
             Material m = w.getBlockAt(x, y, z).getType();

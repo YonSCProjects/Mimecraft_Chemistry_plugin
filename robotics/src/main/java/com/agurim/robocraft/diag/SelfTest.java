@@ -1119,11 +1119,30 @@ public final class SelfTest {
         var log = plugin.builds();
         Location spot = new Location(plugin.plots().world(), -30000, 90, -30000);
         boolean before = log.contains(spot);
-        log.add(spot);
+        log.add(spot, 7);
         boolean after = log.contains(spot);
+        Integer who = log.owner(spot);
         log.remove(spot);
-        checks.add(new Check("the build log remembers a placed block and forgets a broken one",
-                !before && after && !log.contains(spot), ""));
+        checks.add(new Check("the build log remembers a placed block and whose it is, and forgets a broken one",
+                !before && after && who != null && who == 7 && !log.contains(spot) && log.owner(spot) == null,
+                "owner=" + who));
+
+        // Open land. Every spot /rc wild could choose has to be nobody's plot and inside the border.
+        java.util.Random rng = new java.util.Random(42);
+        int inGrid = 0, outside = 0;
+        org.bukkit.World w = plugin.plots().world();
+        for (int i = 0; i < 2000; i++) {
+            int[] c = com.agurim.robocraft.plot.Commons.candidate(plugin, rng);
+            Location l = new Location(w, c[0] + 0.5, 64, c[1] + 0.5);
+            if (plugin.plots().plotIndexAt(l) >= 0) inGrid++;
+            if (!w.getWorldBorder().isInside(l)) outside++;
+        }
+        checks.add(new Check("every open-land spot /rc wild can choose is nobody's plot and inside the border",
+                inGrid == 0 && outside == 0, inGrid + " in a plot, " + outside + " past the border, of 2000"));
+        checks.add(new Check("a plot's own corner is not open land, and the gap beside it is",
+                !com.agurim.robocraft.plot.Commons.isCommons(plugin, plugin.plots().plotCorner(0))
+                        && com.agurim.robocraft.plot.Commons.isCommons(plugin,
+                                plugin.plots().plotCornerXZ(0).clone().add(plugin.plots().size() + 2, 64, 5)), ""));
 
         int plot = 3;
         Location tile = plugin.board().tileLocation(plot, 0);

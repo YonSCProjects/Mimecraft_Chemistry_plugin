@@ -83,7 +83,10 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   **`BuildLog`** (`built.yml`) records every player placement as a packed long, which is how
   `PlotProtection` tells a classmate's *work* from *land*: since 2026-09-15 a visitor may dig
   generated terrain on someone else's plot but never a part, a placed block, or the pad
-  (`PadBuilder.onPad`). Building there stays closed. See docs/DESIGN.md 4.11.
+  (`PadBuilder.onPad`). Building there stays closed. See docs/DESIGN.md 4.11. It records the
+  placer's plot index too: **`Commons`** is open land (gaps and everything outside the grid),
+  where `/rc wild` sends a student to a remembered spot (`players.yml` `wild.x/z`) and a block
+  is protected from everyone but whoever placed it.
 - `classroom/` - the teacher's hand on the room. `PauseState` (who is paused, what they were
   told - no Bukkit, self-tested), `PauseService` (freeze, pinned title, resume, `announce`),
   `BigText` (word-wrap for a title that does not wrap by itself: 20 chars on the big line, 40 on
@@ -154,8 +157,8 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 - No rovers and no co-op yet.
 
 ## Commands
-`/rc guide | kit | tp | board | missions [n] | mission <n> | hint [n] | run | stop | charge`
-for students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
+`/rc guide | kit | tp | wild [new] | board | missions [n] | mission <n> | hint [n] | run | stop |
+charge` for students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
 whisper | pause | resume | say` for admins. **Students are meant to click, not type:** every
 mention of a mission is a clickable component that opens its card (`/rc missions <id>`) or runs
 its bench (`/rc mission <id>`), and the rule table has a lectern button that runs the card last

@@ -4,6 +4,27 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
+## RoboCraft 2026-09-15 (later) - Open land: `/rc wild`
+Yon: "let's add a command that teleports to a place that is nobody's plot." On terrain nothing
+shows where the grid ends, a classmate's plot can be dug but not built on, and a student's own
+plot has the workshop in its corner - so a student with a big idea had nowhere obvious to put it.
+- **`/rc wild`** takes a student to their own spot on open land: outside every plot, north, west
+  or east of the grid, 24 to 256 blocks out, inside the world border, on dry ground with head
+  room, and at least 24 blocks from any other student's spot. The spot is **remembered**, so the
+  next `/rc wild` goes back to what they built; **`/rc wild new`** chooses another. Height is
+  read on every visit, so a roof built on the spot is where they land, not inside the walls.
+- **Open land is protected by owner.** The build log now records whose each placed block is (the
+  placer's plot index). On open land anyone may build and dig, but nobody takes apart a block
+  somebody else placed: "מישהו אחר בנה את זה. בנו לידו." Without it, the new command would have
+  sent students to the one place their work was not protected. The first day's `built.yml`, which
+  had no owners, loads with owner unknown.
+- **The refusal on a classmate's plot now shows both ways out** as buttons: `[שטח פתוח]` and
+  `[לחלקה שלי]`. That is the moment a student learns they cannot build there.
+- Console **`rc wild [n]`** shows where the command would send students on this seed, without
+  saving anything.
+- `/rc selftest` 179 -> **181**: 2000 drawn spots, none in a plot and none past the border; the
+  log's owner round-trips; a plot corner is not open land and the gap beside it is.
+
 ## RoboCraft 2026-09-15 - Dig the land, not each other's work
 Yon, relaying Tuval's class the day after the world became terrain: "they are very upset that
 they can't dig in other students' area. Perhaps we can keep the protection on other users'

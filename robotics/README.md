@@ -71,11 +71,15 @@ plot is the land as the world made it, theirs to build on. The pad's height come
 the first time the plot is looked at and is remembered, so a student who digs the hill away does
 not move their wall. A world border keeps the class within reach of the workshop.
 
-**Whose is what.** On your own plot you may do anything except take the workshop furniture
-apart. On a classmate's plot you may **dig the land** — hills, caves, trees, whatever the world
-generated — but not their robot parts, not anything a person built, and not their workshop pad.
-Building on someone else's plot stays closed, so a hole you dig is theirs to fill. Both halves
-are `plot-shield.dig-natural` and `plot-shield.visitor-build` in config.yml.
+**Whose is what.** Three kinds of place:
+
+- **Your plot** — anything, except taking the workshop furniture apart. `/rc tp` goes there.
+- **A classmate's plot** — dig the land (hills, caves, trees, whatever the world generated), but
+  not their robot parts, not anything a person built, and not their workshop pad. No building,
+  so nobody is walled in. Both halves are `plot-shield.dig-natural` and `plot-shield.visitor-build`.
+- **Open land** — everything outside the grid. `/rc wild` goes to your own spot there,
+  remembered so you can come back to what you built; `/rc wild new` finds another. Build and dig
+  freely, but nobody takes apart a block someone else placed.
 
 Teachers: `rc survey 16` from the console lists the first sixteen plots' floor heights, biomes
 and pads; `rc pads 16` carves them before a lesson so no first join waits on it. The first term
@@ -129,7 +133,7 @@ whose point is that students find bugs by reading values, a Socratic nudge is pr
 
 ## Commands
 
-**Students** — `/rc guide`, `kit`, `tp`, `board`, `missions [n]` (overview, or one card),
+**Students** — `/rc guide`, `kit`, `tp`, `wild [new]`, `board`, `missions [n]` (overview, or one card),
 `mission <n>` (run it), `hint [n]`, `run`, `stop`, `trace`, `charge`, `ask <question>`. In
 practice students click; the commands are what the clicks run.
 

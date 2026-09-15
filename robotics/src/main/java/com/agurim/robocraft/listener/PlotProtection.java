@@ -1,7 +1,9 @@
 package com.agurim.robocraft.listener;
 
 import com.agurim.robocraft.RoboCraftPlugin;
+import com.agurim.robocraft.plot.BuildLog;
 import com.agurim.robocraft.plot.PadBuilder;
+import com.agurim.robocraft.ui.MissionCard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
@@ -23,12 +25,16 @@ import org.bukkit.event.block.BlockPlaceEvent;
  * they were right to be. Digging is most of what this age group wants from Minecraft, and a
  * hill nobody made is not anybody's property.
  *
- * <p>So a visitor may now <b>break the land</b> on another student's plot, and may not touch
- * <b>anyone's work</b>: a RoboCraft part, a block a person placed ({@link
- * com.agurim.robocraft.plot.BuildLog}), or the workshop pad with its board, shelf and charging
- * pad. Building on someone else's plot stays closed, so a plot cannot be walled in or towered
- * over; a hole a visitor digs is the owner's to fill, on their own plot, where they may do
- * anything. Both halves are config (`plot-shield.dig-natural`, `plot-shield.visitor-build`).
+ * <p>So there are three kinds of place:
+ * <ul>
+ *   <li><b>Your plot:</b> anything, except taking the workshop furniture apart.</li>
+ *   <li><b>A classmate's plot:</b> dig the land; never a part, a placed block, or their pad; no
+ *       building, so nobody is walled in or towered over.</li>
+ *   <li><b>Open land</b> - the gaps and everything outside the grid ({@link
+ *       com.agurim.robocraft.plot.Commons}, {@code /rc wild}): build anything, dig anything, but
+ *       never take apart a block somebody else placed.</li>
+ * </ul>
+ * {@link BuildLog} is what tells work from land, and whose work it is.
  *
  * <p>NORMAL priority, so the listeners that must run after protection can use HIGH +
  * ignoreCancelled. Failing is deliberately undramatic - a thunk and a barrier flash so the wall
@@ -41,7 +47,7 @@ public class PlotProtection implements Listener {
 
     public PlotProtection(RoboCraftPlugin plugin) { this.plugin = plugin; }
 
-    private boolean digNatural()  { return plugin.getConfig().getBoolean("plot-shield.dig-natural", true); }
+    private boolean digNatural()   { return plugin.getConfig().getBoolean("plot-shield.dig-natural", true); }
     private boolean visitorBuild() { return plugin.getConfig().getBoolean("plot-shield.visitor-build", false); }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -49,29 +55,40 @@ public class PlotProtection implements Listener {
         Location loc = event.getBlock().getLocation();
         Player player = event.getPlayer();
         int plot = plugin.plots().plotIndexAt(loc);
+        int mine = own(player);
 
-        if (plot >= 0 && plot != own(player) && !player.isOp()) {
+        if (plot >= 0 && plot != mine && !player.isOp()) {
             // Someone else's plot. The land is fair game; their work is not.
             if (!digNatural()) {
                 event.setCancelled(true);
-                deny(player, loc, "זו הסדנה של מישהו אחר. /rc tp מחזיר אתכם לשלכם.");
+                deny(player, loc, Component.text("זו הסדנה של מישהו אחר.", NamedTextColor.RED), true);
                 return;
             }
-            String whose = theirWork(plot, loc);
+            String whose = theirWork(mine, plot, loc);
             if (whose != null) {
                 event.setCancelled(true);
-                deny(player, loc, whose);
+                deny(player, loc, Component.text(whose, NamedTextColor.RED), false);
                 return;
             }
             plugin.builds().remove(loc);   // land, and now it is gone
             return;
         }
 
-        // Your own plot, or outside the grid: the workshop furniture is still furniture.
-        if (plot >= 0 && furniture(plot, loc)) {
-            event.setCancelled(true);
-            deny(player, loc, "זה חלק מהסדנה - אי אפשר לפרק אותו.");
-            return;
+        if (plot >= 0) {
+            // Your own plot: the workshop furniture is still furniture.
+            if (furniture(plot, loc)) {
+                event.setCancelled(true);
+                deny(player, loc, Component.text("זה חלק מהסדנה - אי אפשר לפרק אותו.", NamedTextColor.RED), false);
+                return;
+            }
+        } else if (!player.isOp()) {
+            // Open land: build and dig freely, but a block somebody else put there is theirs.
+            Integer by = plugin.builds().owner(loc);
+            if (by != null && by != BuildLog.UNKNOWN && by != mine) {
+                event.setCancelled(true);
+                deny(player, loc, Component.text("מישהו אחר בנה את זה. בנו לידו.", NamedTextColor.RED), false);
+                return;
+            }
         }
         plugin.builds().remove(loc);
     }
@@ -84,13 +101,15 @@ public class PlotProtection implements Listener {
 
         if (plot >= 0 && plot != own(player) && !player.isOp() && !visitorBuild()) {
             event.setCancelled(true);
-            deny(player, loc, digNatural()
-                    ? "בחלקה של מישהו אחר אפשר לחפור - אבל לא לבנות."
-                    : "זו הסדנה של מישהו אחר. /rc tp מחזיר אתכם לשלכם.");
+            // The moment a student learns they cannot build here is the moment to show where
+            // they can - both places, one click each.
+            deny(player, loc, Component.text(digNatural()
+                    ? "בחלקה של מישהו אחר אפשר לחפור - לא לבנות."
+                    : "זו הסדנה של מישהו אחר.", NamedTextColor.RED), true);
             return;
         }
-        // Remember it, so nobody else can take it apart - and so the land stays telling the truth.
-        plugin.builds().add(loc);
+        // Remember it and whose it is, so nobody else can take it apart.
+        plugin.builds().add(loc, own(player));
     }
 
     private int own(Player player) {
@@ -98,14 +117,14 @@ public class PlotProtection implements Listener {
     }
 
     /**
-     * Why a visitor may not break this block, or null if it is only the ground.
-     *
-     * <p>Three kinds of "somebody's work", in the order a student meets them: a part of a robot,
-     * a block a person placed, and the workshop pad the plugin carved and furnished.
+     * Why a visitor may not break this block on a classmate's plot, or null if it is only the
+     * ground - or something the visitor placed themselves, which only happens when a teacher has
+     * opened visitor building.
      */
-    private String theirWork(int plot, Location loc) {
+    private String theirWork(int mine, int plot, Location loc) {
         if (plugin.placements().get(loc) != null) return "זה רכיב של מישהו אחר.";
-        if (plugin.builds().contains(loc))        return "מישהו בנה את זה. את הקרקע אפשר לחפור.";
+        Integer by = plugin.builds().owner(loc);
+        if (by != null && by != mine)              return "מישהו בנה את זה. את הקרקע אפשר לחפור.";
         if (furniture(plot, loc) || PadBuilder.onPad(plugin, plot, loc)) {
             return "זו הסדנה של מישהו אחר. את הקרקע מסביב אפשר לחפור.";
         }
@@ -119,8 +138,14 @@ public class PlotProtection implements Listener {
                 || plugin.kiosk().isKioskBlock(plot, loc);
     }
 
-    private void deny(Player player, Location loc, String message) {
-        player.sendMessage(Component.text(message, NamedTextColor.RED));
+    private void deny(Player player, Location loc, Component message, boolean showWays) {
+        if (showWays) {
+            message = message.append(Component.text("  "))
+                    .append(MissionCard.button("שטח פתוח", "/rc wild", "מקום שאינו חלקה של אף אחד - בונים שם חופשי", NamedTextColor.GREEN))
+                    .append(Component.text(" "))
+                    .append(MissionCard.button("לחלקה שלי", "/rc tp", "חזרה לחלקה ולסדנה", NamedTextColor.AQUA));
+        }
+        player.sendMessage(message);
         player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.4f, 1.8f);
         if (plugin.getConfig().getBoolean("plot-shield.particles", true)) {
             player.spawnParticle(Particle.BLOCK_MARKER, loc.clone().add(0.5, 0.5, 0.5), 1,
