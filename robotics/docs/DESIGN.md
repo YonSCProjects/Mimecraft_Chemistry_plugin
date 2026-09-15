@@ -369,6 +369,32 @@ and the validator names a config that still carries the old value.
 ground. On terrain each needs its own small pad or a builder that follows the land, and none of
 them fit on the 44x24 workshop pad. That is the first question for step 2.
 
+### 4.11 Digging on a classmate's plot
+
+The day after the world became real terrain, Yon relayed Tuval's class: *"they are very upset
+with the fact that they can't dig in other students' area. Perhaps we can keep the protection on
+other users' stuff but decrease the restrictions on digging."*
+
+They are right, and the old rule only looked reasonable on a flat world. There, a plot held
+nothing but its owner's robot, so "you may only touch your own plot" cost a visitor nothing. On
+generated terrain the same rule fences off hills, caves and trees that nobody made and nobody
+owns, and digging is most of what this age group wants from Minecraft.
+
+**Decision: the line is work, not land.** On another student's plot a visitor may break a block
+the world generated. They may not break a robot part, a block a person placed, or the carved
+workshop pad with its board, shelf and charging pad. Telling those apart needs a record of every
+placement, which is `plot/BuildLog` - one packed long per block, saved on a timer because a
+student building a wall places a block twice a second.
+
+**Decision: building on someone else's plot stays closed.** Digging was the ask; walling a
+classmate in or towering over their workshop was not, and the two are the same permission in
+Minecraft. A hole a visitor digs is the owner's to fill, on their own plot, where they may do
+anything. `plot-shield.visitor-build` opens it if a class earns the trust.
+
+This is the rule the §6 inheritance would have predicted: protection exists so nobody's work is
+lost, never to make the world small. The old rule protected more than anyone's work, and the
+class noticed before we did.
+
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do
 
 **Decision (2026-08-25, fork B): the ladder splits in two.** Yon has no redstone experience, so the

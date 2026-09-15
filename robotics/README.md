@@ -71,6 +71,12 @@ plot is the land as the world made it, theirs to build on. The pad's height come
 the first time the plot is looked at and is remembered, so a student who digs the hill away does
 not move their wall. A world border keeps the class within reach of the workshop.
 
+**Whose is what.** On your own plot you may do anything except take the workshop furniture
+apart. On a classmate's plot you may **dig the land** — hills, caves, trees, whatever the world
+generated — but not their robot parts, not anything a person built, and not their workshop pad.
+Building on someone else's plot stays closed, so a hole you dig is theirs to fill. Both halves
+are `plot-shield.dig-natural` and `plot-shield.visitor-build` in config.yml.
+
 Teachers: `rc survey 16` from the console lists the first sixteen plots' floor heights, biomes
 and pads; `rc pads 16` carves them before a lesson so no first join waits on it. The first term
 ran on a superflat world; `plot.ground-y: <number>` in config.yml still gives that flat mode,

@@ -4,6 +4,28 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
+## RoboCraft 2026-09-15 - Dig the land, not each other's work
+Yon, relaying Tuval's class the day after the world became terrain: "they are very upset that
+they can't dig in other students' area. Perhaps we can keep the protection on other users'
+stuff but decrease the restrictions on digging." The old rule only looked reasonable on a flat
+world, where a plot held nothing but its owner's robot. Decision log: `docs/DESIGN.md` §4.11.
+- **On another student's plot a visitor may now break the land** - hills, caves, trees, anything
+  the world generated. They still may not break a **robot part**, a **block a person placed**,
+  or the **carved workshop pad** with its board, shelf and charging pad.
+- **`plot/BuildLog`** is what tells work from land: every player placement, packed into one long
+  per block (x/z to 26 bits, y biased so the world's -64 floor survives), saved on a timer and
+  on shutdown rather than on every block - a student building a wall places two a second. A
+  block broken is forgotten, so it is land again.
+- **Building on someone else's plot stays closed**, so a plot cannot be walled in or towered
+  over, and the refusal says why: "בחלקה של מישהו אחר אפשר לחפור - אבל לא לבנות." A hole a
+  visitor digs is the owner's to fill. `plot-shield.visitor-build` opens it;
+  `plot-shield.dig-natural: false` restores the old rule.
+- The **trophy shelf is furniture** now like the board and the charging pad - it never was, so
+  a student could mine their own trophies.
+- `/rc selftest` 175 -> **179/179**: the position packing round-trips at y=-64 and y=319, the
+  log remembers and forgets, the pad is protected where the far end of the plot is not, and a
+  trophy slot is furniture while the block beside it is not.
+
 ## RoboCraft 2026-09-14 (later) - The workshop moves into the regular world
 Yon, on seeing the two-world version: "let's go with the second option, and you can delete the
 stuff that was built." One world, real terrain, each plot a flat pad carved into it. The

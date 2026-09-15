@@ -154,11 +154,20 @@ trophies:
 
 # What happens when a student touches someone else's plot. The attempt ALWAYS fails; this only
 # shapes how failing feels. Deliberately undramatic - see ChemCraft's plot shield.
+# Since 2026-09-15 the world is real terrain, and a hill nobody made is not anybody's property.
+# On ANOTHER student's plot: dig-natural lets a visitor break the land, never a robot part, never
+# a block a person placed (built.yml), never the carved workshop pad. visitor-build stays false so
+# a plot cannot be walled in or towered over - a hole a visitor digs is the owner's to fill.
+# Set dig-natural: false for the old rule, nothing at all on someone else's plot.
 plot-shield:
   enabled: true
   particles: true
   escalate-after: 4
   window-seconds: 30
+  dig-natural: true
+  visitor-build: false
+  # built.yml is written on this cycle and on shutdown, not on every block placed.
+  save-minutes: 2
 
 # Parts handed out the first time a player joins (and via /rc kit). Keys are parts.yml ids.
 starter-kit:

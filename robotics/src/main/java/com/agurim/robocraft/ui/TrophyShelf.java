@@ -90,6 +90,17 @@ public class TrophyShelf {
                 corner.getBlockZ() + oz);
     }
 
+    /** Does a trophy stand on this block? Furniture, so nobody takes one apart - owner included. */
+    public boolean isTrophySlot(int plotIndex, Location loc) {
+        if (!enabled()) return false;
+        for (int i = 0; i < missions().size(); i++) {
+            Location s = slotLocation(plotIndex, i);
+            if (s.getBlockX() == loc.getBlockX() && s.getBlockY() == loc.getBlockY()
+                    && s.getBlockZ() == loc.getBlockZ()) return true;
+        }
+        return false;
+    }
+
     /**
      * The block a trophy shows.
      *

@@ -80,6 +80,10 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   the plot floor now, not absolute - an old config's `-60` would bury the board, and Validate
   says so. Console `rc survey [n]` / `rc pads [n]` read and carve plots before a lesson;
   `tools/reset-world.ps1` moves a server from flat to terrain with everything backed up.
+  **`BuildLog`** (`built.yml`) records every player placement as a packed long, which is how
+  `PlotProtection` tells a classmate's *work* from *land*: since 2026-09-15 a visitor may dig
+  generated terrain on someone else's plot but never a part, a placed block, or the pad
+  (`PadBuilder.onPad`). Building there stays closed. See docs/DESIGN.md 4.11.
 - `classroom/` - the teacher's hand on the room. `PauseState` (who is paused, what they were
   told - no Bukkit, self-tested), `PauseService` (freeze, pinned title, resume, `announce`),
   `BigText` (word-wrap for a title that does not wrap by itself: 20 chars on the big line, 40 on

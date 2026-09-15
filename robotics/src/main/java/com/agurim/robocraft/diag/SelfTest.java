@@ -1091,6 +1091,53 @@ public final class SelfTest {
                             || w.getWorldBorder().getSize() <= plugin.getConfig().getInt("plot.border", 2400) + 1,
                     "border " + w.getWorldBorder().getSize()));
         }
+        shield(plugin, checks);
+    }
+
+    /**
+     * Digging on a classmate's plot: the land yes, anybody's work no.
+     *
+     * <p>Tuval's class, 2026-09-15. The whole rule turns on telling a placed block from a
+     * generated one and the carved pad from the hill beside it, so both are checked here - and
+     * so is the packing, because a location key that loses the world's negative floor would quietly
+     * unprotect every build below y=0.
+     */
+    private static void shield(RoboCraftPlugin plugin, List<Check> checks) {
+        StringBuilder bad = new StringBuilder();
+        int[][] spots = { {0, 0, 0}, {7, -61, 4}, {-1200, -64, 950}, {1200, 319, -950}, {-1, -1, -1} };
+        for (int[] s : spots) {
+            long k = com.agurim.robocraft.plot.BuildLog.key(s[0], s[1], s[2]);
+            if (com.agurim.robocraft.plot.BuildLog.keyX(k) != s[0]
+                    || com.agurim.robocraft.plot.BuildLog.keyY(k) != s[1]
+                    || com.agurim.robocraft.plot.BuildLog.keyZ(k) != s[2]) {
+                bad.append(s[0]).append(',').append(s[1]).append(',').append(s[2]).append(' ');
+            }
+        }
+        checks.add(new Check("a placed block's position packs and unpacks, negative floors and all",
+                bad.length() == 0, bad.toString()));
+
+        var log = plugin.builds();
+        Location spot = new Location(plugin.plots().world(), -30000, 90, -30000);
+        boolean before = log.contains(spot);
+        log.add(spot);
+        boolean after = log.contains(spot);
+        log.remove(spot);
+        checks.add(new Check("the build log remembers a placed block and forgets a broken one",
+                !before && after && !log.contains(spot), ""));
+
+        int plot = 3;
+        Location tile = plugin.board().tileLocation(plot, 0);
+        Location farOut = plugin.plots().plotCorner(plot).clone().add(80, 0, 80);
+        boolean padHere = com.agurim.robocraft.plot.PadBuilder.onPad(plugin, plot, tile);
+        boolean padThere = com.agurim.robocraft.plot.PadBuilder.onPad(plugin, plot, farOut);
+        checks.add(new Check("the workshop pad is protected and the land at the far end of the plot is not",
+                plugin.plots().fixedGround() ? (!padHere && !padThere) : (padHere && !padThere),
+                "pad at board=" + padHere + ", pad at +80,+80=" + padThere));
+
+        Location slot = plugin.trophies().slotLocation(plot, 0);
+        checks.add(new Check("a trophy is furniture nobody can take apart, and the block beside it is not",
+                plugin.trophies().isTrophySlot(plot, slot)
+                        && !plugin.trophies().isTrophySlot(plot, slot.clone().add(0, 0, 3)), ""));
     }
 
     // ---------------------------------------------------------- F1c. cards

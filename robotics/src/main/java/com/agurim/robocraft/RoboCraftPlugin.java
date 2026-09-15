@@ -15,6 +15,7 @@ import com.agurim.robocraft.part.Part;
 import com.agurim.robocraft.part.PartRegistry;
 import com.agurim.robocraft.part.PartStore;
 import com.agurim.robocraft.part.Placed;
+import com.agurim.robocraft.plot.BuildLog;
 import com.agurim.robocraft.plot.PlotManager;
 import com.agurim.robocraft.plot.WorkshopKiosk;
 import com.agurim.robocraft.robot.RobotEngine;
@@ -48,6 +49,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     private StatusBar statusBar;
     private AskService ask;
     private PauseService pause;
+    private BuildLog builds;
 
     private NamespacedKey partKey;
     private NamespacedKey tileKey;
@@ -76,6 +78,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
         this.statusBar  = new StatusBar(this);
         this.ask        = new AskService(this);
         this.pause      = new PauseService(this);
+        this.builds     = new BuildLog(this);
         // Real terrain: keep the class near the workshop. Flat mode has no border to set.
         if (!plots.fixedGround()) plots.applyBorder();
 
@@ -92,6 +95,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
         Objects.requireNonNull(getCommand("robocraft")).setTabCompleter(command);
 
         engine.start();
+        builds.startAutoSave();
         // Both of these catch content mistakes that are completely invisible from inside the game.
         com.agurim.robocraft.diag.Validate.run(this);
         missions.registry().validate(this);
@@ -107,6 +111,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
         if (robots != null)     robots.save();
         if (placements != null) placements.save();
         if (store != null)      store.save();
+        if (builds != null)     builds.save();
     }
 
     /** Total battery capacity attached to a robot; 0 means it has no power source. */
@@ -132,6 +137,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     public StatusBar statusBar()     { return statusBar; }
     public AskService ask()          { return ask; }
     public PauseService pause()      { return pause; }
+    public BuildLog builds()         { return builds; }
 
     public NamespacedKey partKey()   { return partKey; }
     public NamespacedKey tileKey()   { return tileKey; }

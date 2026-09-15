@@ -801,3 +801,14 @@ The check rows are composed: `<situation>: <outcome>` from the words below.
 - **solar_station** check: 10 שניות של לילה
 - **color_lock** brief: השער נפתח רק כשצמר ירוק (13) מונח מתחת לחיישן.
 - **manual_override** brief: דולקת כשחשוך - וגם כשהמתג למעלה, אפילו ביום.
+
+### Digging on a classmate's plot (2026-09-15). UNPROOFREAD.
+
+| Where | Text |
+|---|---|
+| `PlotProtection` | זה רכיב של מישהו אחר. |
+| `PlotProtection` | מישהו בנה את זה. את הקרקע אפשר לחפור. |
+| `PlotProtection` | זו הסדנה של מישהו אחר. את הקרקע מסביב אפשר לחפור. |
+| `PlotProtection` | בחלקה של מישהו אחר אפשר לחפור - אבל לא לבנות. |
+| `PlotProtection` | זה חלק מהסדנה - אי אפשר לפרק אותו. (unchanged) |
+| `PlotProtection` | זו הסדנה של מישהו אחר. /rc tp מחזיר אתכם לשלכם. (unchanged, now only when dig-natural is off) |

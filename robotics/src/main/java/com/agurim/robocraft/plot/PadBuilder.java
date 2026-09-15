@@ -190,6 +190,24 @@ public final class PadBuilder {
         return n;
     }
 
+    /** Blocks above and below the pad floor that count as "the workshop", not "the ground". */
+    private static final int PAD_UP = 14, PAD_DOWN = 3;
+
+    /**
+     * Is this block part of the carved workshop pad - its floor, its fence, the air the board
+     * and shelf stand in? A visitor may dig the land on someone else's plot but not this
+     * (PlotProtection), so the test has to be geometry rather than a block type: the grass of a
+     * pad and the grass of the hill beside it are the same block.
+     */
+    public static boolean onPad(RoboCraftPlugin plugin, int plotIndex, Location loc) {
+        if (plugin.plots().fixedGround()) return false;   // flat mode has no pad to speak of
+        Location c = plugin.plots().plotCorner(plotIndex);
+        int dx = loc.getBlockX() - c.getBlockX(), dz = loc.getBlockZ() - c.getBlockZ();
+        if (dx < 0 || dx >= padX(plugin) || dz < 0 || dz >= padZ(plugin)) return false;
+        int dy = loc.getBlockY() - c.getBlockY();
+        return dy >= -PAD_DOWN && dy <= PAD_UP;
+    }
+
     /**
      * Is every fixture inside the pad? Pure geometry, for the validator and the self-test: a
      * shelf that reaches past the pad's edge would hang over a hillside.
