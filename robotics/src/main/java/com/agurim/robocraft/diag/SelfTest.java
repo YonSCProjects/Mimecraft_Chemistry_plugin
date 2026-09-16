@@ -1158,6 +1158,16 @@ public final class SelfTest {
                 got == null ? "null" : got.getX() + "," + got.getY() + "," + got.getZ() + " yaw " + got.getYaw()));
         plugin.store().forget(ghostHome);
 
+        // A student typed "/rc tp wild" and landed on their plot: the word was dropped.
+        checks.add(new Check("the word after /rc tp is where it goes, and a word that is no place goes nowhere",
+                "plot".equals(com.agurim.robocraft.command.RoboCraftCommand.tpTarget(null))
+                        && "wild".equals(com.agurim.robocraft.command.RoboCraftCommand.tpTarget("wild"))
+                        && "wild".equals(com.agurim.robocraft.command.RoboCraftCommand.tpTarget("WILD"))
+                        && "home".equals(com.agurim.robocraft.command.RoboCraftCommand.tpTarget("home"))
+                        && "home".equals(com.agurim.robocraft.command.RoboCraftCommand.tpTarget("בית"))
+                        && "plot".equals(com.agurim.robocraft.command.RoboCraftCommand.tpTarget("plot"))
+                        && com.agurim.robocraft.command.RoboCraftCommand.tpTarget("liam") == null, ""));
+
         checks.add(new Check("a plot's own corner is not open land, and the gap beside it is",
                 !com.agurim.robocraft.plot.Commons.isCommons(plugin, plugin.plots().plotCorner(0))
                         && com.agurim.robocraft.plot.Commons.isCommons(plugin,

@@ -119,8 +119,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         switch (sub) {
             case "guide"    -> Guide.send(plugin, player);
             case "kit"      -> StarterKit.give(plugin, player);
-            case "tp"       -> player.teleport(plugin.board().arrivalSpot(
-                                    plugin.store().getOrAssignPlotIndex(player.getUniqueId())));
+            case "tp"       -> tp(player, args);
             case "board"    -> rebuildBoard(player);
             case "missions" -> listMissions(player, args);
             case "mission"  -> runMission(player, args);
@@ -172,6 +171,49 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             return;
         }
         MissionCard.overview(plugin, player);
+    }
+
+    /**
+     * Where a word after {@code /rc tp} means to go: "plot", "home", "wild", or null for a word
+     * that names no place. No word at all is the plot. Pure, so the self-test can hold it.
+     */
+    public static String tpTarget(String word) {
+        if (word == null || word.isBlank()) return "plot";
+        return switch (word.toLowerCase()) {
+            case "plot", "me", "mine", "חלקה", "סדנה" -> "plot";
+            case "home", "house", "בית", "הביתה"      -> "home";
+            case "wild", "open", "free", "פתוח", "שטח" -> "wild";
+            default -> null;
+        };
+    }
+
+    /**
+     * {@code /rc tp [where]}: to my plot - or, given a word, where the word says.
+     *
+     * <p>A student typed {@code /rc tp wild} (2026-09-16) and was put on their own plot. The word
+     * was silently dropped - the same failure {@code /rc missions #1} had in the first playtest,
+     * and the same fix: an argument is never ignored. It goes where it names, and a word that
+     * names no place gets the three places as buttons rather than a teleport they did not ask for.
+     */
+    private void tp(Player player, String[] args) {
+        String word = args.length >= 2 ? args[1] : null;
+        String target = tpTarget(word);
+        if (target == null) {
+            player.sendMessage(Component.text("אין מקום בשם \"" + word + "\". לאן?  ", NamedTextColor.YELLOW)
+                    .append(MissionCard.button("לחלקה שלי", "/rc tp", "החלקה והסדנה שלכם", NamedTextColor.AQUA))
+                    .append(Component.text(" "))
+                    .append(MissionCard.button("הביתה", "/rc home", "הבית שקבעתם", NamedTextColor.GREEN))
+                    .append(Component.text(" "))
+                    .append(MissionCard.button("שטח פתוח", "/rc wild", "מקום שאינו חלקה של אף אחד", NamedTextColor.GREEN)));
+            return;
+        }
+        switch (target) {
+            case "home" -> goHome(player);
+            // Pass the rest along, so "/rc tp wild new" means "/rc wild new".
+            case "wild" -> wild(player, java.util.Arrays.copyOfRange(args, 1, args.length));
+            default     -> player.teleport(plugin.board().arrivalSpot(
+                                   plugin.store().getOrAssignPlotIndex(player.getUniqueId())));
+        }
     }
 
     /**

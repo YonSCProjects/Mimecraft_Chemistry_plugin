@@ -18,6 +18,11 @@ house is home.
   has never used the command still wakes up at their own workshop rather than at world spawn.
 - `/rc selftest` 181 -> **183**: a home keeps its exact spot and facing through a save and load,
   and the settle rule allows own plot and open land while refusing a classmate's.
+- **`/rc tp` no longer ignores the word after it.** `/rc tp wild` put a player on their own plot:
+  the word was silently dropped, the same failure `/rc missions #1` had in the first playtest.
+  Now `/rc tp wild`, `/rc tp home` and `/rc tp plot` go where they say (Hebrew words too), and a
+  word that names no place - a classmate's name, say - shows the three places as buttons instead
+  of teleporting anywhere. Self-test **184**.
 
 ## RoboCraft 2026-09-15 (later) - Open land: `/rc wild`
 Yon: "let's add a command that teleports to a place that is nobody's plot." On terrain nothing
