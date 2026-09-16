@@ -86,7 +86,10 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   (`PadBuilder.onPad`). Building there stays closed. See docs/DESIGN.md 4.11. It records the
   placer's plot index too: **`Commons`** is open land (gaps and everything outside the grid),
   where `/rc wild` sends a student to a remembered spot (`players.yml` `wild.x/z`) and a block
-  is protected from everyone but whoever placed it.
+  is protected from everyone but whoever placed it. `Commons.canSettle` is the same rule for
+  **`/rc sethome`** (own plot or open land): a home is stored in `players.yml` with full position
+  and yaw and is set as the player's respawn location, and a plot's arrival spot is the default
+  respawn set on every join - before that, dying sent a student to world spawn.
 - `classroom/` - the teacher's hand on the room. `PauseState` (who is paused, what they were
   told - no Bukkit, self-tested), `PauseService` (freeze, pinned title, resume, `announce`),
   `BigText` (word-wrap for a title that does not wrap by itself: 20 chars on the big line, 40 on
@@ -157,8 +160,8 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 - No rovers and no co-op yet.
 
 ## Commands
-`/rc guide | kit | tp | wild [new] | board | missions [n] | mission <n> | hint [n] | run | stop |
-charge` for students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
+`/rc guide | kit | tp | wild [new] | home | sethome [reset] | board | missions [n] | mission <n> |
+hint [n] | run | stop | charge` for students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
 whisper | pause | resume | say` for admins. **Students are meant to click, not type:** every
 mention of a mission is a clickable component that opens its card (`/rc missions <id>`) or runs
 its bench (`/rc mission <id>`), and the rule table has a lectern button that runs the card last

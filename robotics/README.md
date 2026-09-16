@@ -81,6 +81,11 @@ not move their wall. A world border keeps the class within reach of the workshop
   remembered so you can come back to what you built; `/rc wild new` finds another. Build and dig
   freely, but nobody takes apart a block someone else placed.
 
+**Home.** `/rc sethome` where you are standing makes that your home and your respawn point, so
+dying brings you back there instead of to the world spawn. `/rc home` goes there any time, and
+`/rc sethome reset` puts home back at your plot. You may live on your own plot or on open land.
+Until a student sets one, their plot is their home.
+
 Teachers: `rc survey 16` from the console lists the first sixteen plots' floor heights, biomes
 and pads; `rc pads 16` carves them before a lesson so no first join waits on it. The first term
 ran on a superflat world; `plot.ground-y: <number>` in config.yml still gives that flat mode,
@@ -133,7 +138,7 @@ whose point is that students find bugs by reading values, a Socratic nudge is pr
 
 ## Commands
 
-**Students** — `/rc guide`, `kit`, `tp`, `wild [new]`, `board`, `missions [n]` (overview, or one card),
+**Students** — `/rc guide`, `kit`, `tp`, `wild [new]`, `home`, `sethome [reset]`, `board`, `missions [n]` (overview, or one card),
 `mission <n>` (run it), `hint [n]`, `run`, `stop`, `trace`, `charge`, `ask <question>`. In
 practice students click; the commands are what the clicks run.
 

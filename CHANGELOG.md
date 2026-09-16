@@ -4,6 +4,21 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
+## RoboCraft 2026-09-16 - A student chooses where they live
+Yon: "I want the players to have the option to change their spawn location." Since the world
+became terrain, dying dropped a student at the world spawn, which can be hundreds of blocks from
+anything of theirs - and a student who builds a house on open land had no way to say that the
+house is home.
+- **`/rc sethome`** makes the spot they are standing on their home, with the exact position and
+  the way they are facing, and sets their respawn point there. **`/rc home`** goes back to it.
+  **`/rc sethome reset`** returns home to their plot.
+- **A home may be on their own plot or on open land, never on a classmate's plot** - the rule is
+  the same as for building, and the refusal offers `[שטח פתוח]`.
+- **Their plot is the default home**, set as the respawn point on every join, so a student who
+  has never used the command still wakes up at their own workshop rather than at world spawn.
+- `/rc selftest` 181 -> **183**: a home keeps its exact spot and facing through a save and load,
+  and the settle rule allows own plot and open land while refusing a classmate's.
+
 ## RoboCraft 2026-09-15 (later) - Open land: `/rc wild`
 Yon: "let's add a command that teleports to a place that is nobody's plot." On terrain nothing
 shows where the grid ends, a classmate's plot can be dug but not built on, and a student's own

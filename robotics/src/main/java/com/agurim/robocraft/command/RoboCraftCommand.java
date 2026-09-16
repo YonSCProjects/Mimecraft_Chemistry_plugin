@@ -131,6 +131,8 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "ask"      -> askQuestion(player, args);
             case "hint"     -> hint(player, args);
             case "wild"     -> wild(player, args);
+            case "home"     -> goHome(player);
+            case "sethome"  -> setHome(player, args);
             case "give"     -> give(player, args);
             case "unlock"   -> unlock(player, args);
             case "reset"    -> reset(player);
@@ -170,6 +172,62 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             return;
         }
         MissionCard.overview(plugin, player);
+    }
+
+    /**
+     * {@code /rc sethome}: this is where I live now - and where I come back to when I die.
+     *
+     * <p>Yon, 2026-09-16: "I want the players to have the option to change their spawn location."
+     * Until now a student appeared on their plot the first time and, if they died, at the world
+     * spawn - which since the world became terrain may be hundreds of blocks from anything of
+     * theirs. A student who builds a house on open land should be able to say that the house is
+     * home. Allowed anywhere they may build: their own plot, or open land.
+     */
+    private void setHome(Player player, String[] args) {
+        java.util.UUID id = player.getUniqueId();
+        if (args.length >= 2 && (args[1].equalsIgnoreCase("reset") || args[1].equals("איפוס"))) {
+            plugin.store().clearHome(id);
+            Location plot = plugin.board().arrivalSpot(plugin.store().getOrAssignPlotIndex(id));
+            player.setRespawnLocation(plot, true);
+            player.sendMessage(Component.text("הבית חזר לחלקה שלכם.  ", NamedTextColor.GREEN)
+                    .append(MissionCard.button("הביתה", "/rc home", "לבית שלכם", NamedTextColor.AQUA)));
+            return;
+        }
+        Location here = player.getLocation();
+        if (!here.getWorld().equals(plugin.plots().world())) {
+            player.sendMessage(Component.text("אפשר לקבוע בית רק בעולם של הסדנה.", NamedTextColor.RED));
+            return;
+        }
+        int plotHere = plugin.plots().plotIndexAt(here);
+        if (!com.agurim.robocraft.plot.Commons.canSettle(plotHere, plugin.store().getOrAssignPlotIndex(id))) {
+            player.sendMessage(Component.text("זו החלקה של מישהו אחר. בית קובעים בחלקה שלכם או בשטח פתוח.  ", NamedTextColor.RED)
+                    .append(MissionCard.button("שטח פתוח", "/rc wild", "מקום שאינו חלקה של אף אחד", NamedTextColor.GREEN)));
+            return;
+        }
+        plugin.store().setHome(id, here);
+        player.setRespawnLocation(here, true);
+        player.playSound(here, org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, 0.7f, 1.4f);
+        player.sendMessage(Component.text("כאן הבית שלכם. גם אם תמותו - תחזרו לכאן.", NamedTextColor.GREEN));
+        player.sendMessage(Component.text("/rc home מחזיר לכאן.  ", NamedTextColor.GRAY)
+                .append(MissionCard.button("לחלקה שלי", "/rc tp", "לחלקה ולסדנה", NamedTextColor.AQUA))
+                .append(Component.text(" "))
+                .append(MissionCard.button("ביטול הבית", "/rc sethome reset", "הבית חוזר לחלקה שלכם", NamedTextColor.YELLOW)));
+    }
+
+    /** {@code /rc home}: to the place they chose, or to their plot if they never chose one. */
+    private void goHome(Player player) {
+        java.util.UUID id = player.getUniqueId();
+        Location home = plugin.store().home(id, plugin.plots().world());
+        if (home == null) {
+            player.teleport(plugin.board().arrivalSpot(plugin.store().getOrAssignPlotIndex(id)));
+            player.sendMessage(Component.text("עוד לא קבעתם בית, אז הנה החלקה שלכם.  ", NamedTextColor.GRAY)
+                    .append(MissionCard.button("קביעת בית כאן", "/rc sethome", "המקום שאליו תחזרו, וגם אחרי מוות", NamedTextColor.GREEN)));
+            return;
+        }
+        home.setPitch(player.getLocation().getPitch());
+        player.teleport(home);
+        player.playSound(home, org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.3f);
+        player.sendMessage(Component.text("הביתה.", NamedTextColor.GREEN));
     }
 
     /**
@@ -632,7 +690,8 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
                                     "run", "stop", "trace", "charge", "ask", "give", "unlock",
                                     "reset", "reload", "selftest", "progress", "questions",
-                                    "whisper", "pause", "resume", "say", "hint", "pads", "survey", "wild")) {
+                                    "whisper", "pause", "resume", "say", "hint", "pads", "survey",
+                                    "wild", "home", "sethome")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("missions") || args[0].equalsIgnoreCase("hint"))) {

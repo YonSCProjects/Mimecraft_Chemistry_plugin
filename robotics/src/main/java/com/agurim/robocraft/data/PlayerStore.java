@@ -190,6 +190,32 @@ public class PlayerStore {
         return out;
     }
 
+    // ---- home --------------------------------------------------------------
+
+    /**
+     * Where this student chose to live, or null for "wherever their plot is".
+     *
+     * <p>Full precision and facing, unlike the open-land spot: a home is a doorway a student
+     * picked while standing in it, and landing half a block off puts them inside a wall.
+     */
+    public Location home(UUID id, org.bukkit.World world) {
+        if (!yml.contains(id + ".home.x")) return null;
+        Location l = new Location(world, yml.getDouble(id + ".home.x"),
+                yml.getDouble(id + ".home.y"), yml.getDouble(id + ".home.z"));
+        l.setYaw((float) yml.getDouble(id + ".home.yaw"));
+        return l;
+    }
+
+    public void setHome(UUID id, Location spot) {
+        yml.set(id + ".home.x", spot.getX());
+        yml.set(id + ".home.y", spot.getY());
+        yml.set(id + ".home.z", spot.getZ());
+        yml.set(id + ".home.yaw", (double) spot.getYaw());
+        save();
+    }
+
+    public void clearHome(UUID id) { yml.set(id + ".home", null); save(); }
+
     /** Drop every record of this id. For the self-test's throwaway players; never for a student. */
     public void forget(UUID id) { yml.set(id.toString(), null); save(); }
 

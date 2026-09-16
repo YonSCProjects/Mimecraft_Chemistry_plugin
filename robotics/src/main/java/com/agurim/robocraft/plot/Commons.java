@@ -27,6 +27,15 @@ public final class Commons {
 
     public static final int NEAR = 24, FAR = 256, SPREAD = 24, ATTEMPTS = 12;
 
+    /**
+     * May a student call this place home? Anywhere they may build: their own plot, or open land.
+     * Not a classmate's plot - a home there would be a bed in somebody else's workshop, and the
+     * student could not build around it anyway. Pure, so the self-test can hold the rule.
+     */
+    public static boolean canSettle(int plotHere, int ownPlot) {
+        return plotHere < 0 || plotHere == ownPlot;
+    }
+
     /** Outside every plot, in the workshop world. Gaps between plots count. */
     public static boolean isCommons(RoboCraftPlugin plugin, Location loc) {
         return loc.getWorld() != null && loc.getWorld().equals(plugin.plots().world())

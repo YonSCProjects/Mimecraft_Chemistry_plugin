@@ -1139,6 +1139,25 @@ public final class SelfTest {
         }
         checks.add(new Check("every open-land spot /rc wild can choose is nobody's plot and inside the border",
                 inGrid == 0 && outside == 0, inGrid + " in a plot, " + outside + " past the border, of 2000"));
+        // Home. A student may live on their own plot or on open land, never on a classmate's.
+        checks.add(new Check("a student may make a home on their own plot or open land, not on a classmate's",
+                com.agurim.robocraft.plot.Commons.canSettle(-1, 4)
+                        && com.agurim.robocraft.plot.Commons.canSettle(4, 4)
+                        && !com.agurim.robocraft.plot.Commons.canSettle(5, 4), ""));
+        java.util.UUID ghostHome = java.util.UUID.nameUUIDFromBytes("selftest-home".getBytes());
+        Location noHomeYet = plugin.store().home(ghostHome, w);
+        Location want = new Location(w, 12.5, 71.0, -8.5);
+        want.setYaw(90f);
+        plugin.store().setHome(ghostHome, want);
+        Location got = plugin.store().home(ghostHome, w);
+        plugin.store().clearHome(ghostHome);
+        boolean kept = got != null && got.getX() == 12.5 && got.getY() == 71.0 && got.getZ() == -8.5
+                && Math.abs(got.getYaw() - 90f) < 0.01f;
+        checks.add(new Check("a home keeps the exact spot and the way the student was facing",
+                noHomeYet == null && kept && plugin.store().home(ghostHome, w) == null,
+                got == null ? "null" : got.getX() + "," + got.getY() + "," + got.getZ() + " yaw " + got.getYaw()));
+        plugin.store().forget(ghostHome);
+
         checks.add(new Check("a plot's own corner is not open land, and the gap beside it is",
                 !com.agurim.robocraft.plot.Commons.isCommons(plugin, plugin.plots().plotCorner(0))
                         && com.agurim.robocraft.plot.Commons.isCommons(plugin,

@@ -824,3 +824,16 @@ The check rows are composed: `<situation>: <outcome>` from the words below.
 | `PlotProtection` | מישהו אחר בנה את זה. בנו לידו. |
 | `PlotProtection` | בחלקה של מישהו אחר אפשר לחפור - לא לבנות.  [שטח פתוח] [לחלקה שלי] |
 | `PlotProtection` (hover) | מקום שאינו חלקה של אף אחד - בונים שם חופשי |
+
+### Home and respawn, /rc sethome (2026-09-16). UNPROOFREAD.
+
+| Where | Text |
+|---|---|
+| `RoboCraftCommand` | כאן הבית שלכם. גם אם תמותו - תחזרו לכאן. |
+| `RoboCraftCommand` | /rc home מחזיר לכאן.  [לחלקה שלי] [ביטול הבית] |
+| `RoboCraftCommand` | הביתה. |
+| `RoboCraftCommand` | עוד לא קבעתם בית, אז הנה החלקה שלכם.  [קביעת בית כאן] |
+| `RoboCraftCommand` | הבית חזר לחלקה שלכם.  [הביתה] |
+| `RoboCraftCommand` | זו החלקה של מישהו אחר. בית קובעים בחלקה שלכם או בשטח פתוח.  [שטח פתוח] |
+| `RoboCraftCommand` | אפשר לקבוע בית רק בעולם של הסדנה. |
+| `RoboCraftCommand` (hover) | לבית שלכם / המקום שאליו תחזרו, וגם אחרי מוות / הבית חוזר לחלקה שלכם |

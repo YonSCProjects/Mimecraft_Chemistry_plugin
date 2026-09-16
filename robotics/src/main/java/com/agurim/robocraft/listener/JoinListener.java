@@ -3,6 +3,7 @@ package com.agurim.robocraft.listener;
 import com.agurim.robocraft.RoboCraftPlugin;
 import com.agurim.robocraft.StarterKit;
 import com.agurim.robocraft.ui.Guide;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -56,6 +57,11 @@ public class JoinListener implements Listener {
             plugin.trophies().build(plot, id);
             plugin.store().setLayout(id, parts, missions);
         }
+
+        // Dying used to drop a student at the world spawn, which on terrain can be hundreds of
+        // blocks from anything of theirs. Their plot is the default home; /rc sethome moves it.
+        Location home = plugin.store().home(id, plugin.plots().world());
+        player.setRespawnLocation(home != null ? home : plugin.board().arrivalSpot(plot), true);
 
         if (firstTime) {
             player.teleport(plugin.board().arrivalSpot(plot));
