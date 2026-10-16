@@ -15,9 +15,10 @@ Package: `com.agurim.robocraft`. Jar: `robotics/build/libs/RoboCraft-<version>[-
 
 > **Status: runs clean on 26.2, and a person has now played it.** Verified on Paper 26.2 build 116
 > (Java 25): enables, writes its content YAML, registers commands, saves its runtime files on
-> disable, zero exceptions, and **`/rc selftest` passes 170/170**. The mission content is
-> separately checked offline (`tools/BenchCheck.java`, 85 checks over all sixteen missions - run
-> it with the **JDK 25** `javac`/`java`, the build classes are version 69). Yon walked the first
+> disable, zero exceptions, and **`/rc selftest` passes 225/225**. Every mission's `solution:`
+> is verified on `mission/BenchSim` at every enable (16/16, 2026-10-16); `tools/BenchCheck.java`
+> still checks that the *naive* programs fail (run it with the **JDK 25** `javac`/`java`, the
+> build classes are version 69). Yon walked the first
 > warm-up end to end on the Tair class server in September 2026; everything he could not
 > perceive got fixed (the RoboCraft entries in the root `CHANGELOG.md`).
 >
@@ -68,6 +69,19 @@ Packages (`robotics/src/main/java/com/agurim/robocraft/`):
   ten-line card - goal, parts ticked against the robot, the bench's checks written out, buttons -
   and the overview; `plainLines`/`checkRows` are Bukkit-free and the validator holds every
   mission to the budget). A step's optional `check:` is the authored situation text for a row.
+  **`Walkthrough`** is the front door since 2026-10-16 (docs/DESIGN.md 4.12): one next action,
+  read off the robot/inventory/program, ticked as it is done; `/rc path solo|guided|watch` picks
+  how the rules get written - guided fills the table with the solution's rules and a `?` for each
+  threshold (`Operand.blank()`, refused by the bench until filled), watch hands over to
+  `mission/Demo`, which writes the solution a rule every two seconds and runs the bench.
+  `RuleWords` reads a rule aloud in Hebrew. The card is `/rc card`.
+- `mission/BenchSim` - the bench without a world: every mission's `solution:` is run through it
+  at enable (16/16), and the empty program finds the **free checks** progress will skip.
+- `mission/Perk` + `perk/PerkService` - **the prize is in Minecraft** (docs/DESIGN.md 4.12):
+  `perks:` per mission (speed, haste, jump, night-vision, fly-plot, fly, elytra, pet:wolf, and
+  `wild` - the one soft gate, the open land after the first warm-up). Nothing is stored: what a
+  student holds is read off their passes and re-asserted on join; a failed run whose first real
+  check passed lends the powers for `perks.taste-minutes`, once per mission. Bonus pays nothing.
 - `assistant/AskService` + `ui/Whisper` - the assistant layer. **The plugin never talks to an AI:**
   it captures a question plus the state needed to answer it (the student's rule table, live
   readings, last rule fired, last failed bench check) into `questions.jsonl`, and an external agent
@@ -160,8 +174,10 @@ Bundled in `resources/`, copied to `plugins/RoboCraft/` on first run **only if a
 - No rovers and no co-op yet.
 
 ## Commands
-`/rc guide | kit | tp | wild [new] | home | sethome [reset] | board | missions [n] | mission <n> |
-hint [n] | run | stop | charge` for students; `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
+`/rc guide | kit | tp | wild [new] | home | sethome [reset] | board | missions [n] | card <n> |
+mission <n> | hint [n] | perks | run | stop | charge` for students (`missions <n>` is the walkthrough -
+the next step - and `card <n>` the whole card; `path solo|guided|watch` is what the walkthrough's
+three buttons run); `ask <question>` too; `give | unlock | reset | reload | selftest | progress | questions |
 whisper | pause | resume | say` for admins. **Students are meant to click, not type:** every
 mention of a mission is a clickable component that opens its card (`/rc missions <id>`) or runs
 its bench (`/rc mission <id>`), and the rule table has a lectern button that runs the card last
@@ -183,7 +199,8 @@ student never caused. Second word is a player if one of that name is online, els
   `C:\Users\Admin\.claude\plans\yard-design-draft\`.
 - **Boss arena** (approved, unbuilt): `C:\Users\Admin\.claude\plans\lets-plan-a-way-pure-quasar.md`
   layer 4. Layer 3 became "the whole world is regular" on 2026-09-14 (docs/DESIGN.md 4.10).
-  `pvp=false` on every class server before any gear ships.
+  `gamerule pvp false` on every class server before any gear ships - on 26.2 that is a game rule,
+  and `pvp=false` in `server.properties` is silently ignored.
 - **The Yard on terrain.** The seven sites were designed for a flat 96x96 plot. On terrain
   they need either their own small pads or a terrain-following builder; the workshop pad is
   44x24 and the sites do not fit on it. Decide before step 2.

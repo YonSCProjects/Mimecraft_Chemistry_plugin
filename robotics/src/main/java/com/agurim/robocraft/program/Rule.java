@@ -37,6 +37,60 @@ public record Rule(String source, Op op, Operand rhs, String target, Verb verb, 
         return head + " THEN " + tail;
     }
 
+    /**
+     * The inverse of {@link #text()}: {@code "IF S1 < 7 THEN A1 ON"} or
+     * {@code "ALWAYS THEN M2 SET S1"} back into a rule, or null if the line does not parse.
+     *
+     * <p>This is how a mission's {@code solution:} is written in missions.yml - in the exact
+     * words a student reads off the rule table, so the content file and the hint and the screen
+     * all say the same thing. Strict on purpose: a verb that takes no argument refuses one, a
+     * verb that needs one refuses to go without, so a typo in content is a log line at enable
+     * rather than a rule that quietly does something else.
+     */
+    public static Rule parse(String line) {
+        if (line == null) return null;
+        String[] t = line.trim().toUpperCase(java.util.Locale.ROOT).split("\\s+");
+        int i = 0;
+        String src; Op o; Operand r;
+        if (t.length >= 1 && t[0].equals(ALWAYS)) {
+            src = ALWAYS; o = Op.LT; r = Operand.of(0); i = 1;
+        } else if (t.length >= 4 && t[0].equals("IF")) {
+            src = t[1];
+            o = null;
+            for (Op candidate : Op.values()) if (candidate.symbol().equals(t[2])) o = candidate;
+            if (o == null) return null;
+            r = operand(t[3]);
+            i = 4;
+        } else {
+            return null;
+        }
+        if (i >= t.length || !t[i].equals("THEN")) return null;
+        i++;
+        if (i + 1 >= t.length) return null;
+        String target = t[i];
+        Verb v;
+        try { v = Verb.valueOf(t[i + 1]); } catch (IllegalArgumentException e) { return null; }
+        i += 2;
+        Operand a = Operand.of(0);
+        if (v.needsArg()) {
+            if (i >= t.length) return null;
+            a = operand(t[i++]);
+        }
+        if (i != t.length) return null;
+        return new Rule(src, o, r, target, v, a);
+    }
+
+    private static Operand operand(String token) {
+        if (token.equals("?")) return Operand.blank();
+        if (token.matches("-?\\d+")) return Operand.of(Integer.parseInt(token));
+        return Operand.ref(token);
+    }
+
+    /** Does this rule still carry a {@code ?} where a number should be? Guided mode's unfinished state. */
+    public boolean hasBlank() {
+        return (!always() && rhs.isBlank()) || (verb.needsArg() && arg.isBlank());
+    }
+
     public String encode() {
         return String.join("|", source, op.name(), rhs.encode(), target, verb.name(), arg.encode());
     }

@@ -10,11 +10,14 @@ import com.agurim.robocraft.listener.MenuListener;
 import com.agurim.robocraft.listener.PartBlockListener;
 import com.agurim.robocraft.listener.PauseListener;
 import com.agurim.robocraft.listener.PlotProtection;
+import com.agurim.robocraft.mission.Demo;
 import com.agurim.robocraft.mission.MissionService;
+import com.agurim.robocraft.ui.Walkthrough;
 import com.agurim.robocraft.part.Part;
 import com.agurim.robocraft.part.PartRegistry;
 import com.agurim.robocraft.part.PartStore;
 import com.agurim.robocraft.part.Placed;
+import com.agurim.robocraft.perk.PerkService;
 import com.agurim.robocraft.plot.BuildLog;
 import com.agurim.robocraft.plot.PlotManager;
 import com.agurim.robocraft.plot.WorkshopKiosk;
@@ -50,6 +53,9 @@ public final class RoboCraftPlugin extends JavaPlugin {
     private AskService ask;
     private PauseService pause;
     private BuildLog builds;
+    private Walkthrough walkthrough;
+    private Demo demo;
+    private PerkService perks;
 
     private NamespacedKey partKey;
     private NamespacedKey tileKey;
@@ -79,6 +85,9 @@ public final class RoboCraftPlugin extends JavaPlugin {
         this.ask        = new AskService(this);
         this.pause      = new PauseService(this);
         this.builds     = new BuildLog(this);
+        this.walkthrough = new Walkthrough(this);
+        this.demo       = new Demo(this);
+        this.perks      = new PerkService(this);
         // Real terrain: keep the class near the workshop. Flat mode has no border to set.
         if (!plots.fixedGround()) plots.applyBorder();
 
@@ -95,6 +104,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
         Objects.requireNonNull(getCommand("robocraft")).setTabCompleter(command);
 
         engine.start();
+        perks.start();
         builds.startAutoSave();
         // Both of these catch content mistakes that are completely invisible from inside the game.
         com.agurim.robocraft.diag.Validate.run(this);
@@ -107,6 +117,7 @@ public final class RoboCraftPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (engine != null)     engine.stop();
+        if (perks != null)      perks.stop();
         if (pause != null)      pause.shutdown();
         if (robots != null)     robots.save();
         if (placements != null) placements.save();
@@ -138,6 +149,9 @@ public final class RoboCraftPlugin extends JavaPlugin {
     public AskService ask()          { return ask; }
     public PauseService pause()      { return pause; }
     public BuildLog builds()         { return builds; }
+    public Walkthrough walkthrough() { return walkthrough; }
+    public Demo demo()               { return demo; }
+    public PerkService perks()       { return perks; }
 
     public NamespacedKey partKey()   { return partKey; }
     public NamespacedKey tileKey()   { return tileKey; }

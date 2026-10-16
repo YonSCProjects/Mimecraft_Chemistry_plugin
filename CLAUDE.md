@@ -46,14 +46,16 @@ separate ports, no clash.
 
 | | ChemCraft | RoboCraft |
 |---|---|---|
-| Folder | `C:.2_ChemCraft` | `C:.2_RoboCraft` |
+| Folder | `C:\26.2_ChemCraft` | `C:\26.2_RoboCraft` |
 | Students join | `localhost` | `localhost:25566` |
 | Game port | 25565 (the default) | 25566 |
 | RCON port | 25576 | 25575 |
 | Start | `start.bat` | `start.bat` |
 
 Both are Paper 26.2 on Java 25, offline-mode, superflat, with `plot.ground-y: -61` - a flat world's
-top solid block, not the shipped default of 64, which would leave the wall floating.
+top solid block, not the shipped default of 64, which would leave the wall floating. ChemCraft also
+needs `wall.offset-y: -60`: unlike the kiosk's, the wall's offset is an **absolute** height.
+(RoboCraft has since moved to real terrain - see `robotics/CLAUDE.md`.)
 
 **RoboCraft holds RCON 25575 on purpose:** that is the fixed target of the Minecraft MCP bridge in
 a Claude Code session, and RoboCraft is where the assistant loop is being developed. Anything on
@@ -113,7 +115,10 @@ not built automatically and the command is player-only, so it cannot be done ove
    `plot.ground-y`. In **`server.properties` set `difficulty=peaceful`** (and
    `spawn-monsters=false`): on anything else students are attacked while they build, and nothing
    about dying points at a server setting - it reads as a plugin bug. Both dev servers ship
-   peaceful; RoboCraft's startup validator warns if a world is not.
+   peaceful; RoboCraft's startup validator warns if a world is not. **On 26.2 the `pvp` and
+   `spawn-monsters` keys in `server.properties` are ignored** - both are per-world game rules now.
+   Run `gamerule pvp false` and `gamerule spawn_monsters false` once from the console (a fresh
+   world read `true` for both despite the properties, 2026-10-11).
 3. Join -> teleported to your plot. On first join you get a welcome title, a `/cc guide`
    walkthrough, a starter kit of raw materials, and a labeled row of station blocks built next to
    your ghost periodic-table wall (`StationKiosk`) - no op setup needed.

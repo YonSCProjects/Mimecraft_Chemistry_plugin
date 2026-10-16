@@ -91,9 +91,34 @@ and pads; `rc pads 16` carves them before a lesson so no first join waits on it.
 ran on a superflat world; `plot.ground-y: <number>` in config.yml still gives that flat mode,
 and `tools/reset-world.ps1` moves a server from flat to terrain with everything backed up.
 
-## Reading a mission
+## Doing a mission
 
-Every mission is a card, the same shape every time, short enough to be on screen whole:
+Click a mission's name and you get the next thing to do - one line, read off your own robot,
+ticked off as you do it:
+
+```
+▶ W1. נורת לילה                                number and name
+הנורה דולקת כשחשוך, וכבויה כשיש אור.            the goal, one line
+✔ סוללה ליד הבקר.                               what you just did
+▶ קחו חיישן אור מהלוח ושימו ליד הבקר.           what to do now
+[הכרטיס]  [כל המשימות]
+```
+
+Place the part and the next line appears: the lamp, then "right-click the controller", then a
+choice of how the rules get written:
+
+- **אני כותב/ת** - write them yourself.
+- **עם עזרה** - the rules appear in the table with each threshold replaced by `?`; fill in the
+  numbers. The bench will not run while a `?` is left.
+- **תראו לי** - the robot writes the solution into its own table, one rule every two seconds,
+  reading each aloud ("אם חיישן אור (S1) קטן מ-7 — נורה (A1): ON"), then runs the bench.
+
+All three get the mission's prize. The pass line says which path you took, and the shelf will
+remember it. A student who logs back in next week is told exactly where they stopped.
+
+## The card
+
+Behind `[הכרטיס]` (or `/rc card`) is the whole mission on one card, the same shape every time:
 
 ```
 ▶ 4. נורה שלא מרצדת                            number and name
@@ -107,13 +132,44 @@ Every mission is a card, the same shape every time, short enough to be on screen
 ```
 
 `/rc missions` is the overview — three one-line tracks with a mark per mission, then the next
-one and its buttons. Clicking any name opens its card. The lectern button at the bottom of the
-rule table runs the mission you last opened (right-click shows its card), so the loop is: read
-the card, place the parts, write the rules, press the lectern, watch the bench.
+one and its buttons. Clicking any name opens its walkthrough. The lectern button at the bottom
+of the rule table runs the mission you last opened (right-click shows its card), so the loop is:
+follow the steps, place the parts, write the rules, press the lectern, watch the bench.
 
 The checks on the card are the bench's own steps, so they cannot disagree with what is tested.
 The rules that pass them are not on the card; `[רמז]` is a nudge, and the failure text names
 the check that failed, why, and what the sensors were reading at that moment.
+
+## Prizes
+
+A pass pays in Minecraft, for keeps. Each mission lists its `perks:` in `missions.yml`, and the
+walkthrough shows them under the goal ("פרס: תעופה בחלקה שלכם"):
+
+| | Mission | Pays |
+|---|---|---|
+| W1 | night light | the open land (`/rc wild`) |
+| W2 | alarm | speed |
+| W3 | automatic door | fast digging |
+| 1 | twilight lamp | high jump (and the open land, for a student who skipped the warm-ups) |
+| 2 | the door that stays open | flight on your own plot |
+| 3 | counter | night vision |
+| 4 | the flicker fix | an elytra with rockets |
+| 5 | thermostat | a wolf |
+| 6 | efficiency | flight anywhere |
+
+Bonus jobs pay nothing, as they grant nothing. The list is yours to change; the ids are `speed`,
+`haste`, `jump`, `night-vision` (each optionally `:2` or `:3`), `fly-plot`, `fly`, `elytra`,
+`pet:wolf|cat|parrot|horse` and `wild`.
+
+Powers are never lost: they are read off the missions a student has passed and re-applied on
+every join, so a lost elytra or a dead wolf is replaced. `/rc reset` takes them away with the
+progress. The open land is the one thing gated - it opens after the first warm-up - and a
+student who already built out there before the gate keeps their spot.
+
+**The taste.** The bench knows which of its checks need a real rule. The first time a run
+passes one and then fails, the mission's powers are lent for ten minutes - "טעימה: מהירות
+ל-10 דקות" - once per mission, so the prize is concrete before it is earned. `/rc perks` lists
+what you hold, what is on loan, and what the next mission pays.
 
 ## The assistant
 

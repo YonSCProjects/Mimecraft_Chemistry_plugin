@@ -89,6 +89,8 @@ public class MenuListener implements Listener {
             Rule edited = robot.program().get(index);
             if (edited != null) ProgramMenu.echoRule(player, index, edited);
         }
+        // A ? filled in, a rule written: the walkthrough's next step, said once.
+        plugin.walkthrough().nudge(player);
     }
 
     /** Reduce a Bukkit click to the three things that change what it means. */
@@ -133,6 +135,7 @@ public class MenuListener implements Listener {
                         ProgramMenu.targets(plugin, menu.robotKey())));
                 plugin.robots().save();
                 ProgramMenu.echoProgram(plugin, player, menu.robotKey());
+                plugin.walkthrough().nudge(player);
             }
             case ProgramMenu.SLOT_RUN -> {
                 String why = plugin.engine().whyNotReady(robot);

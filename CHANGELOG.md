@@ -4,6 +4,103 @@ Built in slices. Versions are pre-release working milestones. ChemCraft entries 
 version; RoboCraft entries (jar `RoboCraft-0.1.0`) are dated, and its decision log is
 `robotics/docs/DESIGN.md`.
 
+## RoboCraft 2026-10-16 (later still) - The prize is in Minecraft
+Slice 3 of §4.12. Yon: *"getting more cool powers by succeeding"*, and - choosing it over
+blocking the way - *"the preference of prizes on blocking the way."*
+- **`perks:` per mission in `missions.yml`**, separate from `reward:` so a rung that unlocks no
+  part still pays. A pass grants them for keeps: `speed`, `haste`, `jump`, `night-vision`
+  (potion effects that never run out; `:2`/`:3` for a stronger one), `fly-plot` (flight on your
+  own plot - checked once a second, and over the edge you are let down slowly and told why),
+  `fly` (anywhere), `elytra` (with sixteen rockets, replaced on join if lost), `pet:wolf|cat|
+  parrot|horse` (tamed, named "הכלב של Dana", sitting where it was given, replaced if lost).
+  First list, strongest last: W1 `wild`, W2 speed, W3 haste, R1 jump, R2 fly-plot, R3 night
+  vision, R4 elytra, R5 a wolf, R6 fly. Bonus jobs pay nothing, as they grant nothing.
+- **Nothing is stored for a perk** (`perk/PerkService`): what a student holds is read off the
+  missions they passed, every time - re-asserted on every join, gone with `/rc reset`, and a
+  perk added to a mission in the file reaches everyone who already passed it.
+- **The one soft gate: the open land opens after the first warm-up.** `/rc wild` names the
+  mission and opens its walkthrough. Rung 1 pays `wild` too, so a student who skipped the
+  warm-ups is not shut out - and a student who already has a spot out there keeps it: three
+  class servers held open-land builds before the gate existed, and a gate must never lock a
+  student out of their own work.
+- **The taste.** The bench now knows which of its checks need a real rule (slice 1's free
+  checks). A run that passes one and then fails lends the mission's powers for
+  `perks.taste-minutes` (10), once per mission, for the session: "✓ הבדיקה הראשונה עברה -
+  טעימה: מהירות ל-10 דקות. הפרס הקבוע מחכה אחרי ההצלחה." Only powers are lent; the gate, the
+  elytra and the animal cannot be taken back.
+- The walkthrough's header carries the prize ("פרס: תעופה בחלקה שלכם"); the pass says what was
+  gained, parts and powers together, with a button to the open land when that is what opened;
+  **`/rc perks`** lists what you hold, what is on loan and for how long, and what the next
+  mission pays. The validator refuses a perk id it does not know and warns of a rung that pays
+  nothing at all.
+- `/rc selftest` 214 -> **225/225**: the ids parse, what can be lent, where flight is allowed,
+  what a first check lends (never twice, never after a pass), the gate's three cases, and the
+  content held to the decision - every rung pays, the open land opens on the first warm-up.
+- Not verified on a screen: potion effects, flight at the plot edge, the wolf. Dev server only.
+
+## RoboCraft 2026-10-16 (later) - One step at a time, and three ways to the rules
+Slice 2 of §4.12, the first a student sees. Yon: *"the students are intimidated by the
+missions"*, and *"the instructions must be the minimal amount of text required but still very
+clear, in a taking-by-the-hand style."*
+- **`ui/Walkthrough` is the front door.** Click a mission's name and you get the one thing to
+  do next - "קחו חיישן אור מהלוח ושימו ליד הבקר." - ticked off as you do it, with the step just
+  done above it in grey. Nothing is stored for it: every step is read off the world - the parts
+  on the robot (a second panel counts), the parts in the inventory ("קחו" vs "שימו"), whether the
+  table was opened, the rules, a `?` still waiting - so a student back after a week is told where
+  they stopped. A part still locked names the mission that unlocks it. Said once per step: a
+  student clicking through a rule's eight cells is not told the same thing eight times.
+- **Three paths, chosen with a button when the robot is built and the table open.**
+  *אני כותב/ת* - solo, as today. *עם עזרה* - the mission's solution lands in the table with each
+  threshold replaced by **`?`** (`Operand.blank()`: shown as `?`, reads as 0, a number on the
+  first click, refused by the bench and by run until filled); the steps name each rule to fill.
+  *תראו לי* - **`mission/Demo`** writes the solution one rule every two seconds into the open
+  table, reading each aloud in Hebrew with the parts' names (`ui/RuleWords`: "אם חיישן אור (S1)
+  קטן מ-7 — נורה (A1): ON"), then runs the bench. Both move the solution onto the student's own
+  ports by part id, so a light sensor that is S2 gets S2.
+- **The pass line says the path** ("פתרתם לבד" / "עם עזרה" / "צפיתם בפתרון") and `players.yml`
+  records it (`paths.<mission>`), keeping the most independent pass. The trophy by path and the
+  tries count are slice 4.
+- `/rc missions <n>` is the walkthrough; **`/rc card <n>`** is the card, one button away; `/rc
+  path` is what the three buttons run. The join line adds the current step under "הבאה בתור".
+- `/rc selftest` 197 -> **214/214**: the blank round-trips and clears on a click; blanking takes
+  thresholds and leaves states and ports; a solution remaps onto other ports; a rule reads aloud;
+  and the plan is walked state by state - fresh, holding a part, built, opened, each path, a
+  `?` to fill, passed - plus the locked part and the second panel.
+- **Not verified: how it reads on a real screen.** The self-test holds the logic; whether a
+  twelve-year-old follows the yellow line is the next lesson's job. Dev server only until then.
+
+## RoboCraft 2026-10-16 - The solutions become data
+Yon, after the first weeks on the workshop PC: *"so far the students prefer to play instead of
+coping with the robocraft mission."* The decisions are in `robotics/docs/DESIGN.md` §4.12 -
+perks, not gates; three paths to a mission with watching as the floor; one step at a time;
+trying measured by what it produces. This is slice 1 of 4, the piece the other three stand on:
+a demo cannot write a solution it does not have, and progress cannot be counted over checks
+nobody has told apart.
+- **Every mission carries its `solution:`** in `missions.yml`, one rule per line in the words
+  the rule table shows (`IF S1 < 7 THEN A1 ON`, `ALWAYS THEN M2 SET S1`), ports counted in
+  `needs` order; `solution-parts:` for a reference build beyond `needs` - the solar station's
+  answer is a second panel, not a rule. `Rule.parse` is the inverse of `Rule.text()`, strict
+  about arguments so a typo in content is a log line rather than a rule that does something else.
+- **`mission/BenchSim`: the bench without a world.** Bukkit-free, a line-for-line mirror of the
+  engine's tick and the bench's advance - feedback from last tick's outputs, latched outputs,
+  the same power arithmetic from the real `parts.yml` numbers, switch counting for `steady`, a
+  halted robot still advanced. The validator runs every solution through it on enable:
+  **16/16 verified**, SEVERE for a mission its own answer cannot pass (and it is never offered as
+  a demo), a warning for a line that does not parse, a rule count the table cannot hold, or a
+  port the reference robot does not have.
+- **Free checks.** The same run with an empty program finds the checks that hold before a single
+  rule is written - "day: lamp off" holds because the lamp starts off - so progress, when it
+  comes, counts only over the rest: the night light has one real check of three, the colour
+  lock one of five, the counter one of one. `MissionRegistry.freeChecks` / `realChecks`.
+- `/rc selftest` 184 -> **197/197**: every solution parses, round-trips through the text a
+  student reads, fits the table and passes; the simulation agrees with the real bench on the
+  night light both ways, models feedback (the night light flickers on rung 4) and energy (an
+  always-on lamp runs flat on rung 6); the free checks are what they should be.
+- `tools/BenchCheck.java` keeps its second question - that the *naive* programs fail - and
+  loses its first to the server.
+- On the dev server only; nothing a student sees has changed yet. The class servers get it with
+  slice 2.
+
 ## RoboCraft 2026-09-16 - A student chooses where they live
 Yon: "I want the players to have the option to change their spawn location." Since the world
 became terrain, dying dropped a student at the world spawn, which can be hundreds of blocks from

@@ -27,6 +27,13 @@ java  -cp "robotics/build/classes/java/main;/tmp/bc" BenchCheck
 Exit code is non-zero if any check fails. Scenarios are transcribed from `missions.yml` rather
 than parsed, so re-check them by eye if you change the mission steps.
 
+**Since 2026-10-16 question 1 is answered on the server itself.** Every mission carries its
+`solution:` in `missions.yml`, and `MissionRegistry.validate` runs it through `mission/BenchSim`
+(the same simulation idea as this file's `Sim`, inside the plugin and reading the real
+`parts.yml`/`config.yml` numbers) on every enable - a solution that fails is a SEVERE log line,
+and `/rc selftest` checks all sixteen. What this file still does that the server does not is
+question 2: the *naive* programs, and that they fail. Those stay transcribed here.
+
 ## smoke-test.ps1
 
 Downloads nothing and assumes nothing: point it at a directory that already contains a `paper.jar`,

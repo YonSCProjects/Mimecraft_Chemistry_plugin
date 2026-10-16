@@ -85,6 +85,8 @@ public class PartBlockListener implements Listener {
                             + " - זה השם שמשתמשים בו בתוכנית.", NamedTextColor.GREEN));
             }
         }
+        // The robot changed shape: the walkthrough's next step, if it moved.
+        plugin.walkthrough().nudge(player);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

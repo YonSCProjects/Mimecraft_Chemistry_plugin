@@ -69,6 +69,8 @@ public class MissionService {
         final Map<String, Integer> switches = new LinkedHashMap<>();
         int index;
         int waitLeft;
+        /** A check that needs a real rule has passed this run - what earns a taste on a failure. */
+        boolean realCheckPassed;
 
         Run(Mission mission, CommandSender sender, UUID owner) {
             this.mission = mission;
@@ -146,6 +148,8 @@ public class MissionService {
         String missing = missingParts(robot, mission);
         if (missing != null) return missing;
         if (robot.program().isEmpty()) return "אין כללים בתוכנית. לחצו על הבקר וכתבו כלל.";
+        // Guided mode's ? reads as 0 - a program with one still in it was never finished.
+        if (robot.program().hasBlank()) return "יש עוד ? בתוכנית - מלאו את המספרים לפני ההרצה.";
 
         int capacity = batteryCapacity(robot);
         robot.energy(mission.startEnergy() > 0 ? mission.startEnergy() : capacity);
@@ -202,6 +206,11 @@ public class MissionService {
             if (step.hasExpect()) {
                 String failure = check(run, robot, step);
                 if (failure != null) { fail(run, robot, step, failure); return; }
+                // "Day: lamp off" passes with no program at all; this one did not. The first such
+                // check is real progress, and what a taste of the prize is paid for.
+                if (run.owner != null && !registry.freeChecks(run.mission).contains(run.index)) {
+                    run.realCheckPassed = true;
+                }
             }
             run.index++;
             if (step.waitTicks() > 0) {
@@ -337,10 +346,18 @@ public class MissionService {
 
         List<String> unlocked = new ArrayList<>();
         boolean firstTime = false;
+        String how = "";
         if (run.owner != null) {
             // Read before recording, or every retry looks like a first success.
             firstTime = !plugin.store().isMissionDone(run.owner, run.mission.id());
             plugin.store().completeMission(run.owner, run.mission.id());
+            // Which of the three paths got them here (docs/DESIGN.md 4.12). No path chosen means
+            // they wrote the rules without the walkthrough - solo.
+            com.agurim.robocraft.ui.Walkthrough.Path path = plugin.walkthrough().pathOf(run.owner, run.mission);
+            if (path == null) path = com.agurim.robocraft.ui.Walkthrough.Path.SOLO;
+            plugin.store().setPath(run.owner, run.mission.id(), path.key());
+            plugin.walkthrough().finished(run.owner, run.mission);
+            how = " - " + path.passed();
             for (String partId : run.mission.reward()) {
                 if (plugin.parts().has(partId) && plugin.store().unlock(run.owner, partId)) {
                     unlocked.add(plugin.parts().get(partId).name());
@@ -356,11 +373,17 @@ public class MissionService {
             run.sender.sendMessage(Component.text("הסוללה מולאה לרגל ההצלחה.", NamedTextColor.GRAY));
         }
 
+        // The prize in Minecraft (docs/DESIGN.md 4.12): the mission's perks, for keeps, applied now.
+        List<Perk> perks = (run.owner != null && run.sender instanceof Player p)
+                ? plugin.perks().granted(p, run.mission) : List.of();
+        List<String> gainedNames = new ArrayList<>(unlocked);
+        for (Perk perk : perks) gainedNames.add(perk.hebrew());
+
         // Say what they GAINED, not the mission name they already know they just ran. A warm-up
         // or bonus has nothing to unlock, so the subtitle carries the encouragement instead.
-        String gained = unlocked.isEmpty()
+        String gained = gainedNames.isEmpty()
                 ? (run.mission.warmUp() ? "חימום הושלם" : run.mission.bonus() ? "בונוס הושלם" : run.mission.name())
-                : "נפתח: " + String.join(", ", unlocked);
+                : "נפתח: " + String.join(", ", gainedNames);
 
         if (run.sender instanceof Player player) {
             player.showTitle(Title.title(
@@ -369,11 +392,16 @@ public class MissionService {
                     Title.Times.times(Duration.ofMillis(200), Duration.ofSeconds(3), Duration.ofMillis(800))));
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.4f);
         }
-        run.sender.sendMessage(Component.text("✔ " + run.mission.name() + " עבר את כל הבדיקות",
+        run.sender.sendMessage(Component.text("✔ " + run.mission.name() + " עבר את כל הבדיקות" + how,
                 NamedTextColor.GREEN));
 
-        if (!unlocked.isEmpty()) {
-            run.sender.sendMessage(Component.text("נפתח: " + String.join(", ", unlocked), NamedTextColor.GOLD));
+        if (!gainedNames.isEmpty()) {
+            run.sender.sendMessage(Component.text("נפתח: " + String.join(", ", gainedNames), NamedTextColor.GOLD));
+        }
+        if (perks.stream().anyMatch(perk -> perk.kind() == Perk.Kind.WILD)) {
+            run.sender.sendMessage(Component.text("השטח הפתוח נפתח לכם!  ", NamedTextColor.GREEN)
+                    .append(com.agurim.robocraft.ui.MissionCard.button("שטח פתוח", "/rc wild",
+                            "מקום שאינו חלקה של אף אחד - בונים שם חופשי", NamedTextColor.GREEN)));
         }
 
         // Everything below needs a real student behind the run. `/rc selftest` drives the bench
@@ -464,12 +492,14 @@ public class MissionService {
         }
         run.sender.sendMessage(com.agurim.robocraft.ui.MissionCard.runButton(run.mission, "▶ נסו שוב")
                 .append(Component.text("  "))
-                .append(com.agurim.robocraft.ui.MissionCard.button("הכרטיס", "/rc missions " + run.mission.id(),
+                .append(com.agurim.robocraft.ui.MissionCard.button("הכרטיס", "/rc card " + run.mission.id(),
                         "מה בונים ומה הבוחן בודק", NamedTextColor.YELLOW)));
 
         if (run.owner != null) {
             lastFailure.put(run.owner, run.mission.id() + ": " + detail
                     + (step.because().isEmpty() ? "" : " (" + step.because() + ")"));
+            // Got somewhere before it failed: a taste of what the mission pays. Once, ever.
+            if (run.realCheckPassed && run.sender instanceof Player player) plugin.perks().taste(player, run.mission);
         }
     }
 

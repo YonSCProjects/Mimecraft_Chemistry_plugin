@@ -122,6 +122,9 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "tp"       -> tp(player, args);
             case "board"    -> rebuildBoard(player);
             case "missions" -> listMissions(player, args);
+            case "card"     -> card(player, args);
+            case "path"     -> path(player, args);
+            case "perks"    -> perks(player);
             case "mission"  -> runMission(player, args);
             case "run"      -> startRobot(player);
             case "stop"     -> stopRobot(player);
@@ -137,7 +140,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
             case "reset"    -> reset(player);
             case "reload"   -> reload(player);
             default         -> player.sendMessage(Component.text(
-                                    "/rc guide | kit | tp | board | missions [n] | mission <n> | hint | run | stop | trace | charge | ask <שאלה>",
+                                    "/rc guide | kit | tp | board | missions [n] | card <n> | mission <n> | hint | perks | run | stop | trace | charge | ask <שאלה>",
                                     NamedTextColor.GRAY));
         }
         return true;
@@ -167,10 +170,44 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
                 MissionCard.overview(plugin, player);
                 return;
             }
-            MissionCard.send(plugin, player, m);
+            // The front door is the walkthrough now - the next step, not the whole card
+            // (docs/DESIGN.md 4.12). The card is one button away, and /rc card.
+            plugin.walkthrough().send(player, m);
             return;
         }
         MissionCard.overview(plugin, player);
+    }
+
+    /** {@code /rc card <mission>}: the whole card - what to build and what the bench checks. */
+    private void card(Player player, String[] args) {
+        Mission m = args.length >= 2 ? resolveMission(args[1])
+                : plugin.missions().focusOrNext(player.getUniqueId());
+        if (m == null) {
+            player.sendMessage(Component.text("אין משימה כזו: " + (args.length >= 2 ? args[1] : ""), NamedTextColor.RED));
+            MissionCard.overview(plugin, player);
+            return;
+        }
+        MissionCard.send(plugin, player, m);
+    }
+
+    /**
+     * {@code /rc path solo|guided|watch [mission]}: how the rules get written. The walkthrough's
+     * three buttons run this; a student never types it.
+     */
+    private void path(Player player, String[] args) {
+        com.agurim.robocraft.ui.Walkthrough.Path path = args.length >= 2
+                ? com.agurim.robocraft.ui.Walkthrough.Path.parse(args[1]) : null;
+        if (path == null) {
+            player.sendMessage(Component.text("/rc path solo | guided | watch", NamedTextColor.GRAY));
+            return;
+        }
+        Mission m = args.length >= 3 ? resolveMission(args[2])
+                : plugin.missions().focusOrNext(player.getUniqueId());
+        if (m == null) {
+            player.sendMessage(Component.text("אין משימה פתוחה. /rc missions", NamedTextColor.GRAY));
+            return;
+        }
+        plugin.walkthrough().choose(player, m, path);
     }
 
     /**
@@ -279,6 +316,22 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
      */
     private void wild(Player player, String[] args) {
         java.util.UUID id = player.getUniqueId();
+        // The one soft gate (docs/DESIGN.md 4.12): the open land opens after the first warm-up.
+        // A student who already has a spot out there keeps it.
+        if (!plugin.perks().wildAllowed(id)) {
+            Mission by = plugin.missions().registry().granting("wild");
+            Component msg = Component.text("השטח הפתוח נפתח אחרי המשימה הראשונה", NamedTextColor.YELLOW);
+            if (by != null) {
+                msg = msg.append(Component.text(": ", NamedTextColor.YELLOW))
+                        .append(MissionCard.openLink(plugin.missions().registry(), by, NamedTextColor.YELLOW))
+                        .append(Component.text("  "))
+                        .append(MissionCard.openButton(by));
+            } else {
+                msg = msg.append(Component.text(".", NamedTextColor.YELLOW));
+            }
+            player.sendMessage(msg);
+            return;
+        }
         org.bukkit.World world = plugin.plots().world();
         boolean fresh = args.length >= 2 && (args[1].equalsIgnoreCase("new") || args[1].equals("חדש"));
 
@@ -312,6 +365,32 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
                 .append(MissionCard.button("לחלקה שלי", "/rc tp", "חזרה לחלקה ולסדנה", NamedTextColor.AQUA))
                 .append(Component.text(" "))
                 .append(MissionCard.button("מקום אחר", "/rc wild new", "מקום פתוח חדש - הקודם נשאר במקומו", NamedTextColor.YELLOW)));
+    }
+
+    /** {@code /rc perks}: the powers they hold, what is on loan, and what the next mission pays. */
+    private void perks(Player player) {
+        java.util.UUID id = player.getUniqueId();
+        var reg = plugin.missions().registry();
+        List<com.agurim.robocraft.mission.Perk> mine = new ArrayList<>();
+        List<String> lent = new ArrayList<>();
+        for (String key : plugin.perks().held(id)) {
+            com.agurim.robocraft.mission.Perk p = com.agurim.robocraft.mission.Perk.parse(key);
+            if (p == null) continue;
+            long left = plugin.perks().tasteMinutesLeft(id, key);
+            if (left > 0) lent.add(p.hebrew() + " (עוד " + left + " דק')");
+            else mine.add(p);
+        }
+        player.sendMessage(Component.text("הכוחות שלכם: " + (mine.isEmpty() ? "עוד אין. הם מגיעים עם המשימות."
+                : com.agurim.robocraft.perk.PerkService.names(mine)), NamedTextColor.GOLD));
+        if (!lent.isEmpty()) player.sendMessage(Component.text("בהשאלה: " + String.join(", ", lent), NamedTextColor.YELLOW));
+        Mission next = reg.nextSuggested(plugin.store().completedMissions(id));
+        if (next != null && !reg.perksOf(next).isEmpty()) {
+            player.sendMessage(Component.text("הבא: " + com.agurim.robocraft.perk.PerkService.names(reg.perksOf(next)) + " - ",
+                    NamedTextColor.AQUA)
+                    .append(MissionCard.openLink(reg, next, NamedTextColor.AQUA))
+                    .append(Component.text("  "))
+                    .append(MissionCard.openButton(next)));
+        }
     }
 
     /** The hint for a mission - or for the one the student is working on. Behind a click, so a card spoils nothing. */
@@ -707,6 +786,7 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
         plugin.store().reset(player.getUniqueId());
         rebuildBoard(player);
         plugin.statusBar().update(player);
+        plugin.perks().apply(player);     // the powers go with the progress
         player.sendMessage(Component.text("ההתקדמות אופסה.", NamedTextColor.YELLOW));
     }
 
@@ -729,14 +809,15 @@ public class RoboCraftCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String s : List.of("guide", "kit", "tp", "board", "missions", "mission",
-                                    "run", "stop", "trace", "charge", "ask", "give", "unlock",
+            for (String s : List.of("guide", "kit", "tp", "board", "missions", "card", "mission",
+                                    "perks", "run", "stop", "trace", "charge", "ask", "give", "unlock",
                                     "reset", "reload", "selftest", "progress", "questions",
                                     "whisper", "pause", "resume", "say", "hint", "pads", "survey",
                                     "wild", "home", "sethome")) {
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
             }
-        } else if (args.length == 2 && (args[0].equalsIgnoreCase("missions") || args[0].equalsIgnoreCase("hint"))) {
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("missions") || args[0].equalsIgnoreCase("hint")
+                || args[0].equalsIgnoreCase("card"))) {
             for (Mission m : plugin.missions().registry().all()) {
                 if (m.id().startsWith(args[1])) out.add(m.id());
             }

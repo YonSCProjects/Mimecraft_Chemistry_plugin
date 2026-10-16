@@ -13,6 +13,9 @@
     done with a regex rather than ConvertFrom-Json on purpose: the file has keys differing only by
     case, which makes Windows PowerShell 5.1's parser throw, and its -AsHashtable escape hatch only
     exists in PowerShell 7. A regex works in both.
+
+    Failing that, it reads rcon.password from the server.properties beside this script - which is
+    what the copy inside a server folder finds on a PC with no MCP bridge, so stop.bat still works.
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0)][string]$Command,
@@ -23,14 +26,17 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (-not $Password) {
-    $cfgPath = Join-Path $env:USERPROFILE ".claude.json"
-    if (-not (Test-Path $cfgPath)) { throw "No -Password given and $cfgPath not found." }
-    $raw = Get-Content $cfgPath -Raw
-    $m = [regex]::Match($raw, '"RCON_PASSWORD"\s*:\s*"([^"]+)"')
-    if (-not $m.Success) { throw "Could not read RCON_PASSWORD from $cfgPath." }
-    $Password = $m.Groups[1].Value
+$cfgPath = Join-Path $env:USERPROFILE ".claude.json"
+if (-not $Password -and (Test-Path $cfgPath)) {
+    $m = [regex]::Match((Get-Content $cfgPath -Raw), '"RCON_PASSWORD"\s*:\s*"([^"]+)"')
+    if ($m.Success) { $Password = $m.Groups[1].Value }
 }
+$propsPath = Join-Path $PSScriptRoot "server.properties"
+if (-not $Password -and (Test-Path $propsPath)) {
+    $m = Select-String -Path $propsPath -Pattern '^rcon\.password=(.+)$' | Select-Object -First 1
+    if ($m) { $Password = $m.Matches[0].Groups[1].Value.Trim() }
+}
+if (-not $Password) { throw "No -Password given, no RCON_PASSWORD in $cfgPath, and no rcon.password in $propsPath." }
 
 # RCON packet: int32 size | int32 id | int32 type | body (UTF-8) | 0x00 | 0x00
 # size counts everything after itself. type 3 = auth, 2 = command, 2/0 = response.

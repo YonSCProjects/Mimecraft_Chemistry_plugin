@@ -52,6 +52,21 @@
 #              `running: true|false`, or `steady: <actuator type>` - that type switched at most
 #              once during the preceding wait. A flickering lamp switches eight times.
 #   because  - shown when this check fails. Never a score, always the reason.
+#
+# SOLUTION (docs/DESIGN.md 4.12). `solution:` is the reference program, one rule per line in the
+# exact words the rule table shows - "IF S1 < 7 THEN A1 ON", "ALWAYS THEN M2 SET S1". Ports count
+# in `needs` order: the first sensor listed is S1, the first actuator A1. At every enable the
+# validator runs it on a simulation of this bench and refuses to demonstrate a mission whose own
+# answer fails; it also runs the EMPTY program to find the checks that hold before a rule is
+# written ("day: lamp off"), so progress is counted only over the rest.
+#   solution-parts - parts the reference build carries beyond `needs` (a second solar panel).
+#
+# PERKS (docs/DESIGN.md 4.12). `perks:` is what a pass pays in Minecraft, for keeps, and what the
+# first real bench check lends for a few minutes. Separate from `reward` on purpose: a rung that
+# unlocks no part still pays. Ids: wild (the open land - the one soft gate, after the first
+# warm-up), speed, haste, jump, night-vision (each optionally :2 or :3), fly-plot, fly, elytra,
+# pet:wolf|cat|parrot|horse. Roughly in ladder order, strongest last. Bonus jobs pay nothing, as
+# they grant nothing - a place must never pull a student off the required track.
 
 # ============================ WARM-UPS (optional) ============================
 
@@ -72,6 +87,10 @@ night_light:
   needs: [controller, battery, light_sensor, lamp]
   reward: []
   hint: "שני כללים: IF S1 < 7 THEN A1 ON, ואחריו IF S1 >= 7 THEN A1 OFF. נורה זוכרת - חייבים כלל שמכבה"
+  perks: [wild]
+  solution:
+    - "IF S1 < 7 THEN A1 ON"
+    - "IF S1 >= 7 THEN A1 OFF"
   steps:
     - { say: "יום בפתח המכרה. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום הנורה צריכה להיות כבויה" }
@@ -97,6 +116,12 @@ alarm:
   needs: [controller, battery, presence_sensor, buzzer, lamp]
   reward: []
   hint: "ארבעה כללים: על S1 = 1 - זמזם ON ונורה ON; על S1 = 0 - זמזם OFF ונורה OFF"
+  perks: [speed]
+  solution:                        # A1 buzzer, A2 lamp - needs order
+    - "IF S1 = 1 THEN A1 ON"
+    - "IF S1 = 1 THEN A2 ON"
+    - "IF S1 = 0 THEN A1 OFF"
+    - "IF S1 = 0 THEN A2 OFF"
   steps:
     - { say: "אין אף אחד ליד המחסן.", env: { player: 0 }, wait: 30 }
     - { expect: { buzzer: off }, because: "כשאין אף אחד קרוב האזעקה שקטה" }
@@ -123,6 +148,10 @@ auto_door:
   needs: [controller, battery, presence_sensor, gate]
   reward: []
   hint: "שני כללים: IF S1 = 1 THEN A1 ON, ואחריו IF S1 = 0 THEN A1 OFF"
+  perks: [haste]
+  solution:
+    - "IF S1 = 1 THEN A1 ON"
+    - "IF S1 = 0 THEN A1 OFF"
   steps:
     - { say: "אין אף אחד במחסן.", env: { player: 0 }, wait: 30 }
     - { expect: { gate: off }, because: "בלי אף אחד בסביבה השער סגור" }
@@ -149,6 +178,11 @@ twilight:
   needs: [controller, battery, light_sensor, lamp]
   reward: [display]
   hint: "שלושה כללים על אותו פלט, והסדר הוא התשובה: כבו ביום, הדליקו כשמחשיך, ואז כבו שוב בחושך מוחלט"
+  perks: [jump, wild]              # wild here too, so a student who skipped the warm-ups is not shut out
+  solution:
+    - "IF S1 >= 10 THEN A1 OFF"
+    - "IF S1 < 10 THEN A1 ON"
+    - "IF S1 < 4 THEN A1 OFF"
   steps:
     - { say: "צהריים בחממה. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום הנורה כבויה" }
@@ -177,6 +211,12 @@ timed_door:
   needs: [controller, battery, presence_sensor, gate]
   reward: [distance_sensor]
   hint: "M1 SET TIME ואז M1 ADD 3. הזיכרון מחזיק מתי מותר להיסגר - לא אם מישהו נמצא"
+  perks: [fly-plot]
+  solution:
+    - "IF S1 = 1 THEN M1 SET TIME"
+    - "IF S1 = 1 THEN M1 ADD 3"
+    - "IF TIME < M1 THEN A1 ON"
+    - "IF TIME >= M1 THEN A1 OFF"
   steps:
     - { say: "אין אף אחד במחסן.", env: { player: 0 }, wait: 40 }
     - { expect: { gate: off }, because: "בלי אף אחד השער סגור" }
@@ -203,6 +243,11 @@ counter:
   needs: [controller, battery, presence_sensor, display]
   reward: [heat_sensor, mob_sensor]
   hint: "כדי לספור מעברים צריך לזכור מה היה בסיבוב הקודם: M2 SET S1 - אבל רק אחרי הכלל שמשווה. והצג מראה את M1"
+  perks: [night-vision]
+  solution:
+    - "IF S1 > M2 THEN M1 ADD 1"
+    - "ALWAYS THEN M2 SET S1"
+    - "ALWAYS THEN A1 SHOW M1"
   steps:
     - { say: "השער ריק. מאפסים.", env: { player: 0 }, wait: 20 }
     - { say: "אורח ראשון נכנס.", env: { player: 1 }, wait: 20 }
@@ -227,6 +272,10 @@ flicker:
   needs: [controller, battery, light_sensor, lamp]
   reward: []
   hint: "שני ספים: הדליקו מתחת ל-7, כבו רק מעל 13 - האור שהנורה עצמה נותנת. בין הספים הפלט זוכר את מצבו"
+  perks: [elytra]                  # the rung that unlocks no part still pays
+  solution:
+    - "IF S1 < 7 THEN A1 ON"
+    - "IF S1 > 13 THEN A1 OFF"
   steps:
     - { say: "יום. עוצמת אור 14.", env: { light: 14 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום כבויה" }
@@ -253,6 +302,10 @@ thermostat:
   needs: [controller, battery, heat_sensor, lamp]
   reward: [solar_panel, rain_sensor]
   hint: "עם סף אחד המערכת מתנדנדת. נסו סף להדלקה וסף אחר - גבוה יותר - לכיבוי. בדיוק כמו הנורה במכרה"
+  perks: [pet:wolf]
+  solution:
+    - "IF S1 < 30 THEN A1 ON"
+    - "IF S1 > 60 THEN A1 OFF"
   steps:
     - { say: "קר בנפחייה. חום 20.", env: { heat: 20 }, wait: 30 }
     - { expect: { lamp: on }, because: "כשקר המחמם צריך לעבוד" }
@@ -279,6 +332,10 @@ efficiency:
   needs: [controller, battery, light_sensor, lamp]
   reward: [marker, color_sensor, redstone_sensor]
   hint: "כל מפעיל דולק שורף חשמל בכל סיבוב. מה באמת חייב להיות דלוק, ומתי?"
+  perks: [fly]
+  solution:                        # the night light itself - the budget is the lesson, not a new rule
+    - "IF S1 < 7 THEN A1 ON"
+    - "IF S1 >= 7 THEN A1 OFF"
   # Tuned against robotics/tools/BenchCheck.java: a duty-cycled robot finishes with room to spare
   # even with a spare sensor attached, while an always-on lamp runs flat around two thirds in.
   start-energy: 150
@@ -311,6 +368,10 @@ fire_alarm:
   needs: [controller, battery, heat_sensor, buzzer, display]
   reward: []
   hint: "ALWAYS צג SHOW S1 - ואז סף אחד לזמזם, בין 52 ל-56. וכלל שמכבה כשמתקרר"
+  solution:                        # A1 buzzer, A2 display - needs order
+    - "ALWAYS THEN A2 SHOW S1"
+    - "IF S1 > 54 THEN A1 ON"
+    - "IF S1 <= 54 THEN A1 OFF"
   steps:
     - { say: "האולם רגוע. חום 50.", env: { heat: 50 }, wait: 30 }
     - { expect: { display: 50, buzzer: off }, because: "הצג מראה את החום תמיד; בלי אש - שקט" }
@@ -340,6 +401,10 @@ tunnel_gauge:
   needs: [controller, battery, distance_sensor, display, buzzer]
   reward: []
   hint: "ALWAYS צג SHOW S1. סף: פחות מ-3 - זמזם ON, אחרת OFF. הקיר בסוף המנהרה נמצא במרחק 11"
+  solution:                        # A1 display, A2 buzzer - needs order
+    - "ALWAYS THEN A1 SHOW S1"
+    - "IF S1 < 3 THEN A2 ON"
+    - "IF S1 >= 3 THEN A2 OFF"
   steps:
     - { say: "המנהרה פנויה עד הקיר בסוף. מרחק 11.", env: { distance: 11 }, wait: 30 }
     - { expect: { display: 11, buzzer: off }, because: "הצג מראה את המרחק שהחיישן קורא, והקיר בסוף לא מפריע" }
@@ -367,6 +432,12 @@ pen_guard:
   needs: [controller, battery, mob_sensor, lamp, display]
   reward: []
   hint: "המונה מהשער, עם חיישן חיות במקום נוכחות: השוו לפני שזוכרים, ותנו לצג להראות את M1. בדיוק חמישה כללים"
+  solution:                        # A1 lamp, A2 display - needs order; exactly five rules
+    - "IF S1 > M2 THEN M1 ADD 1"
+    - "IF S1 = 1 THEN A1 ON"
+    - "IF S1 = 0 THEN A1 OFF"
+    - "ALWAYS THEN M2 SET S1"
+    - "ALWAYS THEN A2 SHOW M1"
   steps:
     - { say: "שקט בדיר, השער סגור.", env: { mob: 0 }, wait: 20 }
     - { expect: { lamp: off, display: 0 }, because: "אין חיה בחוץ - אור כבוי, המונה על 0" }
@@ -395,6 +466,10 @@ rain_vent:
   needs: [controller, battery, light_sensor, rain_sensor, gate]
   reward: []
   hint: "כלל האור פותח וסוגר; כלל הגשם סוגר - והוא חייב לבוא אחרון, אחרת כלל האור פותח מחדש. בדקו על התוויות איזה חיישן הוא S1"
+  solution:                        # S1 light, S2 rain - needs order; the rain rule last, so it wins
+    - "IF S1 >= 7 THEN A1 ON"
+    - "IF S1 < 7 THEN A1 OFF"
+    - "IF S2 = 1 THEN A1 OFF"
   steps:
     - { say: "יום יבש. אור 14, גשם 0.", env: { light: 14, rain: 0 }, wait: 30 }
     - { expect: { gate: on }, because: "ביום יבש הצוהר פתוח - לאוורר את החממה" }
@@ -422,6 +497,9 @@ solar_station:
   needs: [controller, battery, solar_panel, light_sensor, display]
   reward: []
   hint: "לוח אחד: נכנס 2, יוצא 3 - מפסידים 1 בכל סיבוב. שני לוחות: מרוויחים 1. ובלי חיישנים מיותרים"
+  solution:                        # the answer is a second panel, not a rule
+    - "ALWAYS THEN A1 SHOW S1"
+  solution-parts: [solar_panel]
   start-energy: 40
   steps:
     - { say: "צהריים על הגג. אור 15. הסוללה כמעט ריקה - 40.", env: { light: 15 }, wait: 600 }
@@ -446,6 +524,9 @@ color_lock:
   needs: [controller, battery, color_sensor, gate]
   reward: []
   hint: "שני כללים: שווה 13 - פתוח. לא שווה 13 - סגור. קוד לא משווים עם קטן או גדול"
+  solution:
+    - "IF S1 = 13 THEN A1 ON"
+    - "IF S1 != 13 THEN A1 OFF"
   steps:
     - { say: "אין בלוק מתחת לחיישן. צבע 16.", env: { color: 16 }, wait: 30 }
     - { expect: { gate: off }, because: "בלי מפתח המרתף סגור" }
@@ -475,6 +556,10 @@ manual_override:
   needs: [controller, battery, light_sensor, redstone_sensor, lamp]
   reward: []
   hint: "כללי האור מדליקים ומכבים; כלל המתג מדליק - והוא חייב להיות אחרון, אחרת כלל היום מכבה אותו"
+  solution:                        # S1 light, S2 lever - needs order; the lever rule last, so it wins
+    - "IF S1 < 7 THEN A1 ON"
+    - "IF S1 >= 7 THEN A1 OFF"
+    - "IF S2 > 0 THEN A1 ON"
   steps:
     - { say: "יום, המתג למטה. אור 14, אות 0.", env: { light: 14, redstone: 0 }, wait: 30 }
     - { expect: { lamp: off }, because: "ביום, בלי מתג - כבויה" }

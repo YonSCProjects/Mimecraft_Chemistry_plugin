@@ -117,6 +117,8 @@ public class InteractListener implements Listener {
             // The rows are unreadable without hovering each cell, so put the program in chat too,
             // where it renders over the open window.
             ProgramMenu.echoProgram(plugin, player, PartStore.key(loc));
+            // The one step the world cannot tell the walkthrough: the table has been opened.
+            plugin.walkthrough().opened(player);
             return;
         }
 

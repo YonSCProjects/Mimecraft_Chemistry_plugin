@@ -188,6 +188,7 @@ public class RobotEngine {
         }
         if (!battery) return "אין סוללה מחוברת";
         if (robot.program().isEmpty()) return "אין כללים בתוכנית";
+        if (robot.program().hasBlank()) return "יש עוד ? בתוכנית - מלאו את המספרים";
         if (plugin.getConfig().getBoolean("power.enabled", true) && robot.energy() <= 0) return "הסוללה ריקה";
         return null;
     }

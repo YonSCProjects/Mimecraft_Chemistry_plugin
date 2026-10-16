@@ -219,12 +219,13 @@ public final class MissionCard {
                 .hoverEvent(HoverEvent.showText(Component.text(hover, NamedTextColor.GRAY)));
     }
 
+    /** A mission's name as a click. It opens the walkthrough - the next step - since 2026-10-16. */
     public static Component openLink(MissionRegistry reg, Mission m, NamedTextColor color) {
-        return link(reg.label(m) + ". " + m.name(), "/rc missions " + m.id(), "לחצו - מה בונים ומה נבדק", color);
+        return link(reg.label(m) + ". " + m.name(), "/rc missions " + m.id(), "לחצו - הצעד הבא", color);
     }
 
     public static Component openButton(Mission m) {
-        return button("פתיחה", "/rc missions " + m.id(), "מה בונים ומה הבוחן בודק", NamedTextColor.YELLOW);
+        return button("פתיחה", "/rc missions " + m.id(), "הצעד הבא, צעד אחר צעד", NamedTextColor.YELLOW);
     }
 
     public static Component runButton(Mission m, String text) {
@@ -255,6 +256,8 @@ public final class MissionCard {
         if (rows.size() > shown) player.sendMessage(Component.text("  ...ועוד " + (rows.size() - shown), NamedTextColor.GRAY));
 
         Component buttons = runButton(m, done ? "▶ הרצה שוב" : "▶ הרצה")
+                .append(Component.text("  "))
+                .append(button("צעד אחר צעד", "/rc missions " + m.id(), "מה לעשות עכשיו", NamedTextColor.YELLOW))
                 .append(Component.text("  "))
                 .append(button("רמז", "/rc hint " + m.id(), "עזרה קטנה - לא הפתרון", NamedTextColor.GOLD))
                 .append(Component.text("  "))
@@ -288,7 +291,7 @@ public final class MissionCard {
         for (String l : BigText.lines(next.brief(), WIDTH)) player.sendMessage(Component.text(l, NamedTextColor.WHITE));
         player.sendMessage(runButton(next, "▶ הרצה")
                 .append(Component.text("  "))
-                .append(button("הכרטיס: מה בונים ומה נבדק", "/rc missions " + next.id(), "פותח את הכרטיס", NamedTextColor.YELLOW)));
+                .append(button("הכרטיס: מה בונים ומה נבדק", "/rc card " + next.id(), "פותח את הכרטיס", NamedTextColor.YELLOW)));
     }
 
     private static void strip(Player player, MissionRegistry reg, String title, List<Mission> track,

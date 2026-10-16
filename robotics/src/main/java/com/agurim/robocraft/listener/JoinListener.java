@@ -73,11 +73,15 @@ public class JoinListener implements Listener {
             Guide.sendProgress(plugin, player);
         }
         plugin.statusBar().update(player);
+        plugin.perks().apply(player);          // the powers their passes pay, re-asserted
         plugin.pause().remindOnJoin(player);   // joining into a paused room: frozen, and told
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         plugin.statusBar().remove(event.getPlayer());
+        plugin.demo().cancel(event.getPlayer().getUniqueId());
+        plugin.walkthrough().forget(event.getPlayer().getUniqueId());
+        plugin.perks().forget(event.getPlayer().getUniqueId());   // a taste never outlives the session
     }
 }

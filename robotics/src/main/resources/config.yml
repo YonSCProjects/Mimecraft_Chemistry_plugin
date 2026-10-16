@@ -84,6 +84,23 @@ missions:
   # Never a score, always the failing check, unlimited retries.
   show-failed-check: true
 
+# The walkthrough (docs/DESIGN.md 4.12): a mission one step at a time instead of the whole card,
+# and three ways to the rules - write them, fill the numbers into ready rules, or watch the robot
+# write the solution. demo-interval is ticks between rules while it writes (20 = one second).
+walkthrough:
+  demo-interval: 40
+
+# The prize is in Minecraft (docs/DESIGN.md 4.12). A pass grants the powers its mission lists
+# under `perks:` in missions.yml - speed, haste, jump, night-vision (potion effects that never run
+# out), fly-plot / fly (flight on your own plot / anywhere), elytra (with rockets, replaced if
+# lost), pet:wolf|cat|parrot|horse (tamed, replaced if lost), and wild, the one soft gate: the
+# open land opens after the first warm-up. Powers are re-applied on every join and go with a
+# reset. The first bench check that needs a real rule LENDS the mission's powers for
+# taste-minutes, once per mission, so the prize is concrete before it is earned.
+perks:
+  enabled: true
+  taste-minutes: 10
+
 # The in-game assistant voice.
 #
 # The plugin never talks to an AI. Students ask with `/rc ask <question>`; the plugin CAPTURES the

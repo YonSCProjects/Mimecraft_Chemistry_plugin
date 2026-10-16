@@ -1,6 +1,10 @@
 package com.agurim.robocraft.mission;
 
 import com.agurim.robocraft.RoboCraftPlugin;
+import com.agurim.robocraft.part.Part;
+import com.agurim.robocraft.part.PartRegistry;
+import com.agurim.robocraft.program.Program;
+import com.agurim.robocraft.program.Rule;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -40,7 +44,10 @@ public class MissionRegistry {
                     s.getStringList("needs"),
                     s.getStringList("reward"),
                     s.getInt("start-energy", 0),
-                    steps(s)));
+                    steps(s),
+                    s.getStringList("solution"),
+                    s.getStringList("solution-parts"),
+                    s.getStringList("perks")));
         }
         loaded.sort(Comparator.comparingInt(Mission::order));
         for (Mission m : loaded) missions.put(m.id(), m);
@@ -89,6 +96,65 @@ public class MissionRegistry {
     public java.util.Collection<Mission> all() { return missions.values(); }
     public int size()                       { return missions.size(); }
 
+    // ------------------------------------------------------------ solutions
+
+    /** Parsed solutions, and what the bench simulation said about them at enable - see {@link #validate}. */
+    private final Map<String, Program> solutions = new LinkedHashMap<>();
+    private final java.util.Set<String> verified = new java.util.HashSet<>();
+    private final Map<String, java.util.Set<Integer>> freeChecks = new LinkedHashMap<>();
+
+    /** The mission's reference program, or null if it has none or a line did not parse. */
+    public Program solution(Mission m) { return solutions.get(m.id()); }
+
+    /** Did the solution pass its own mission on the bench simulation? A demo must never show one that did not. */
+    public boolean solutionVerified(Mission m) { return verified.contains(m.id()); }
+
+    /**
+     * Step indices of the checks an EMPTY program passes - "day: lamp off" holds before anyone
+     * writes a rule, because the lamp starts off. Passing one of these says nothing; passing any
+     * other check needs a real rule, which is what progress is counted over (docs/DESIGN.md 4.12).
+     */
+    public java.util.Set<Integer> freeChecks(Mission m) {
+        return freeChecks.getOrDefault(m.id(), java.util.Set.of());
+    }
+
+    /** How many of the mission's checks need a real rule: every expect step that is not free. */
+    public int realChecks(Mission m) {
+        java.util.Set<Integer> free = freeChecks(m);
+        int n = 0;
+        for (int i = 0; i < m.steps().size(); i++) {
+            if (m.steps().get(i).hasExpect() && !free.contains(i)) n++;
+        }
+        return n;
+    }
+
+    /**
+     * The reference robot a solution is written against: {@code needs} then {@code solution-parts},
+     * in that order, so {@link BenchSim#ports} numbers the first sensor listed S1. Unknown part ids
+     * are skipped here and reported by {@link #validate}.
+     */
+    public List<BenchSim.PartSpec> referenceParts(Mission m, PartRegistry parts) {
+        List<BenchSim.PartSpec> out = new ArrayList<>();
+        List<String> ids = new ArrayList<>(m.needs());
+        ids.addAll(m.solutionParts());
+        for (String id : ids) {
+            Part p = parts.get(id);
+            if (p != null) out.add(new BenchSim.PartSpec(p.id(), p.kind(), p.sensor(), p.actuator(), p.capacity(), p.drain()));
+        }
+        return out;
+    }
+
+    /** The engine's knobs as config.yml sets them, so the simulation drains and charges like the server. */
+    public static BenchSim.Settings settings(RoboCraftPlugin plugin) {
+        return new BenchSim.Settings(
+                Math.max(1, plugin.getConfig().getInt("robot.tick-interval", 10)),
+                plugin.getConfig().getInt("program.memory-slots", 4),
+                plugin.getConfig().getBoolean("power.enabled", true),
+                plugin.getConfig().getInt("power.base-drain", 1),
+                plugin.getConfig().getInt("power.sensor-drain", 1),
+                plugin.getConfig().getInt("power.solar-gain", 2));
+    }
+
     /**
      * "1", "W2", "B3" - a mission's number on its own track, which is how the status bar counts
      * and therefore how the list, the card and every clickable reference must count too.
@@ -98,6 +164,22 @@ public class MissionRegistry {
         String prefix = m.warmUp() ? "W" : m.bonus() ? "B" : "";
         int i = track.indexOf(m);
         return prefix + (i + 1);
+    }
+
+    /** The mission's perks, parsed; a line that does not parse is skipped (and reported by {@link #validate}). */
+    public List<Perk> perksOf(Mission m) {
+        List<Perk> out = new ArrayList<>();
+        for (String raw : m.perks()) {
+            Perk p = Perk.parse(raw);
+            if (p != null) out.add(p);
+        }
+        return out;
+    }
+
+    /** The first mission, in ladder order, that pays this perk key - or null if none does. */
+    public Mission granting(String perkKey) {
+        for (Mission m : missions.values()) for (Perk p : perksOf(m)) if (p.key().equals(perkKey)) return m;
+        return null;
     }
 
     /** The mission whose reward unlocks this part, or null if it is free or unreachable. */
@@ -214,6 +296,19 @@ public class MissionRegistry {
                         + " - a skippable mission must not be the only source of a part.");
             }
 
+            for (String raw : m.perks()) {
+                if (Perk.parse(raw) == null) {
+                    plugin.getLogger().warning("missions.yml: '" + m.id() + "' lists perk '" + raw
+                            + "' - not one of wild, speed[:n], haste[:n], jump[:n], night-vision, fly-plot, fly, elytra, pet:wolf|cat|parrot|horse.");
+                }
+            }
+            // The prize is in Minecraft now (docs/DESIGN.md 4.12). A rung that pays nothing at
+            // all - no part, no perk - is a rung a student has no reason to climb.
+            if (!m.skippable() && m.reward().isEmpty() && perksOf(m).isEmpty()) {
+                plugin.getLogger().warning("missions.yml: required rung '" + m.id()
+                        + "' grants neither a part nor a perk.");
+            }
+
             legibility(plugin, m);
             steps(plugin, m);
         }
@@ -224,6 +319,86 @@ public class MissionRegistry {
                         + "' is never unlocked by any mission (fine for a bonus part).");
             }
         }
+
+        solutions(plugin);
+    }
+
+    /**
+     * Run every mission's own {@code solution:} through the bench simulation, and the empty
+     * program too.
+     *
+     * <p>The answer to each mission used to exist only as Java transcribed by hand into the
+     * self-test and tools/BenchCheck. Now it is content, and content can be wrong in ways nobody
+     * sees in play: a solution that names S2 on a one-sensor robot, one more rule than the table
+     * holds, a scenario edited until its own answer fails. Each is a log line here, at enable,
+     * and a mission whose solution fails is never offered as a demo. The empty program finds the
+     * FREE checks - the ones that hold before a single rule is written - so progress is counted
+     * over the rest (docs/DESIGN.md 4.12).
+     */
+    private void solutions(RoboCraftPlugin plugin) {
+        BenchSim.Settings settings = settings(plugin);
+        int maxRules = plugin.getConfig().getInt("program.max-rules", 5);
+        List<String> summary = new ArrayList<>();
+
+        for (Mission m : missions.values()) {
+            List<BenchSim.PartSpec> parts = referenceParts(m, plugin.parts());
+
+            BenchSim.Result empty = new BenchSim(m, new Program(), parts, settings).run();
+            java.util.Set<Integer> free = new java.util.LinkedHashSet<>();
+            for (BenchSim.CheckResult c : empty.checks()) if (c.ok()) free.add(c.stepIndex());
+            freeChecks.put(m.id(), free);
+            int total = empty.checks().size();
+            if (total > 0 && free.size() == total) {
+                plugin.getLogger().warning("missions.yml: '" + m.id()
+                        + "' passes every check with no program at all - it tests nothing.");
+            }
+
+            if (!m.hasSolution()) {
+                plugin.getLogger().warning("missions.yml: '" + m.id()
+                        + "' has no solution - nothing proves it is solvable, and it cannot be demonstrated.");
+                summary.add(m.id() + " none");
+                continue;
+            }
+            Program program = new Program();
+            boolean parsed = true;
+            for (String line : m.solution()) {
+                Rule rule = Rule.parse(line);
+                if (rule == null) {
+                    plugin.getLogger().warning("missions.yml: '" + m.id() + "' solution line does not parse: " + line);
+                    parsed = false;
+                } else {
+                    program.add(rule);
+                }
+            }
+            if (!parsed) { summary.add(m.id() + " unparsed"); continue; }
+            solutions.put(m.id(), program);
+
+            if (program.size() > maxRules) {
+                plugin.getLogger().warning("missions.yml: '" + m.id() + "' solution has " + program.size()
+                        + " rules; the table holds " + maxRules + ".");
+            }
+            Map<String, BenchSim.PartSpec> ports = BenchSim.ports(parts);
+            for (String port : BenchSim.portsNamed(program)) {
+                if (!ports.containsKey(port)) {
+                    plugin.getLogger().warning("missions.yml: '" + m.id() + "' solution names " + port
+                            + " but the reference robot (needs + solution-parts, ports in that order) has no such port.");
+                }
+            }
+
+            BenchSim.Result run = new BenchSim(m, program, parts, settings).run();
+            if (run.passed()) {
+                verified.add(m.id());
+            } else {
+                BenchSim.CheckResult first = run.firstFailure();
+                plugin.getLogger().severe("missions.yml: '" + m.id() + "' FAILS ITS OWN SOLUTION - "
+                        + (first == null ? "the scenario did not run to the end"
+                                : "step " + first.stepIndex() + ": " + first.detail())
+                        + ". It will not be demonstrated.");
+            }
+            summary.add(m.id() + (run.passed() ? " ok" : " FAIL") + " free " + free.size() + "/" + total);
+        }
+        plugin.getLogger().info("missions.yml: " + verified.size() + "/" + missions.size()
+                + " solutions verified on the bench simulation [" + String.join(", ", summary) + "]");
     }
 
     /**

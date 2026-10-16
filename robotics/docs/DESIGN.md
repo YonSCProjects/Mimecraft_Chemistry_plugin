@@ -395,6 +395,99 @@ This is the rule the §6 inheritance would have predicted: protection exists so 
 lost, never to make the world small. The old rule protected more than anyone's work, and the
 class noticed before we did.
 
+### 4.12 The prize is in Minecraft, and the floor is watching
+
+Yon, 2026-10-16, after the first weeks on the workshop PC: *"so far the students prefer to play
+instead of coping with the robocraft mission. I think we should try to make the missions more
+integrated with the minecraft game - either by getting more cool powers by succeeding, or by
+blocking advancements until they solve a mission. Also, the students are intimidated by the
+missions: make the coding part optional - they can choose to code themselves, to see you do the
+coding, or to skip the coding part and still get the mission's prize - and the instructions must
+be the minimal amount of text required but still very clear, in a taking-by-the-hand style."*
+And then: *"can we find a way to reward trying to solve even if the player doesn't solve the
+mission? I wonder if we can find a way to determine that a player really tried."*
+
+§4.9 made the missions clearer and it did not move them. The reason is not clarity. The prize
+for a mission is a part that lights a tile on the Component Board - a reward inside the system
+the students are avoiding. Free play wins because nothing they care about is on the line. Five
+decisions, all Yon's:
+
+**Decision: perks, not gates.** A pass grants a Minecraft power: speed, flight on your own plot,
+an elytra with rockets, night vision, a pet, flight anywhere - roughly in ladder order, each
+per-player and granted by the plugin, listed as `perks:` beside each mission so the room can
+tune it between lessons. Gates were the alternative and Yon chose against them: a student who
+cannot crack a mission and is also locked out of the game has nowhere to go but off the server,
+which is the intimidation problem doubled, and it breaks the §6 rule that a student who missed
+a week is not behind. (Vanilla advancements are cosmetic anyway; blocking them changes nothing
+a student feels.) **The one soft gate:** the open land (`/rc wild`) opens after the first
+warm-up - the shape the explore door had in September (§4.10), which Yon chose then too. The
+student's own plot stays fully playable, so a stuck student is never locked out.
+*(Shipped 2026-10-16: `perks:` per mission, `mission/Perk` + `perk/PerkService`. Nothing is
+stored for a perk - what a student holds is read off their passes, so a reset takes the powers
+with the progress and a perk added to a mission reaches everyone who passed it. The gate keeps
+a student who already has a spot on the open land; three class servers had builds out there
+before the gate existed. First list: W1 wild, W2 speed, W3 haste, R1 jump + wild, R2 fly-plot,
+R3 night-vision, R4 elytra, R5 pet:wolf, R6 fly; bonus pays nothing.)*
+
+**Decision: three paths to every mission, and the floor is watching, not skipping.**
+*Watch* - the plugin writes the solution into the student's robot one rule at a time, one
+sentence of narration per rule, then runs the bench. Twenty seconds, nothing to type, no risk.
+*Guided* - the rules appear with one number blank: "when is it dark? fill in the number."
+*Solo* - today. All three get the Minecraft prize; the trophy on the shelf differs. Yon asked
+for a pure skip and took the argument against it: a student who watches has seen a program and
+seen it work; a student who skips has learned nothing and been paid for it, and the prize stops
+meaning anything to the ones who did the work. Students will find that watch pays the same -
+accepted, and it is why the trophy differs.
+*(Shipped 2026-10-16: `ui/Walkthrough` with `/rc path`, `mission/Demo`; guided mode's blank is
+`Operand.blank()`, a `?` the bench refuses to run with. The trophy tier by path is slice 4.)*
+
+**Decision: one step at a time.** The card (§4.9) shows everything at once, ten lines. The
+front door becomes a walkthrough: one sentence, the next action only, ticked off as it is done
+- the plugin already knows when a part is placed, when the table is open, when a rule is added.
+*"שימו בקר על המשטח. ✔ / סוללה ליד הבקר. ✔ / חיישן אור ליד הבקר. ◀"* Then a line per rule,
+then "press the book". The card stays behind a button as the reference.
+*(Shipped 2026-10-16. Nothing is stored for it: the step is read off the robot, the inventory,
+the program and the session, so a returning student is told where they are. `/rc missions <n>`
+is the walkthrough; `/rc card <n>` the card.)*
+
+**Decision: trying is measured by what it produces, never by time or clicks.** Time on a
+mission and clicks in the table are what students would farm within a lesson, and a prize for
+effort that went nowhere reads as a consolation prize at this age. Two signals the plugin can
+see and that are hard to fake:
+- *Progress.* The bench's checks are ordered, and some are free - an empty program passes
+  "day: off" because the lamp starts off. The validator finds the free checks by running the
+  empty program through every mission once at startup. Passing a check that needs a real rule
+  is a true signal: nobody gets the lamp on at night without the rule that does it. The card
+  shows it (`✓ 1/2`), and the first one earns **a taste** - the mission's perk for ten minutes,
+  once per mission. Farming it has a ceiling: it expires, and the permanent one still needs a
+  pass. *(The taste shipped 2026-10-16 with the perks: the bench marks a run whose first real
+  check passed, and a failure after that lends the mission's powers - never the gate, an item
+  or an animal, which cannot be taken back - for `perks.taste-minutes`, once per mission, for
+  the session. The `✓ 1/2` on the card is slice 4.)*
+- *Iteration.* A failed run followed by a run with a changed program - the shape of debugging.
+  Cheap to fake, so it buys no prize; it triggers **an offer**: after two, "ניסיתם פעמיים.
+  רוצים שאראה לכם את הכלל הראשון?" with a button into guided mode. Struggle gets help.
+- *The pass line remembers the path.* "פתרתם לבד אחרי 4 ניסויים" lands differently from
+  "צפיתם", and the trophy carries it on hover. Recognition, not currency.
+
+**Decision: the solutions become data.** Watch and guided need every mission's answer in
+`missions.yml` (`solution:`); today it exists only as Java transcribed by hand in `SelfTest`
+and `tools/BenchCheck`. Once it is data the validator runs it on every enable, names a mission
+its own solution cannot pass and never demonstrates one - content correctness for free, and the
+end of the transcription. The same run with an empty program is what finds the free checks.
+*(Shipped 2026-10-16: `mission/BenchSim`, a Bukkit-free mirror of the bench; 16/16 verified.)*
+
+**What it costs, said plainly:** flying students change what a plot looks like, and a perk list
+is a balance knob the teacher now owns. The answer to every mission sits in a server file - it
+already does, near enough, in `hint:`. The flicker rung grants no part and must still grant a
+perk; perks and parts are separate lists on purpose.
+
+> **OPEN #6.** The perk per mission and the taste's length are Yon's to tune; the first list is
+> a proposal. Not yet known: whether a twelve-year-old who has flown for ten minutes comes back
+> for the rule, or logs off. That is the first thing to watch.
+
+---
+
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do
 
 **Decision (2026-08-25, fork B): the ladder splits in two.** Yon has no redstone experience, so the

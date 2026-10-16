@@ -88,13 +88,36 @@ thirty), `marker` spawns particles and is the only `continuous` type, `display` 
 - `MissionRegistry`: loads `missions.yml` sorted by `order`; `nextFor(done)`; `validate` walks the
   ladder and warns if a mission needs a part nothing earlier unlocks. That deadlock is invisible in
   play - the student is told a part is missing with no way to get it - and it happened on the first
-  draft.
+  draft. Since 2026-10-16 it also parses each mission's `solution:` (`Rule.parse`, the inverse of
+  `Rule.text()`, so content is written in the words the table shows), runs it on `BenchSim` and
+  logs SEVERE for a mission its own answer cannot pass (`solutionVerified` is then false, and a
+  demo must never use it), and runs the empty program to find the **free checks** - the ones that
+  hold before any rule is written - so `realChecks(m)` is what progress counts over
+  (docs/DESIGN.md 4.12). `referenceParts(m, parts)` is the robot a solution assumes: `needs` then
+  `solution-parts`, ports numbered in that order.
+- `BenchSim`: **the bench without a world.** Bukkit-free, like `Evaluator`. A line-for-line mirror
+  of `RobotEngine.tick` (sense from the injected env with feedback from last tick's outputs,
+  decide, latch, the same power arithmetic) and `MissionService.advance` (waits, switch counting
+  for `steady`, a halted robot still advanced). It runs every check rather than stopping at the
+  first failure, so one pass finds every free check; `Result.passed()` is what the bench would
+  have said. **If the engine or the bench changes, change this** - the self-test holds the two
+  together on the night light (same program passes both, same naive program fails both).
+- `Demo`: watch mode. Clears the robot's program, opens its table, and on a repeating task adds
+  one remapped solution rule every `walkthrough.demo-interval` ticks (default 40), echoing the
+  rule and its `RuleWords` sentence to chat and repainting the open window; after the last rule
+  it closes the table, marks the demo done for the walkthrough and starts the bench. Cancelled
+  on quit. Refuses a mission whose solution the validator could not verify.
+- `Perk` (record): one id from a mission's `perks:` - `speed`, `speed:2`, `pet:wolf`, `wild` -
+  parsed strictly (`parse` returns null for anything else), keyed by `key()`, named in Hebrew,
+  and `tastable()` says whether it can be lent (powers yes; the gate, an item, an animal no).
 - `MissionService`: **the test bench.** A run holds the mission, a `CommandSender`, a nullable
   progress owner, the accumulated `env`, a step index and a wait counter. `advance` is called once
   per robot tick; `tickStalled` covers robots that halted mid-run and are no longer being ticked, so
   a flat battery reads as a failed check instead of a frozen run. `expect` matches actuators by
   **type**, memory slots by name, or `running`. A null owner records no progress, which is what lets
-  the self-test drive a real mission without awarding it.
+  the self-test drive a real mission without awarding it. `start` also refuses a program with a
+  `?` in it (guided mode's blank reads as 0). A pass records the path taken (`Walkthrough.Path`)
+  in `players.yml` and says it on the pass line.
 
 ## assistant/AskService
 `ask(player, question)` appends one JSON object per line to `questions.jsonl` (UTF-8). The plugin
@@ -123,8 +146,36 @@ earned ones. `allPlayers()` is the roster `/rc progress` is built from.
   it desyncs the client mid-click. Layout is one rule per row:
   `[#] [source] [op] [value] [->] [target] [verb] [arg] [x]`, controls on row 6.
   `sources`/`targets`/`valueSources` are the click vocabulary, shared with `MenuListener`.
+- `Walkthrough`: **the front door since 2026-10-16** (docs/DESIGN.md 4.12) - a mission as the
+  one next action, ticked off as it is done. `plan(mission, state, names)` is pure: build steps
+  from `needs` + `solution-parts` (counted, so a second panel is its own step; "קחו" from the
+  board vs "שימו" when the part is in the inventory; a locked part names its mission), then OPEN,
+  CHOOSE, the path's rule steps (WRITE / one FILL per rule with a `?` / WATCH), RUN, DONE.
+  Nothing is persisted: the state is read off the robot, the inventory, the program, plus three
+  session bits (table opened, path chosen, demo done). `nudge(player)` after any change shows the
+  current step once; `send` is `/rc missions <n>`; `choose` is `/rc path` - guided writes
+  `remap(solution, portMap, blanks=true)` into the robot, watch starts `Demo`. `blanked(rule)`
+  takes the first number above 1 (thresholds, never 0/1 states); `remap` moves a solution from
+  the reference ports onto the student's by part id. `MissionCard` stays as `/rc card`.
+- `RuleWords`: a rule read aloud in Hebrew with the parts' names, tokens left Latin -
+  "אם חיישן אור (S1) קטן מ-7 — נורה (A1): ON". What the demo says per rule. Pure.
 - `ComponentBoard`: the ghost -> lit parts wall. Unlocked tiles show the part's real block.
 - `Guide`, `StatusBar`, `ProgressReport` (the teacher view; roster sorted least-progress-first).
+
+## perk/
+- `PerkService`: the prize in Minecraft (docs/DESIGN.md 4.12). **Nothing is stored for a perk**:
+  `held(id)` is the union of every passed mission's `perks:` (`heldFrom`, pure) plus any lent
+  ones, so a reset or a content change needs no migration. `apply(player)` makes the player
+  match: infinite potion effects for speed/haste/jump/night-vision (only infinite ones are
+  ours - a finite one they drank is left alone), `allowFlight` by `flightAllowed(held, onOwnPlot)`
+  (survival/adventure only; revoked over the plot's edge with ten seconds of slow falling and
+  a line saying why), an elytra and rockets replaced if missing, a tamed named animal replaced
+  if none of theirs exists. A once-a-second ticker expires tastes and re-checks flight.
+  `granted(player, mission)` on a pass returns what the mission adds beyond other passes;
+  `taste(player, mission)` lends `toTaste(perks, held, tasted, passed)` for `perks.taste-minutes`
+  and records it in `players.yml` (`tasted`) so it is once per mission, ever. The open-land gate
+  is `wildAllowed(held, hasSpot, gated)`: ungated when no mission grants `wild`, and a student
+  with a spot already out there always keeps it.
 
 ## diag/
 - `SelfTest` + `Scratch`: **this is the test suite.** Builds real robots from real blocks, drives

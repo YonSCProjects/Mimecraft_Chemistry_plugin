@@ -144,6 +144,10 @@ public final class Guide {
                     player.sendMessage(Component.text(l, NamedTextColor.WHITE));
                 }
             }
+            // And the one thing to do next, read off their robot - so a returning student
+            // starts where they stopped, not at the top of a card.
+            Component step = plugin.walkthrough().currentLine(player, next);
+            if (step != null) player.sendMessage(step);
         }
     }
 

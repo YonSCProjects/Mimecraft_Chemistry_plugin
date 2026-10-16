@@ -135,6 +135,42 @@ public class PlayerStore {
         }
     }
 
+    /** Has this student had the taste of this mission's perks? Once per mission, ever. */
+    public boolean tasted(UUID id, String missionId) {
+        return yml.getStringList(id + ".tasted").contains(missionId);
+    }
+
+    public void setTasted(UUID id, String missionId) {
+        Set<String> set = new LinkedHashSet<>(yml.getStringList(id + ".tasted"));
+        if (set.add(missionId)) {
+            yml.set(id + ".tasted", new ArrayList<>(set));
+            save();
+        }
+    }
+
+    /**
+     * How a passed mission was passed - "solo", "guided" or "watch" (docs/DESIGN.md 4.12) - or
+     * null for a mission passed before paths existed. Recorded at the pass; the first pass only,
+     * so a student who watched and then solved it alone keeps the second.
+     */
+    public String path(UUID id, String missionId) {
+        return yml.getString(id + ".paths." + missionId, null);
+    }
+
+    public void setPath(UUID id, String missionId, String path) {
+        String old = path(id, missionId);
+        // Solo beats guided beats watch: a later, more independent pass is the one worth keeping.
+        int rank = rank(path), oldRank = rank(old);
+        if (old != null && oldRank >= rank) return;
+        yml.set(id + ".paths." + missionId, path);
+        save();
+    }
+
+    private static int rank(String path) {
+        if (path == null) return -1;
+        return switch (path) { case "solo" -> 2; case "guided" -> 1; default -> 0; };
+    }
+
     /**
      * Grant every reward of every mission this player has already passed. Idempotent.
      *

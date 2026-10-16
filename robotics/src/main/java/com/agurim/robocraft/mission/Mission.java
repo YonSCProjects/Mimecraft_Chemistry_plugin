@@ -22,12 +22,26 @@ import java.util.Map;
  * <p>{@code site}, {@code quest} and {@code value} say where a mission is MET - a place on the
  * student's plot, what it says when clicked, what the robot is worth there. They are content for
  * the yard (docs/DESIGN.md 4.8); the bench that VERIFIES a mission ignores them.
+ *
+ * <p>{@code solution} is the reference program, one rule per line in the words the rule table
+ * shows ({@code "IF S1 < 7 THEN A1 ON"}), with ports counted in {@code needs} order; {@code
+ * solutionParts} are parts the reference build carries beyond {@code needs} (a second solar
+ * panel). The registry parses and verifies it on the bench simulation at enable
+ * ({@link MissionRegistry#solution}), and it is what a demo writes into a student's robot
+ * (docs/DESIGN.md 4.12).
+ *
+ * <p>{@code perks} is what a pass pays in Minecraft - {@link Perk} ids, parsed by
+ * {@link MissionRegistry#perksOf}. Separate from {@code reward} on purpose: a rung that unlocks
+ * no part (the flicker fix) still pays.
  */
 public record Mission(
         String id, int order, boolean optional, boolean bonus,
         String name, String brief, String teaches, String hint,
         String site, List<String> quest, String value,
-        List<String> needs, List<String> reward, int startEnergy, List<Step> steps) {
+        List<String> needs, List<String> reward, int startEnergy, List<Step> steps,
+        List<String> solution, List<String> solutionParts, List<String> perks) {
+
+    public boolean hasSolution() { return solution != null && !solution.isEmpty(); }
 
     /** May a student skip this and still finish the course? Warm-ups and bonus missions, yes. */
     public boolean skippable() { return optional || bonus; }

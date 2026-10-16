@@ -5,7 +5,9 @@ import com.agurim.robocraft.part.Attachment;
 import com.agurim.robocraft.part.Part;
 import com.agurim.robocraft.part.PartLabels;
 import com.agurim.robocraft.part.PartStore;
+import com.agurim.robocraft.mission.BenchSim;
 import com.agurim.robocraft.mission.Mission;
+import com.agurim.robocraft.mission.MissionRegistry;
 import com.agurim.robocraft.mission.MissionService;
 import com.agurim.robocraft.part.Placed;
 import com.agurim.robocraft.program.Op;
@@ -20,6 +22,8 @@ import com.agurim.robocraft.command.RoboCraftCommand;
 import com.agurim.robocraft.listener.InteractListener;
 import com.agurim.robocraft.ui.Guide;
 import com.agurim.robocraft.ui.ProgramMenu;
+import com.agurim.robocraft.ui.RuleWords;
+import com.agurim.robocraft.ui.Walkthrough;
 import com.agurim.robocraft.ui.StatusBar;
 import com.agurim.robocraft.ui.TrophyShelf;
 import net.kyori.adventure.text.Component;
@@ -80,6 +84,9 @@ public final class SelfTest {
             geometry(plugin, checks);
             progression(plugin, checks);
             legibility(plugin, checks);
+            solutions(plugin, checks);
+            walkthrough(plugin, checks);
+            perks(plugin, checks);
         } catch (Exception e) {
             checks.add(new Check("self-test ran without throwing", false, e.toString()));
             plugin.getLogger().warning("selftest threw: " + e);
@@ -1685,6 +1692,281 @@ public final class SelfTest {
     private static String id(Mission m) { return m == null ? "null" : m.id(); }
 
     // ------------------------------------------------------------- helpers
+
+    // ------------------------------------------------ the solutions are content
+
+    /**
+     * Every mission's {@code solution:} is content now (docs/DESIGN.md 4.12), so what used to be
+     * checked by transcribing programs by hand into this file and tools/BenchCheck is checked
+     * against the file itself: every mission has one, it parses and round-trips through the text
+     * a student reads, it fits the table, and it passes the bench simulation. Then the simulation
+     * is held to the real bench that {@code bench()} just drove - the same night light passes
+     * both, the same one-rule program fails both - and to the two things the engine adds that
+     * the evaluator alone cannot show: feedback and energy.
+     */
+    private static void solutions(RoboCraftPlugin plugin, List<Check> checks) {
+        var registry = plugin.missions().registry();
+        BenchSim.Settings settings = MissionRegistry.settings(plugin);
+        int maxRules = plugin.getConfig().getInt("program.max-rules", 5);
+
+        String missing = "", broken = "", roundTrip = "", tooLong = "", failing = "", unverified = "", trivial = "";
+        for (Mission m : registry.all()) {
+            if (registry.realChecks(m) == 0) trivial += m.id() + " ";
+            if (!m.hasSolution()) { missing += m.id() + " "; continue; }
+            Program p = new Program();
+            for (String line : m.solution()) {
+                Rule r = Rule.parse(line);
+                if (r == null) { broken += m.id() + ":'" + line + "' "; continue; }
+                if (!r.equals(Rule.parse(r.text()))) roundTrip += m.id() + ":'" + line + "' ";
+                p.add(r);
+            }
+            if (p.size() > maxRules) tooLong += m.id() + " ";
+            BenchSim.Result r = new BenchSim(m, p, registry.referenceParts(m, plugin.parts()), settings).run();
+            if (!r.passed()) {
+                failing += m.id() + "(" + (r.firstFailure() == null ? "incomplete" : r.firstFailure().detail()) + ") ";
+            }
+            if (!registry.solutionVerified(m)) unverified += m.id() + " ";
+        }
+        checks.add(new Check("every mission carries a solution", missing.isEmpty(), missing));
+        checks.add(new Check("every solution line parses as a rule", broken.isEmpty(), broken));
+        checks.add(new Check("every solution rule survives text -> parse -> text", roundTrip.isEmpty(), roundTrip));
+        checks.add(new Check("every solution fits the rule table", tooLong.isEmpty(), tooLong));
+        checks.add(new Check("every solution passes its own mission on the bench simulation", failing.isEmpty(), failing));
+        checks.add(new Check("the enable-time validator verified every solution", unverified.isEmpty(), unverified));
+        checks.add(new Check("no mission passes every check with an empty program", trivial.isEmpty(), trivial));
+
+        Mission nightLight = registry.byId("night_light");
+        Mission flicker    = registry.byId("flicker");
+        Mission efficiency = registry.byId("efficiency");
+        if (nightLight == null || flicker == null || efficiency == null) {
+            checks.add(new Check("missions.yml still defines night_light, flicker and efficiency", false, ""));
+            return;
+        }
+        List<BenchSim.PartSpec> nl = registry.referenceParts(nightLight, plugin.parts());
+
+        // Held to the real bench: bench() drove these two programs through it a moment ago.
+        checks.add(new Check("simulation agrees with the bench: the two-rule night light passes night_light",
+                new BenchSim(nightLight, nightLight(), nl, settings).run().passed(), ""));
+        Program naive = new Program();
+        naive.add(new Rule("S1", Op.LT, Operand.of(7), "A1", Verb.ON, Operand.of(0)));
+        BenchSim.Result naiveRun = new BenchSim(nightLight, naive, nl, settings).run();
+        checks.add(new Check("simulation agrees with the bench: the one-rule night light fails",
+                !naiveRun.passed(), String.valueOf(naiveRun.firstFailure())));
+
+        // Feedback: the night light flickers on the flicker rung; the file's two thresholds hold.
+        BenchSim.Result flickerRun = new BenchSim(flicker, nightLight(),
+                registry.referenceParts(flicker, plugin.parts()), settings).run();
+        checks.add(new Check("simulation models feedback: the night light flickers on the flicker rung",
+                !flickerRun.passed() && flickerRun.firstFailure() != null
+                        && flickerRun.firstFailure().detail().contains("switched"),
+                String.valueOf(flickerRun.firstFailure())));
+
+        // Energy: an always-on lamp runs flat on the budget rung. It fails the day check first, of
+        // course; the simulation runs every check regardless, so look at the budget check itself.
+        Program alwaysOn = new Program();
+        alwaysOn.add(Rule.parse("ALWAYS THEN A1 ON"));
+        BenchSim.Result flat = new BenchSim(efficiency, alwaysOn,
+                registry.referenceParts(efficiency, plugin.parts()), settings).run();
+        BenchSim.CheckResult budget = null;
+        for (BenchSim.CheckResult c : flat.checks()) {
+            if (efficiency.steps().get(c.stepIndex()).expect().containsKey("running")) budget = c;
+        }
+        checks.add(new Check("simulation models energy: an always-on lamp runs flat on the budget rung",
+                budget != null && !budget.ok() && budget.detail().contains("stopped"), String.valueOf(budget)));
+
+        // Free checks: both "lamp off" checks hold with no program at all - the lamp starts off
+        // and nothing ever lights it - so the night light has exactly one check that needs a rule.
+        java.util.Set<Integer> free = registry.freeChecks(nightLight);
+        int firstCheck = -1, nightCheck = -1;
+        for (int i = 0; i < nightLight.steps().size(); i++) {
+            if (!nightLight.steps().get(i).hasExpect()) continue;
+            if (firstCheck < 0) firstCheck = i;
+            else if (nightCheck < 0) nightCheck = i;
+        }
+        checks.add(new Check("the night light's day check is free and its night check is the one that needs a rule",
+                free.contains(firstCheck) && !free.contains(nightCheck) && registry.realChecks(nightLight) == 1,
+                "free=" + free + " real=" + registry.realChecks(nightLight)));
+        checks.add(new Check("the flicker rung's steady checks are never free",
+                registry.freeChecks(flicker).stream().noneMatch(i -> flicker.steps().get(i).expect().containsKey("steady")),
+                "free=" + registry.freeChecks(flicker)));
+    }
+
+    // ------------------------------------------------------- the walkthrough
+
+    /**
+     * The front door since 2026-10-16 (docs/DESIGN.md 4.12): one step at a time, read off the
+     * robot. The plan is pure, so a student is walked through every state here without a
+     * player - and the pieces guided and watch mode stand on (the blank, moving a solution onto
+     * another robot's ports, reading a rule aloud) are each held to their one job.
+     */
+    private static void walkthrough(RoboCraftPlugin plugin, List<Check> checks) {
+        // The blank: a ? that reads as 0, survives the store, and is gone on the first click.
+        Rule blank = Rule.parse("IF S1 < ? THEN A1 ON");
+        checks.add(new Check("a ? in a rule parses as a blank, reads back as ?, and survives the store",
+                blank != null && blank.hasBlank() && blank.text().equals("IF S1 < ? THEN A1 ON")
+                        && Rule.decode(blank.encode()).equals(blank), String.valueOf(blank)));
+        Rule filled = blank == null ? null : RuleEdit.apply(blank, RuleEdit.RHS, RuleEdit.Click.LEFT,
+                List.of("S1"), List.of("A1"), List.of("S1"));
+        checks.add(new Check("one click on a ? makes it a number",
+                filled != null && !filled.hasBlank() && filled.rhs().value() == 1, String.valueOf(filled)));
+
+        checks.add(new Check("blanking takes the threshold and leaves states and ports alone",
+                Walkthrough.blanked(Rule.parse("IF S1 < 7 THEN A1 ON")).text().equals("IF S1 < ? THEN A1 ON")
+                        && Walkthrough.blanked(Rule.parse("IF S1 = 1 THEN A1 ON")).text().equals("IF S1 = 1 THEN A1 ON")
+                        && Walkthrough.blanked(Rule.parse("IF S1 = 1 THEN M1 ADD 3")).text().equals("IF S1 = 1 THEN M1 ADD ?")
+                        && Walkthrough.blanked(Rule.parse("ALWAYS THEN A2 SHOW S1")).text().equals("ALWAYS THEN A2 SHOW S1"), ""));
+
+        Program sol = new Program();
+        sol.add(Rule.parse("IF S1 < 7 THEN A1 ON"));
+        sol.add(Rule.parse("ALWAYS THEN A1 SHOW S1"));
+        Program moved = Walkthrough.remap(sol, Map.of("S1", "S2", "A1", "A3"), false);
+        checks.add(new Check("a solution moves onto the student's ports, operands included",
+                moved.rules().get(0).text().equals("IF S2 < 7 THEN A3 ON")
+                        && moved.rules().get(1).text().equals("ALWAYS THEN A3 SHOW S2"),
+                ProgramMenu.programLines(moved.rules()).toString()));
+
+        String words = RuleWords.hebrew(Rule.parse("IF S1 < 7 THEN A1 ON"), Map.of("S1", "חיישן אור", "A1", "נורה"));
+        checks.add(new Check("a rule reads aloud with the parts' names",
+                words.equals("אם חיישן אור (S1) קטן מ-7 — נורה (A1): ON"), words));
+
+        // The plan, state by state, for the night light.
+        var reg = plugin.missions().registry();
+        Mission nl = reg.byId("night_light");
+        if (nl == null) { checks.add(new Check("missions.yml still defines night_light", false, "")); return; }
+        Walkthrough.Names names = plugin.walkthrough().names();
+        java.util.Set<String> unlocked = plugin.store().unlocked(java.util.UUID.nameUUIDFromBytes("selftest-walk".getBytes()));
+        java.util.function.Function<Walkthrough.State, Walkthrough.Step> cur =
+                st -> Walkthrough.current(Walkthrough.plan(nl, st, names));
+
+        Walkthrough.State fresh = new Walkthrough.State(Map.of(), Map.of(), unlocked, false, null, List.of(), false, false);
+        checks.add(new Check("a fresh student is told to take a controller from the board",
+                cur.apply(fresh).kind() == Walkthrough.Kind.BUILD && cur.apply(fresh).text().startsWith("קחו בקר"),
+                cur.apply(fresh).text()));
+        Walkthrough.State holding = new Walkthrough.State(Map.of("controller", 1, "battery", 1),
+                Map.of("light_sensor", 1), unlocked, false, null, List.of(), false, false);
+        checks.add(new Check("holding the next part, they are told to place it",
+                cur.apply(holding).text().equals("שימו חיישן אור ליד הבקר."), cur.apply(holding).text()));
+        Map<String, Integer> built = Map.of("controller", 1, "battery", 1, "light_sensor", 1, "lamp", 1);
+        Walkthrough.State builtState = new Walkthrough.State(built, Map.of(), unlocked, false, null, List.of(), false, false);
+        checks.add(new Check("built but not opened: right-click the controller",
+                cur.apply(builtState).kind() == Walkthrough.Kind.OPEN, cur.apply(builtState).text()));
+        Walkthrough.State openedState = new Walkthrough.State(built, Map.of(), unlocked, true, null, List.of(), false, false);
+        checks.add(new Check("opened: the choice of path",
+                cur.apply(openedState).kind() == Walkthrough.Kind.CHOOSE, cur.apply(openedState).text()));
+        Walkthrough.State solo = new Walkthrough.State(built, Map.of(), unlocked, true, Walkthrough.Path.SOLO, List.of(), false, false);
+        checks.add(new Check("solo with no rules yet: write them",
+                cur.apply(solo).kind() == Walkthrough.Kind.WRITE, cur.apply(solo).text()));
+        List<Rule> blanks = Walkthrough.remap(reg.solution(nl), Map.of(), true).rules();
+        Walkthrough.State guided = new Walkthrough.State(built, Map.of(), unlocked, true, null, blanks, false, false);
+        Walkthrough.Step fill = cur.apply(guided);
+        checks.add(new Check("a ? in the program means guided, and the step names the rule to fill",
+                fill.kind() == Walkthrough.Kind.FILL && fill.rule() == 0 && fill.text().contains("?"), fill.text()));
+        List<Rule> filledAll = List.of(Rule.parse("IF S1 < 7 THEN A1 ON"), Rule.parse("IF S1 >= 7 THEN A1 OFF"));
+        Walkthrough.State ready = new Walkthrough.State(built, Map.of(), unlocked, true, Walkthrough.Path.GUIDED, filledAll, false, false);
+        checks.add(new Check("every ? filled: run",
+                cur.apply(ready).kind() == Walkthrough.Kind.RUN, cur.apply(ready).text()));
+        Walkthrough.State watching = new Walkthrough.State(built, Map.of(), unlocked, true, Walkthrough.Path.WATCH, List.of(), false, false);
+        checks.add(new Check("watch: the demo is the step until it has run",
+                cur.apply(watching).kind() == Walkthrough.Kind.WATCH, cur.apply(watching).text()));
+        Walkthrough.State passed = new Walkthrough.State(built, Map.of(), unlocked, true, Walkthrough.Path.SOLO, filledAll, false, true);
+        checks.add(new Check("passed: done", cur.apply(passed).kind() == Walkthrough.Kind.DONE, ""));
+
+        // A locked part names the mission that unlocks it; a second panel is asked for as another.
+        Mission thermo = reg.byId("thermostat");
+        Mission solar = reg.byId("solar_station");
+        if (thermo != null && solar != null) {
+            Walkthrough.State locked = new Walkthrough.State(Map.of("controller", 1, "battery", 1), Map.of(),
+                    unlocked, false, null, List.of(), false, false);
+            Walkthrough.Step s = Walkthrough.current(Walkthrough.plan(thermo, locked, names));
+            checks.add(new Check("a locked part says which mission unlocks it",
+                    s.text().contains("נעול") && s.text().contains("נפתח במשימה"), s.text()));
+            java.util.Set<String> all = new java.util.HashSet<>();
+            for (Part p : plugin.parts().all()) all.add(p.id());
+            Walkthrough.State onePanel = new Walkthrough.State(
+                    Map.of("controller", 1, "battery", 1, "solar_panel", 1, "light_sensor", 1, "display", 1),
+                    Map.of(), all, false, null, List.of(), false, false);
+            Walkthrough.Step s2 = Walkthrough.current(Walkthrough.plan(solar, onePanel, names));
+            checks.add(new Check("the solar station asks for the second panel its solution needs",
+                    s2.kind() == Walkthrough.Kind.BUILD && s2.partId().equals("solar_panel") && s2.text().contains("עוד"),
+                    s2.text()));
+        }
+
+        String wide = "";
+        for (String t : List.of(Walkthrough.TEXT_OPEN, Walkthrough.TEXT_CHOOSE, Walkthrough.TEXT_WRITE,
+                                Walkthrough.TEXT_WATCH, Walkthrough.TEXT_RUN)) {
+            if (t.length() + 2 > Guide.CHAT_WIDTH) wide += t.length() + " ";
+        }
+        checks.add(new Check("the walkthrough's fixed lines fit the chat width", wide.isEmpty(), wide));
+    }
+
+    // ------------------------------------------------------------- the perks
+
+    /**
+     * The prize is in Minecraft (docs/DESIGN.md 4.12). The rules that decide who holds what,
+     * who may fly where, what a first real check lends and who may walk out to the open land are
+     * all pure, so every one is held here; and the content is held to the decision - every rung
+     * pays, the open land opens on the first warm-up, bonus jobs pay nothing.
+     */
+    private static void perks(RoboCraftPlugin plugin, List<Check> checks) {
+        var reg = plugin.missions().registry();
+        com.agurim.robocraft.mission.Perk speed = com.agurim.robocraft.mission.Perk.parse("speed");
+        com.agurim.robocraft.mission.Perk speed2 = com.agurim.robocraft.mission.Perk.parse("speed:2");
+        com.agurim.robocraft.mission.Perk wolf = com.agurim.robocraft.mission.Perk.parse("pet:wolf");
+        checks.add(new Check("perk ids parse: speed, speed:2, pet:wolf - and not pet:dragon or bogus",
+                speed != null && speed.level() == 1 && speed.key().equals("speed")
+                        && speed2 != null && speed2.level() == 2 && speed2.key().equals("speed:2")
+                        && wolf != null && wolf.arg().equals("wolf") && wolf.key().equals("pet:wolf")
+                        && com.agurim.robocraft.mission.Perk.parse("pet:dragon") == null
+                        && com.agurim.robocraft.mission.Perk.parse("bogus") == null
+                        && com.agurim.robocraft.mission.Perk.parse("wild:2") == null, ""));
+        checks.add(new Check("a power can be lent; a gate, an item and an animal cannot",
+                speed.tastable() && com.agurim.robocraft.mission.Perk.parse("fly-plot").tastable()
+                        && !com.agurim.robocraft.mission.Perk.parse("wild").tastable()
+                        && !com.agurim.robocraft.mission.Perk.parse("elytra").tastable() && !wolf.tastable(), ""));
+
+        checks.add(new Check("fly means anywhere, fly-plot means the student's own plot only",
+                com.agurim.robocraft.perk.PerkService.flightAllowed(java.util.Set.of("fly"), false)
+                        && com.agurim.robocraft.perk.PerkService.flightAllowed(java.util.Set.of("fly-plot"), true)
+                        && !com.agurim.robocraft.perk.PerkService.flightAllowed(java.util.Set.of("fly-plot"), false)
+                        && !com.agurim.robocraft.perk.PerkService.flightAllowed(java.util.Set.of("speed"), true), ""));
+
+        List<com.agurim.robocraft.mission.Perk> pays = List.of(speed, com.agurim.robocraft.mission.Perk.parse("wild"));
+        checks.add(new Check("a first real check lends the powers, not the gate - and never twice, never after a pass",
+                com.agurim.robocraft.perk.PerkService.toTaste(pays, java.util.Set.of(), false, false).equals(List.of(speed))
+                        && com.agurim.robocraft.perk.PerkService.toTaste(pays, java.util.Set.of("speed"), false, false).isEmpty()
+                        && com.agurim.robocraft.perk.PerkService.toTaste(pays, java.util.Set.of(), true, false).isEmpty()
+                        && com.agurim.robocraft.perk.PerkService.toTaste(pays, java.util.Set.of(), false, true).isEmpty(), ""));
+
+        checks.add(new Check("the open land: gated until wild is held, a spot already there always kept, ungated when nothing grants it",
+                !com.agurim.robocraft.perk.PerkService.wildAllowed(java.util.Set.of(), false, true)
+                        && com.agurim.robocraft.perk.PerkService.wildAllowed(java.util.Set.of("wild"), false, true)
+                        && com.agurim.robocraft.perk.PerkService.wildAllowed(java.util.Set.of(), true, true)
+                        && com.agurim.robocraft.perk.PerkService.wildAllowed(java.util.Set.of(), false, false), ""));
+
+        checks.add(new Check("perks read in Hebrew: מהירות, השטח הפתוח",
+                com.agurim.robocraft.perk.PerkService.names(pays).equals("מהירות, השטח הפתוח"),
+                com.agurim.robocraft.perk.PerkService.names(pays)));
+
+        // The content, held to the decision.
+        String unpaid = "", bad = "", bonusPays = "";
+        for (Mission m : reg.all()) {
+            for (String raw : m.perks()) if (com.agurim.robocraft.mission.Perk.parse(raw) == null) bad += m.id() + ":" + raw + " ";
+            if (!m.skippable() && m.reward().isEmpty() && reg.perksOf(m).isEmpty()) unpaid += m.id() + " ";
+            if (m.bonus() && !reg.perksOf(m).isEmpty()) bonusPays += m.id() + " ";
+        }
+        checks.add(new Check("every perk in missions.yml parses", bad.isEmpty(), bad));
+        checks.add(new Check("every required rung pays - a part or a perk", unpaid.isEmpty(), unpaid));
+        checks.add(new Check("bonus jobs pay nothing, as they grant nothing", bonusPays.isEmpty(), bonusPays));
+        Mission gate = reg.granting("wild");
+        checks.add(new Check("the open land opens on the first warm-up",
+                gate != null && !reg.warmUps().isEmpty() && gate.equals(reg.warmUps().get(0)), id(gate)));
+        java.util.Set<String> afterTwo = gate == null ? java.util.Set.of()
+                : java.util.Set.of(gate.id(), reg.warmUps().size() > 1 ? reg.warmUps().get(1).id() : gate.id());
+        checks.add(new Check("what a student holds is read off their passes",
+                com.agurim.robocraft.perk.PerkService.heldFrom(afterTwo, reg).contains("wild")
+                        && !com.agurim.robocraft.perk.PerkService.heldFrom(java.util.Set.of(), reg).contains("wild"),
+                String.valueOf(com.agurim.robocraft.perk.PerkService.heldFrom(afterTwo, reg))));
+    }
 
     private static Program nightLight() {
         Program program = new Program();

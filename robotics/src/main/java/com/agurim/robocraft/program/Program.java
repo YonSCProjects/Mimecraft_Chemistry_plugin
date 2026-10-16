@@ -20,6 +20,12 @@ public class Program {
     public void add(Rule r)     { rules.add(r); }
     public void remove(int i)   { if (i >= 0 && i < rules.size()) rules.remove(i); }
 
+    /** Any rule still waiting for a number? A program with a {@code ?} in it must not run the bench. */
+    public boolean hasBlank() {
+        for (Rule r : rules) if (r.hasBlank()) return true;
+        return false;
+    }
+
     public List<String> encode() {
         List<String> out = new ArrayList<>();
         for (Rule r : rules) out.add(r.encode());
