@@ -232,5 +232,7 @@ Runtime state (written by the plugin): `players.yml`, `atoms.yml`, `bonds.yml`.
 - `docs/DESIGN.md` - the concept and the **decision log (what we chose and why)**.
 - `docs/ARCHITECTURE.md` - class-by-class detail and data formats.
 - `docs/EXTENDING.md` - how to add content.
+- `docs/TEST-PLAN.md` - every feature of both plugins and the server setup as a check with
+  Do/See; the live copy with saved results is the pinned claude.ai page of the same name.
 - `CHANGELOG.md` - how the project was built, slice by slice.
 - `README.md` - player/teacher-facing overview and gameplay.
