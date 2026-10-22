@@ -486,6 +486,75 @@ perk; perks and parts are separate lists on purpose.
 > a proposal. Not yet known: whether a twelve-year-old who has flown for ten minutes comes back
 > for the rule, or logs off. That is the first thing to watch.
 
+### 4.13 Making the missions disappear into the game (proposal, 2026-10-22)
+
+Yon: *"make a plan how to integrate the missions into the game in a way that they will not feel
+like missions but like fun parts of the game."* A plan, not yet a decision; nothing below is
+built. It stands on §4.12 (the walkthrough, the paths, the perks all stay as the *how* once a
+student takes a job) and on the Yard (§5, steps 2 and 3), whose content the missions already
+carry in `site:`, `quest:` and `value:`.
+
+**The diagnosis.** The missions feel like missions for three reasons, and none is the content.
+They are *assigned* - a numbered ladder in a fixed order, where Minecraft's own goals are
+self-set (a house) or posed by the world (night falls), and its nearest thing to a mission, the
+advancement, is never assigned but *noticed*. They are *verified by a test* - the bench injects
+readings and says pass/fail, and a twelve-year-old knows an exam when they meet one (OPEN #4).
+And *the robot is for nothing* - on a peaceful server with torches a night light has no
+consequence, and students build what does something for them. The literature agrees:
+Bruckman's "chocolate-covered broccoli" is a lesson under a game skin; the Minecraft Education
+cases that worked had the learner build something the world needed, in public, with the subject
+as the mechanic (Papert); self-determination theory puts engagement on autonomy, competence and
+relatedness, and ours scores low on the first and third. The one accidental success here points
+the same way: the flicker rung exists because a lamp lit its own sensor *in play*.
+
+**Five moves.**
+1. **The world poses the problem; the game notices the answer.** Observation replaces the run:
+   the plugin watches a robot in the real world and recognises a job when it has been done for
+   real - a lamp at the mine entrance on through an actual night and off by morning *is* the
+   pass. The `expect` steps already describe the situations; observation matches them against
+   real readings over real time. The bench stays as **the lab** (`המעבדה`), an optional tool for
+   a fifteen-second check instead of a ten-minute night. The same watcher sees a lamp switching
+   eight times a minute, a gate slamming on a ladder, a battery dying at dusk, and has the site's
+   character remark on it: the problem appears in play, the job is the fix.
+2. **Jobs at sites, with someone who wants them done.** The Yard's places on every plot - a mine
+   entrance with a seeded ore pocket, a pen with two sheep, a greenhouse with wheat, a storeroom
+   with a locked chest, a gate, a forge, a tower - each with a **named villager** (NoAI) as the
+   job post: click, and they tell you their problem in the five lines already written; when the
+   robot works they react, the site gets a seal, the class hears "אצל דנה יש אור במכרה". The
+   sites pay in vanilla currency (wheat, wool, ore, loot), which is what ties them to free play.
+3. **Real stakes where the server allows them.** Real on this server: darkness in the mine, an
+   iron trapdoor nobody can open by hand, a hatch that slams on the ladder, crops that need
+   light ≥ 9 to grow at night, a counter of real visitors, a battery that dies in play, wolves
+   that eat sheep on peaceful, real rain, real sun, a real chest, a real lever. Needs a created
+   stake: the thermostat (the smith's complaint, and energy). Opt-in, only after a class is
+   watched: a few plugin-spawned zombies in the mine shaft at night on the student's own plot,
+   and a **sprinkler** part so the fire alarm has a real fire with fire-tick on at the forge.
+4. **A board of open jobs, not a ladder.** The tech tree stays (the display before the counter),
+   shown as a job board: every job whose parts you hold is open, several at once, pick any. The
+   status bar says "עבודות: 2 · פתוחות: 3". Autonomy inside a structure.
+5. **Ownership and audience.** Robots get names; `/rc visit` tours a classmate's working site;
+   the exhibition hall shows the best of each job. Recognition, never a shared goal (§6). No
+   leaderboard of jobs done, no timers, failure private and cheap, the villager never scolds.
+
+**Phasing.** 0 - the invisible bench: observation mode, the lab optional, diegetic failure
+remarks; zero world change; one or two sessions; a student who builds a night light for fun gets
+"✔" without opening a mission. 1 - sites on terrain: small pads or a terrain-following builder,
+animals, crops, ore, chest, villagers; this is where the open question of §4.10 must be
+answered. 2 - wire the posts: click → quest, reactions, seals, class line, the job board.
+3 - stakes and spice, only after watching a class with 0-2. 4 - audience: names, tours, the
+hall, `/rc progress` as a map of lit sites.
+
+**What to watch.** The one number: jobs completed *without a card being opened* - zero today by
+construction. And whether `questions.jsonl` shifts from "what do I do" to "why does it do that".
+
+**Risks.** Observation must require the robot *at the site*, or any lamp anywhere passes the
+night light; the real day cycle makes feedback slow, which is why the lab stays; villagers need
+NoAI and protection; the sites on terrain are the hard part of the build; contained monsters are
+Yon's call.
+
+> **OPEN #7.** Direction not yet signed off. The recommended start is phase 0: cheapest, no
+> world change, and it tests the whole thesis on the dev server in a week.
+
 ---
 
 ## 5. Mission ladder - warm-ups, then the work redstone cannot do

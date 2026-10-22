@@ -191,6 +191,10 @@ the freeze. The world is never paused - a robot frozen mid-bench would fail for 
 student never caused. Second word is a player if one of that name is online, else text.
 
 ## Roadmap
+- **Missions that do not feel like missions** (proposal, `docs/DESIGN.md` §4.13, 2026-10-22):
+  observation instead of the bench, jobs at Yard sites with villagers as posts, real stakes, a
+  job board instead of a ladder, an audience. Not signed off; phase 0 (the invisible bench) is
+  the recommended start.
 - **The Yard** (designed, skeptic-reviewed, step 1 of 3 shipped): every mission becomes a job at
   a site on the student's own plot - a house, a gatehouse, a pen, a tunnel, a station - with a
   job post as the mission's front door. Step 1 (this content, the bench keys, the animal sensor)
